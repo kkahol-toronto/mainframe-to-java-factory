@@ -1,0 +1,1030 @@
+//CCAC@630 JOB (1,20074,FMCC),FORD.CREDIT.COCS,                         00010000
+// USER=CCCA7AC,REGION=2400K,                                           00020000
+// MSGCLASS=M                                                           00030000
+//JES3DS OUTPUT JESDS=ALL,DEFAULT=YES,CLASS=*,WRITER=JCL400             00040000
+//*MAIN LINES=(200,W),FAILURE=CANCEL,SYSTEM=JGLOBAL                     00060000
+//*FORMAT PR,DDNAME=CCAC9999.SYSUT2,DEST=DRBN004.VIPDIST7
+//*                                                                     00080000
+//*=====================================================================00090000
+//*    CCAC@630   1099 CORE PROCESSING                                  00100000
+//*                                                                     00110000
+//* SYSTEM NARRARTIVE                                                   00110000
+//* -----------------                                                   00110000
+//* THE MAIN PURPOSE OF THIS JOB IS TO EDIT THE 1099 ISSUES COMING FROM 00110000
+//* SEVERAL SOURCE SYSTEMS AND UPDATE THE 1099-MISC MASTER FILE. IT:    00110000
+//* 1) CREATES THE FOREIGN TRANSACTION FILE AND REJECT/MASTER           00110000
+//* 2) CREATES THE REJECT AND MASTER DUPLICATES FILES FOR ACCOUNTING    00110000
+//*    TO PROCESS                                                       00110000
+//* 3) UPDATES THE 1099-MISC MASTER FILE                                00110000
+//*                                                                     00110000
+//* CCAC@630 CREATES 3 REPORTS: #4606-REJECT REPORT, #4608-EXCLUSIONS   00110000
+//* REPORT, AND #4609-MASTER DUPLICATES.                                00110000
+//*                                                                     00110000
+//*                                                                     00110000
+//* PROCESSING SCHEDULE                                                 00110000
+//* -------------------                                                 00110000
+//* CCAC@630 IS RUN UNDER CA-7. IT RUNS MONTHLY ON THE FOURTH WORKDAY.  00110000
+//* IT HAS THREE SCHEDULE ID'S:                                         00110000
+//*                                                                     00110000
+//* ID=1  FIRST PROCESSING MONTH OF THE YEAR (FEBRUARY FOR JANUARY      00120000
+//*       DATA) DO NOT INPUT A RECYCLED REJECT FILE INTO CCAC6320.      00140000
+//*       DO NOT INPUT A PRIOR MO MASTER FILE OR MASTER UPDATES FILE    00160000
+//*       INTO CCAC6330.                                                00170000
+//*                                                                     00180000
+//* ID=2  SECOND THROUGH TWELFTH MONTHS OF THE YEAR. THIS SCHEDULE      00190000
+//*       REQUIRES ALL INPUTS AND OUTPUTS.                              00220000
+//*                                                                     00240000
+//* ID=3  YEAR-END PROCESSING (PERFORMED IN JANUARY). THE ONLY INPUTS   00250000
+//*       ARE MANUAL ISSUES (FORM 20071) AND THE RECYCLED REJECT FILE.  00260000
+//*       THIS MAY BE RUN UP TO THREE TIMES BY SPECIAL REQUEST.         00280000
+//*       (MONTH ON CONTROL CARD > 12)                                  00280000
+//*                                                                     00280000
+//*                                                                     00280000
+//* RERUN/RESTART INSTRUCTIONS
+//* ----------------------------
+//* IF THIS JOB ABENDS BEFORE STEP CCAC630N, FIX THE PROBLEM AND RESTART
+//* FROM THE ABENDING STEP.
+//*                                                                     00280000
+//* IF THIS JOB ABENDS ON STEP CCAC630N, FIX THE PROBLEM, RESTORE       00280000
+//* DATASET CC.IE.T09AC630 AND RESTART FROM STEP CCAC630N.              00280000
+//*                                                                     00280000
+//* IF THIS JOB ABENDS ON STEP CCAC630P, FIX THE PROBLEM & RESTART FROM 00280000
+//* STEP CCAC630P.                                                      00280000
+//*                                                                     00280000
+//* IF THIS JOB ABENDS ON STEP CCAC630Q, FIX THE PROBLEM & RESTART FROM 00280000
+//* STEP CCAC630Q.                                                      00280000
+//*                                                                     00280000
+//*                                                                     00280000
+//* MODIFICATION HISTORY                                                00280000
+//* --------------------                                                00280000
+//*  10/15/1998  R. PETTS                                               00290000
+//*              CHANGED SYSOUT FROM RMDS TO MOBIUS                     00300000
+//*              MSGCLASS=O  INSTEAD OF MSGCLASS=J                      00310000
+//*  08/02/1999  D. CLAYTON                                             00311002
+//*              REMOVE UNUSED LIBRARIES FROM JOBLIB.                   00312002
+//*  08/20/1999  D. CLAYTON                                             00311002
+//*              CONVERT JCL TO FORD STANDARDS                          00312002
+//*  09/22/1999  D. CLAYTON                                             00182102
+//*              CHANGE DATECARD FROM CC.U7CNTL.DATA(CCMR625A) TO       00182202
+//*              AUTOMATED GDG CC.MR.R01MR625.                          00182202
+//*  01/02/2001  K. KIRBY                                               00311002
+//*              UPDATED JCL FOR CARS RELEASE II PROJECT                00312002
+//*  04/06/2001  CH.SUDHEER                                             00290000
+//*              CHANGED THE JCL TO INCLUDE ONE NEW FILEAID STEP        00300000
+//*              TO PROCESS THE 1099 REJECT FILE WHICH HAS              00310000
+//*              NUMERIC AND ALPHA-NUMERIC CHARACTERS IN THE AMOUNT     00310000
+//*              FIELD.                                                 00310000
+//*  01/02/2003  J. GORSKI                                              00290000
+//*              CHANGE FILE CC.RT.T26RT000.M CREATE BY CCRD@000 WAS    00290000
+//*              REPLACED BY FILE CC.LY.T26LY000.M CREATED BY CCLY@005. 00290000
+//*              PART OF CARS V RELEASE.  ALSO CHANGED MSGCLASS TO M
+//*              REPLACED FORMS WITH WRITER=JCL400.
+//*  12/09/2003  A. PRASAD                                              00290000
+//*              CHANGED NAME OF DATE CONTROL CARD FROM CC.MR.R01MR625
+//*              TO CC.AC.R01AC625 SO THAT JOB CAN USE BATCH ID CCCA7AC.
+//*  01/08/2004  D. OPPERMANN                                           00182102
+//*              CHG JOBNAME AND DATASETS FROM CCMR AND CC.MR TO        00182202
+//*              CCAC AND CC.AC RESPECTIVELY. CHANGED RACF BATCH ID     00182202
+//*              FROM CCOCPR1 TO UNIQUE BATCH ID CCCA7AC.               00182202
+//*  05/25/2004  CH.SUDHEER                                             00182102
+//*              INSURANCE SYSTEMS NO LONGER GENERATES THE FILE         00182202
+//*              CC.TA.C04TA160(0).AS A RESULT THE JCL LINE IS CHANGED  00182202
+//*              FROM //CCACT02R DD  DSN=CC.TA.C04TA160(0) TO           00182202
+//*              //CCACT02R DD  DUMMY IN STEP CCAC6306.                 00182202
+//*  05/19/2005  D. OPPERMANN - EPM #1371                               00182102
+//*              SPOOLER NO LONGER GENERATES THE REACT FILE             00182202
+//*              CC.LY.T26LY000.M(0) - THE JCL LINE IS CHANGED          00182202
+//*              FROM //CCACT04R DD  DSN=CC.LY.T26LY000.M(0) TO         00182202
+//*              //CCACT04R DD  DUMMY IN STEP CCAC6303 (WAS CCAC6306).  00182202
+//*              STEPS CCAC6303 AND CCAC6304 ARE REMOVED FROM THIS JOB  00182202
+//*              AND THE SUBSEQUENT STEPS HAVE BEEN RENUMBERED.         00182202
+//*  02/06/2006  D. WYATT - 2006-ACC-004                                00182102
+//*              INSERT #JEND STATEMENT AT END OF STEP EXECUTING        00182202
+//*              CCAC6302 FOR SCHD ID=3                                 00182202
+//*  03/06/2007  J. MADDEN- 2007-ACC-010                                00182102
+//*              REMOVED DUMMY DD NAMES CCACT02R AND CCACT04R AS        00182202
+//*              THESE ARE NO LONGER DEFINED IN PROGRAM CCAC6320.       00182202
+//*  06/05/2008  A. DOBRYNSKI - 2007-ACC-086 - ACCEPT DEFT 1099 FILE    00182102
+//*                             ADD DEFT 1099 TAX FILE                  00182202
+//*  01/04/2011  R. FORTUNATE - EPM 2666                                00182102
+//*                            -ADD STEP CCAC6301 EXECUTES NEW PROGRAM  00182202
+//*                             CCAC6310 - APPLIES THE TAX TYPE.        00182202
+//*                            -STEP CCAC6301 CAN BE REMOVED WHEN THE   00182202
+//*                             TAX TYPE IS PROVIDED BY PINNACLE.       00182202
+//*                            -ADDED STEPS TO SORT DETAIL RECORDS      00182202
+//*                             FROM B&CCW AND DEFT - OUTPUT FROM       00182202
+//*                             CCAC6310.                               00182202
+//*                            -MODIFY STEP CCAC6307 (EXEC CCAC6320)    00182202
+//*                             TO USE SORTED OUTPUT FROM PROGRAM       00182202
+//*                             CCAC6310.                               00182202
+//*                            -RESEQUENCED REMAINING STEPS             00182202
+//*  02/23/2011  R. FORTUNATE - EPM 2666                                00182102
+//*                            -CHANGE DDNAMES IN FOCUS STEPS FOR       00182202
+//*                             REPORTS - 4606 & 4608.                  00182202
+//*  09/02/2011 R. FORTUNATE  IBM FILEAID/FILEMGR CONVER ET 10487562 *
+//*                           CR 2011-ACC-036                        *
+//*                           - CHANGE FILEAID TO SORT               *
+//*                             STEPS  CCAC6302                      *
+//*                                    CCAC630C                      *
+//*                                    CCAC630E                      *
+//*                                    CCAC630N                      *
+//*                                    CCAC630P                      *
+//*                                    CCAC630Q                      *
+//*                           - CHANGE FILEAID TO FILEMGR            *
+//*                             STEP CCAC630F                        *
+//*  07/01/2013 R. FORTUNATE  CR 2013-ACC-056 MOBIUS PROC            *
+//*                          -USE MOBIUS PROC TO SEND REPORTS        *
+//*                           REPORT         STEP                    *
+//*                           CC4606A020     CCAC630J                *
+//*                           CC4608A020     CCAC630K                *
+//*                           CC4609A020     CCAC630L                *
+//*                          -REMOVE FORMAT PR,DEST=LAS02.FMCCRJE,   *  00182202
+//*                                  FORMS=PXCC1,DDNAME=             *  00182202
+//*                                                                  *
+//*  06/01/2020 M. MERRITT    CR 2020-ACC-022 FINEFTCC-1364          *
+//*                           CHANGE FROM MOBIUS TO CMOD             *
+//*                                                                  *
+//*
+//*  10/01/2020  S. PUGH     2020-ACC-044  FINEFTCC-1386               *
+//*              DUE TO PROD ISSUES WITH FCTRP13C ERRORING BECAUSE     *
+//*              CC.DE.PROD.USA.D01630BA HAS BEEN MIGRATED (ON FIND)   *
+//*              ADD STEP CCAC630R TO DELETE THIS FILE                 *
+//*  08/2024     ASHAIK56   CRQ:CRQ000000881292
+//*                        ADDED A STEP TO CALL EVERBRIDGE IF JOB ABENDS
+//*=====================================================================00320000
+//JOBLIB   DD  DSN=CC.PRPGMLIB,                                         00340000
+//             DISP=SHR                                                 00330000
+//*                 PRODUCTION PROGRAM LIBRARY                          00350000
+//         DD  DSN=SYSF.PROD.FOCLIB.LOAD,                               00550000
+//             DISP=SHR                                                 00540000
+//*                 FOCUS PROGRAM LIBRARY                               00560000
+//         DD  DSN=SYSF.PROD.FUSELIB.LOAD,                              00580000
+//             DISP=SHR                                                 00570000
+//*                                                                     00610000
+//*=====================================================================02200000
+//CCAC6301 EXEC  PGM=CCAC6310                                           02210000
+//*              ASSIGN TAX TYPE TO THE VARIOUS 1099 INPUTS             02220000
+//*=====================================================================02250000
+//CCACT01R DD  DSN=CC.IE.T02AC626(0),                                   02270000
+//             DISP=SHR                                                 02260000
+//*                 MISC FORM 20071 MANUAL ISSUES                       02280000
+//*                                                                     02290000
+#JI,ID=(1,2)                                                            02400000
+//CCACT03R DD  DSN=CC.IE.C02CW920.M(0),                                 02420000
+//             DISP=SHR                                                 02410000
+//*                 AIS B&CCW ISSUES FROM CCCW@920                      02430000
+//*                                                                     02440000
+//CCACT04R DD  DSN=CC.DE.PROD.USA.D01630BA,                             02420000
+//             DISP=SHR                                                 02410000
+//*                 DEFT 1099 TAX FILE FROM FACILITY H JOB FCTRP630     01150000
+//*                                                                     02580000
+#JI,ID=(3)                                                              02450000
+//CCACT03R DD  DUMMY                                                    02460000
+//*                 AIS B&CCW ISSUES - ADDITIONAL YEAR END RUN          02470000
+//*                                                                     02480000
+//CCACT04R DD  DUMMY                                                    02460000
+//*                 DEFT 1099 TAX FILE - ADDITIONAL YEAR END RUN        02470000
+//*                                                                     02480000
+#JEND                                                                   02490000
+//*                                                                     02580000
+#JI,ID=(1)                                                              02600000
+//CCACT05R DD  DUMMY                                                    02610000
+//*                 REJECT FILE FROM PREVIOUS MONTH                     02620000
+//*                                                                     02630000
+#JI,ID=(2,3)                                                            02640000
+//CCACT05R DD  DSN=CC.IE.T01AC626(0),                                   02610000
+//             DISP=SHR                                                 02410000
+//*                REJECT FILE FROM PREVIOUS MONTH                      02620000
+//*                                                                     02680000
+#JEND                                                                   02690000
+//CCACT07R DD  DSN=CC.AC.R01AC630(0),                                   02810000
+//             DISP=SHR                                                 02800000
+//*             1099 REPORTABLE ENTRY CODES AND TAX TYPES               02820000
+//*                                                                     02830000
+//CCACT01W DD  DSN=CC.IE.T01AC631(+1),                                  02860000
+//             DISP=(NEW,CATLG,CATLG),                                  02840000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      02870000
+//             UNIT=DISK,                                               02840000
+//             SPACE=(TRK,(10,5),RLSE)                                  02850000
+//*              MISC FORM 20071 MANUAL ISSUES - TAX TYPE ASSIGNED      02880000
+//*                                                                     02890000
+//CCACT03W DD  DSN=CC.IE.T03AC631(+1),                                  02920000
+//             DISP=(NEW,CATLG,CATLG),                                  02900000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      02930000
+//             UNIT=DISK,                                               02900000
+//             SPACE=(CYL,(10,5),RLSE)                                  02910000
+//*              AIS B&CCW ISSUES - TAX TYPE ASSIGNED                   02940000
+//*                                                                     02950000
+//CCACT04W DD  DSN=CC.IE.T04AC631(+1),                                  02980000
+//             DISP=(NEW,CATLG,CATLG),                                  02960000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      02990000
+//             UNIT=DISK,                                               02960000
+//             SPACE=(CYL,(10,5),RLSE)                                  02970000
+//*               DEFT ISSUES - TAX TYPE ASSIGNED                       03000000
+//*                                                                     03010000
+//CCACT05W DD  DSN=CC.IE.T05AC631(+1),                                  03040000
+//             DISP=(NEW,CATLG,CATLG),                                  03020000
+//             DCB=(RECFM=FB,LRECL=526,BLKSIZE=0),                      03050000
+//             UNIT=DISK,                                               03020000
+//             SPACE=(TRK,(10,5),RLSE)                                  03030000
+//*               REJECT FILE - TAX TYPE ASSIGNED                       03060000
+//*                                                                     03010000
+//CCCCE01W DD  DSN=CC.AC.E01AC631(+1),                                  03160000
+//             DISP=(NEW,CATLG,CATLG),                                  03140000
+//             DCB=(RECFM=FB,LRECL=133,BLKSIZE=0),                      03170000
+//             UNIT=DISK,                                               03140000
+//             SPACE=(TRK,(5,1),RLSE)                                   03150000
+//*                 DISPLAY FILE                                        03180000
+//*                                                                     03190000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   03210000
+//             DISP=SHR                                                 03200000
+//*                 CONTROL CARD FILE                                   03220000
+//*                                                                     03230000
+//SYSOUT   DD  SYSOUT=*                                                 03240000
+//SYSPRINT DD  SYSOUT=*                                                 03250000
+//SYSUDUMP DD  SYSOUT=*                                                 03260000
+//SYSABEND DD  SYSOUT=*                                                 03270000
+//SYSABOUT DD  SYSOUT=*                                                 03280000
+//SYSDBOUT DD  SYSOUT=*                                                 03290000
+//*                                                                     03300000
+#JI,ID=(1,2)                                                            00620000
+//*=====================================================================00630000
+//CCAC6302 EXEC  PGM=SORT                                               00640000
+//*          SEPARATE THE HEADERS, TRAILERS AND DETAIL RECORDS          00650000
+//*          ON THE AIS B&CCW 1099 FILE                                 00660000
+//*=====================================================================00670000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.IE.T03AC631(+1),                                  00680000
+//             DISP=SHR                                                 00680000
+//*                 AIS B&CCW 1099 FILE - TAX TYPE ASSIGNED             00690000
+//*                                                                     00700000
+//DD01O    DD  DSN=CC.IE.T01AC630(+1),                                  00730000
+//             DISP=(NEW,CATLG,DELETE),                                 00710000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=27840),                  00740000
+//             UNIT=DISK,                                               00710000
+//             SPACE=(TRK,(5,1),RLSE)                                   00720000
+//*                 AIS B&CCW HEADER RECORDS                            00750000
+//*                                                                     00760000
+//DD02O    DD  DSN=CC.IE.T02AC630(+1),                                  00790000
+//             DISP=(NEW,CATLG,DELETE),                                 00770000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=27840),                  00800000
+//             UNIT=DISK,                                               00770000
+//             SPACE=(CYL,(10,5),RLSE)                                  00780000
+//*                 AIS B&CCW DETAIL RECORDS                            00810000
+//*                                                                     00820000
+//DD03O    DD  DSN=CC.IE.T03AC630(+1),                                  00850000
+//             DISP=(NEW,CATLG,DELETE),                                 00830000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=27840),                  00860000
+//             UNIT=DISK,                                               00830000
+//             SPACE=(TRK,(5,1),RLSE)                                   00840000
+//*                 AIS B&CCW TRAILER RECORDS                           00870000
+//*                                                                     00880000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630070),                              00890000
+//             DISP=SHR                                                 00900000
+//*                 CONTROL FOR SELECTING AIS HEADERS/DETAIL/           00960000
+//*                  TRAILERS                                           00970000
+//SYSUDUMP DD  SYSOUT=*                                                 00980000
+//SYSPRINT DD  SYSOUT=*                                                 00990000
+//*                                                                     01020000
+//*=====================================================================03300000
+//CCAC6303 EXEC  SSORT,                                                 03310000
+//             SPARM='RC16=ABE,IOERR=ABE'                               03310000
+//*          SORT THE 1099 B&CCW TRANSACTION FILE CREATED IN CCAC6310   03320000
+//*          BY CHECK #,TAX TYPE, TIN,  AND BRANCH/DEPT CODE.           03330000
+//*=====================================================================03340000
+//SORTWK01 DD  UNIT=DISK,                                               03350000
+//             SPACE=(CYL,(5,1))                                        03350000
+//SORTIN   DD  DSN=CC.IE.T02AC630(+1),                                  03370000
+//             DISP=SHR                                                 03360000
+//*                B&CCW DETAIL RECORDS                                 03380000
+//*                                                                     03390000
+//SORTOUT  DD  DSN=CC.SR.T03AC630(+1),                                  03420000
+//             DISP=(NEW,CATLG,DELETE),                                 03400000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      03430000
+//             UNIT=DISK,                                               03400000
+//             SPACE=(CYL,(10,5),RLSE)                                  03410000
+//*                 SORTED B&CCW TRANSACTIONS                           03440000
+//*                                                                     03450000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630050),                              03460000
+//             DISP=SHR                                                 03470000
+//*                 SORT BY CHECK NUM, TAX TYPE, TIN, & DEPT NUM        03480000
+//*                                                                     03490000
+//SYSOUT   DD  SYSOUT=*                                                 03500000
+//SYSPRINT DD  SYSOUT=*                                                 03510000
+//*                                                                     03490000
+//*=====================================================================01030000
+//CCAC6304 EXEC  PGM=IEBGENER                                           01040000
+//*          GENER AND CONCATENATE THE AIS B&CCW HEADERS/DETAIL/        01050000
+//*          TRAILERS TO A GENERATION DATASET                           01060000
+//*=====================================================================01070000
+//SYSUT1   DD  DSN=CC.IE.T01AC630(+1),                                  01090000
+//             DISP=SHR                                                 01080000
+//         DD  DSN=CC.SR.T03AC630(+1),                                  01110000
+//             DISP=SHR                                                 01100000
+//         DD  DSN=CC.IE.T03AC630(+1),                                  01130000
+//             DISP=SHR                                                 01120000
+//*                 AIS HEADER/DETAIL/TRAILER FILES                     01140000
+//*                                                                     01150000
+//SYSUT2   DD  DSN=CC.IE.T04AC630(+1),                                  01180000
+//             DISP=(NEW,CATLG,DELETE),                                 01160000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=27840),                  01190000
+//             UNIT=DISK,                                               01160000
+//             SPACE=(TRK,(20,05),RLSE)                                 01170000
+//*                 AIS B&CCW ISSUES                                    01200000
+//*                                                                     01210000
+//SYSPRINT DD  SYSOUT=*                                                 01220000
+//SYSOUT   DD  SYSOUT=*                                                 01230000
+//SYSIN    DD  DUMMY                                                    01240000
+//*                                                                     01250000
+//*=====================================================================01030000
+//CCAC6305 EXEC  PGM=IEBGENER                                           01040000
+//*          COPY THE DEFT 1099 TAX FILE                                01050000
+//*=====================================================================01070000
+//SYSUT1   DD  DSN=CC.IE.T04AC631(+1),                                  01090000
+//             DISP=SHR                                                 01080000
+//*                 DEFT 1099 TAX FILE - TAX TYPE ASSIGNED              01150000
+//*                                                                     01150000
+//SYSUT2   DD  DSN=CC.AC.T05AC630(+1),                                  01180000
+//             UNIT=DISK,                                               01160000
+//             DISP=(NEW,CATLG,DELETE),                                 01160000
+//             SPACE=(CYL,(10,05),RLSE),                                01170000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0)                       01190000
+//*                 DEFT 1099 TAX FILE                                  01200000
+//*                                                                     01210000
+//SYSPRINT DD  SYSOUT=*                                                 01220000
+//SYSOUT   DD  SYSOUT=*                                                 01230000
+//SYSIN    DD  DUMMY                                                    01240000
+//*                                                                     01250000
+//*=====================================================================03300000
+//CCAC6306 EXEC  SSORT,                                                 03310000
+//             SPARM='RC16=ABE,IOERR=ABE'                               03310000
+//*          SORT THE 1099 DEFT TRANSACTION FILE CREATED IN CCAC6310    03320000
+//*          BY BUS CODE, CHECK #,TAX TYPE, TIN,  AND BRANCH/DEPT CODE. 03330000
+//*=====================================================================03340000
+//SORTWK01 DD  UNIT=DISK,                                               03350000
+//             SPACE=(CYL,(5,1))                                        03350000
+//SORTIN   DD  DSN=CC.IE.T04AC631(+1),                                  03370000
+//             DISP=SHR                                                 03360000
+//*                DEFT RECORDS - HDR , DETAIL, TRL                     03380000
+//*                                                                     03390000
+//SORTOUT  DD  DSN=CC.SR.T05AC630(+1),                                  03420000
+//             DISP=(NEW,CATLG,DELETE),                                 03400000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      03430000
+//             UNIT=DISK,                                               03400000
+//             SPACE=(CYL,(10,5),RLSE)                                  03410000
+//*                 SORTED DEFT TRANSACTIONS                            03440000
+//*                                                                     03450000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630060),                              03460000
+//             DISP=SHR                                                 03470000
+//*                 SORT BY CHECK NUM, TAX TYPE, TIN, & DEPT NUM        03480000
+//*                                                                     03490000
+//SYSOUT   DD  SYSOUT=*                                                 03500000
+//SYSPRINT DD  SYSOUT=*                                                 03510000
+//*                                                                     03490000
+#JEND
+//*=====================================================================02200000
+//CCAC6307 EXEC  PGM=CCAC6320                                           02210000
+//*                 EDIT THE DATA FROM SOURCE SYSTEMS.                  02220000
+//*                 CREATE MASTER FILE UPDATE TRANSACTIONS, REJECT      02230000
+//*                 FILE, REJECT REPORT FILE, EXCLUDES FILE.            02240000
+//*=====================================================================02250000
+//CCACT01R DD  DSN=CC.IE.T01AC631(+1),                                  02270000
+//             DISP=SHR                                                 02260000
+//*                 MISC FORM 20071 MANUAL ISSUES                       02280000
+//*                                                                     02290000
+#JI,ID=(1,2)                                                            02400000
+//CCACT03R DD  DSN=CC.IE.T04AC630(+1),                                  02420000
+//             DISP=SHR                                                 02410000
+//*                 AIS B&CCW ISSUES - TAX TYPE APPLIED & SORTED        02430000
+//*                                                                     02440000
+//CCACT04R DD  DSN=CC.SR.T05AC630(+1),                                  02420000
+//             DISP=SHR                                                 02410000
+//*                 DEFT ISSUES  - TAX TYPE APPLIED & SORTED            02430000
+//*                                                                     02440000
+#JI,ID=(3)                                                              02450000
+//CCACT03R DD  DUMMY                                                    02460000
+//*                 AIS B&CCW ISSUES - ADDITIONAL YEAR END RUN          02470000
+//*                                                                     02480000
+//CCACT04R DD  DUMMY                                                    02460000
+//*                 DEFT ISSUES - ADDITIONAL YEAR END RUN               02470000
+//*                                                                     02480000
+#JEND                                                                   02490000
+//*                                                                     02580000
+#JI,ID=(1)                                                              02600000
+//CCACT05R DD  DUMMY                                                    02610000
+//*                 REJECT FILE FROM PREVIOUS MONTH                     02620000
+//*                                                                     02630000
+#JI,ID=(2,3)                                                            02640000
+//CCACT05R DD  DSN=CC.IE.T05AC631(+1),                                  02660000
+//             DISP=SHR                                                 02650000
+//*                 REJECT FILE FROM PREVIOUS MONTH - TAX TYPE ASSIGNED 02670000
+//*                                                                     02680000
+#JEND                                                                   02690000
+//CCACT07R DD  DSN=CC.AC.R01AC630(0),                                   02810000
+//             DISP=SHR                                                 02800000
+//*                 TABLE OF 1099 REPORTABLE ENTRY CODES                02820000
+//*                                                                     02830000
+//CCACT01W DD  DSN=CC.AC.T01AC632(+1),                                  02860000
+//             DISP=(NEW,CATLG,DELETE),                                 02840000
+//             DCB=(RECFM=FB,LRECL=450,BLKSIZE=0),                      02870000
+//             UNIT=DISK,                                               02840000
+//             SPACE=(CYL,(10,5),RLSE)                                  02850000
+//*                 TRANSACTION FILE                                    02880000
+//*                                                                     02890000
+//CCACT02W DD  DSN=CC.AC.T02AC632(+1),                                  02920000
+//             DISP=(NEW,CATLG,DELETE),                                 02900000
+//             DCB=(RECFM=FB,LRECL=526,BLKSIZE=0),                      02930000
+//             UNIT=DISK,                                               02900000
+//             SPACE=(TRK,(10,5),RLSE)                                  02910000
+//*                 REJECT FILE                                         02940000
+//*                                                                     02950000
+//CCACT03W DD  DSN=CC.AC.T03AC632(+1),                                  02980000
+//             DISP=(NEW,CATLG,DELETE),                                 02960000
+//             DCB=(RECFM=FB,LRECL=450,BLKSIZE=0),                      02990000
+//             UNIT=DISK,                                               02960000
+//             SPACE=(CYL,(10,5),RLSE)                                  02970000
+//*                 FOREIGN TRANSACTION FILE                            03000000
+//*                                                                     03010000
+//CCACT04W DD  DSN=CC.AC.T04AC632(+1),                                  03040000
+//             DISP=(NEW,CATLG,DELETE),                                 03020000
+//             DCB=(RECFM=FB,LRECL=450,BLKSIZE=0),                      03050000
+//             UNIT=DISK,                                               03020000
+//             SPACE=(CYL,(80,10),RLSE)                                 03030000
+//*                 EXCLUSIONS FILE                                     03060000
+//*                                                                     03070000
+//CCACC01W DD  DSN=CC.AC.C01AC632(+1),                                  03100000
+//             DISP=(NEW,CATLG,DELETE),                                 03080000
+//             DCB=(RECFM=FB,LRECL=425,BLKSIZE=0),                      03110000
+//             UNIT=DISK,                                               03080000
+//             SPACE=(CYL,(10,5),RLSE)                                  03090000
+//*                 REJECT REPORT FILE                                  03120000
+//*                                                                     03130000
+//CCCCE01W DD  DSN=CC.AC.E01AC632(+1),                                  03160000
+//             DISP=(NEW,CATLG,CATLG),                                  03140000
+//             DCB=(RECFM=FB,LRECL=133,BLKSIZE=0),                      03170000
+//             UNIT=DISK,                                               03140000
+//             SPACE=(TRK,(5,1),RLSE)                                   03150000
+//*                 DISPLAY FILE                                        03180000
+//*                                                                     03190000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   03210000
+//             DISP=SHR                                                 03200000
+//*                 CONTROL CARD FILE                                   03220000
+//*                                                                     03230000
+//SYSOUT   DD  SYSOUT=*                                                 03240000
+//SYSPRINT DD  SYSOUT=*                                                 03250000
+//SYSUDUMP DD  SYSOUT=*                                                 03260000
+//SYSABEND DD  SYSOUT=*                                                 03270000
+//SYSABOUT DD  SYSOUT=*                                                 03280000
+//SYSDBOUT DD  SYSOUT=*                                                 03290000
+//*                                                                     03300000
+//*=====================================================================03300000
+//CCAC6308 EXEC  SSORT,                                                 03310000
+//             SPARM='RC16=ABE,IOERR=ABE'                               03310000
+//*          SORT THE 1099 TRANSACTION FILE CREATED IN                  03320000
+//*          CCAC6320 BY CHECK # AND BRANCH/DEPT CODE.                  03330000
+//*=====================================================================03340000
+//SORTWK01 DD  UNIT=DISK,                                               03350000
+//             SPACE=(CYL,(5,1))                                        03350000
+//SORTIN   DD  DSN=CC.AC.T01AC632(+1),                                  03370000
+//             DISP=SHR                                                 03360000
+//*                 TRANSACTION FILE                                    03380000
+//*                                                                     03390000
+//SORTOUT  DD  DSN=CC.SR.T01AC630(+1),                                  03420000
+//             DISP=(NEW,CATLG,DELETE),                                 03400000
+//             DCB=(RECFM=FB,LRECL=450,BLKSIZE=27900),                  03430000
+//             UNIT=DISK,                                               03400000
+//             SPACE=(CYL,(10,5),RLSE)                                  03410000
+//*                 SORTED TRANSACTIONS                                 03440000
+//*                                                                     03450000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630010),                              03460000
+//             DISP=SHR                                                 03470000
+//*                 SORTING BY CHECK NUMBER AND DEPARTMENT CODE         03480000
+//*                                                                     03490000
+//SYSOUT   DD  SYSOUT=*                                                 03500000
+//SYSPRINT DD  SYSOUT=*                                                 03510000
+//*                                                                     03490000
+//*=====================================================================03520000
+//CCAC6309 EXEC  PGM=CCAC6330                                           03530000
+//*          UPDATE THE 1099 MASTER FILE                                03540000
+//*=====================================================================03550000
+//CCACT01R DD  DSN=CC.SR.T01AC630(+1),                                  03570000
+//             DISP=SHR                                                 03560000
+//*                 SORTED TRANSACTION FILE                             03580000
+//*                                                                     03590000
+#JI,ID=(1)                                                              03600000
+//CCACT02R DD  DUMMY                                                    03610000
+//*                 MASTER UPDATES FILE                                 03620000
+//*                                                                     03630000
+#JI,ID=(2,3)                                                            03640000
+//CCACT02R DD  DSN=CC.AC.T02AC626(0),                                   03660000
+//             DISP=SHR                                                 03650000
+//*                 MASTER UPDATES FILE                                 03670000
+//*                                                                     03680000
+#JEND                                                                   03690000
+#JI,ID=(1)                                                              03700000
+//CCACM01R DD  DUMMY                                                    03710000
+//*                 PREVIOUS MONTH MASTER                               03720000
+//*                                                                     03730000
+#JI,ID=(2,3)                                                            03740000
+//CCACM01R DD  DSN=CC.AC.M01AC633(0),                                   03760000
+//             DISP=SHR                                                 03750000
+//*                 PREVIOUS MONTH MASTER                               03770000
+//*                                                                     03780000
+#JEND                                                                   03790000
+//CCACT01W DD  DSN=CC.AC.T01AC633(+1),                                  03820000
+//             DISP=(NEW,CATLG,DELETE),                                 03800000
+//             DCB=(RECFM=FB,LRECL=450,BLKSIZE=0),                      03830000
+//             UNIT=DISK,                                               03800000
+//             SPACE=(TRK,(5,1),RLSE)                                   03810000
+//*                 MASTER DUPLICATES                                   03840000
+//*                                                                     03850000
+//CCACM01W DD  DSN=CC.AC.M01AC633(+1),                                  03880000
+//             DISP=(NEW,CATLG,DELETE),                                 03860000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      03890000
+//             UNIT=DISK,                                               03860000
+//             SPACE=(TRK,(800,50),RLSE)                                03870000
+//*                 MASTER FILE                                         03900000
+//*                                                                     03910000
+//CCCCE01W DD  DSN=CC.AC.E01AC633(+1),                                  03940000
+//             DISP=(NEW,CATLG,CATLG),                                  03920000
+//             DCB=(RECFM=FB,LRECL=133,BLKSIZE=0),                      03950000
+//             UNIT=DISK,                                               03920000
+//             SPACE=(TRK,(5,1),RLSE)                                   03930000
+//*                 DISPLAY FILE                                        03960000
+//*                                                                     03970000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   03990000
+//             DISP=SHR                                                 03980000
+//*                 1099 CONTROL CARD                                   04000000
+//*                                                                     04010000
+//SYSOUT   DD  SYSOUT=*                                                 04020000
+//SYSPRINT DD  SYSOUT=*                                                 04030000
+//SYSUDUMP DD  SYSOUT=*                                                 04040000
+//SYSABOUT DD  SYSOUT=*                                                 04050000
+//SYSABEND DD  SYSOUT=*                                                 04060000
+//SYSDBOUT DD  SYSOUT=*                                                 04070000
+//*                                                                     04160000
+//*=====================================================================04080000
+//CCAC6310 EXEC  SSORT,                                                 04090000
+//             SPARM='RC16=ABE,IOERR=ABE'                               04090000
+//*          SORT THE 1099 MASTER FILE BY SSN.                          04100000
+//*=====================================================================04110000
+//SORTWK01 DD  UNIT=DISK,                                               04120000
+//             SPACE=(CYL,(5,1))                                        04120000
+//SORTIN   DD  DSN=CC.AC.M01AC633(+1),                                  04140000
+//             DISP=SHR                                                 04130000
+//*                 UPDATED MASTER FROM CCAC6330                        04150000
+//*                                                                     04160000
+//SORTOUT  DD  DSN=CC.SR.M01AC633(+1),                                  04190000
+//             DISP=(NEW,CATLG,DELETE),                                 04170000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      04200000
+//             UNIT=DISK,                                               04170000
+//             SPACE=(CYL,(10,5),RLSE)                                  04180000
+//*                 SSN SORTED MASTER FILE                              04210000
+//*                                                                     04220000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630020),                              04230000
+//             DISP=SHR                                                 04240000
+//*                 SORTING MASTER BY SSN                               04250000
+//*                                                                     04260000
+//SYSOUT   DD  SYSOUT=*                                                 04270000
+//SYSPRINT DD  SYSOUT=*                                                 04280000
+//SYSUDUMP DD  SYSOUT=*                                                 04290000
+//SYSABOUT DD  SYSOUT=*                                                 04300000
+//SYSDBOUT DD  SYSOUT=*                                                 04310000
+//*                                                                     04320000
+//*=====================================================================04330000
+//CCAC630A EXEC  PGM=CCAC6340                                           04340000
+//*          MECHANICALLY UPDATE THE 1099 MASTER FILE                   04350000
+//*=====================================================================04360000
+//CCACT01R DD  DSN=CC.AC.R02AC626(0),                                   04380000
+//             DISP=SHR                                                 04370000
+//*           SSN SORTED CORPORATE FILE                                 04390000
+//CCACM01R DD  DSN=CC.SR.M01AC633(+1),                                  04410000
+//             DISP=SHR                                                 04400000
+//*                 SSN SORTED MASTER                                   04420000
+//*                                                                     04430000
+//CCACM01W DD  DSN=CC.AC.M01AC634(+1),                                  04460000
+//             DISP=(NEW,CATLG,DELETE),                                 04440000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      04470000
+//             UNIT=DISK,                                               04440000
+//             SPACE=(TRK,(800,50),RLSE)                                04450000
+//*                 MECHANICALLY UPDATED MASTER FILE                    04480000
+//*                                                                     04490000
+//CCCCE01W DD  DSN=CC.AC.E01AC634(+1),                                  04520000
+//             DISP=(NEW,CATLG,CATLG),                                  04500000
+//             DCB=(RECFM=FB,LRECL=133,BLKSIZE=0),                      04530000
+//             UNIT=DISK,                                               04500000
+//             SPACE=(TRK,(5,1),RLSE)                                   04510000
+//*                 DISPLAY FILE                                        04540000
+//*                                                                     04550000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   04570000
+//             DISP=SHR                                                 04560000
+//*                 1099 CONTROL CARD                                   04580000
+//*                                                                     04590000
+//SYSOUT   DD  SYSOUT=*                                                 04600000
+//SYSPRINT DD  SYSOUT=*                                                 04610000
+//SYSUDUMP DD  SYSOUT=*                                                 04620000
+//SYSABOUT DD  SYSOUT=*                                                 04630000
+//SYSDBOUT DD  SYSOUT=*                                                 04640000
+//*                                                                     04590000
+//*=====================================================================04650000
+//CCAC630B EXEC  SSORT,                                                 04660000
+//             SPARM='RC16=ABE,IOERR=ABE'                               04660000
+//*          SORT THE 1099 MASTER BACK TO ORGINAL SORT                  04670000
+//*          ORDER BEFORE CCAC6340.                                     04680000
+//*=====================================================================04690000
+//SORTWK01 DD  UNIT=DISK,                                               04700000
+//             SPACE=(CYL,(10,5),RLSE)                                  04760000
+//SORTIN   DD  DSN=CC.AC.M01AC634(+1),                                  04720000
+//             DISP=SHR                                                 04710000
+//*                 MECHANICALLY UPDATED MASTER                         04730000
+//*                                                                     04740000
+//SORTOUT  DD  DSN=CC.SR.M01AC634(+1),                                  04770000
+//             DISP=(NEW,CATLG,DELETE),                                 04750000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      04780000
+//             UNIT=DISK,                                               04750000
+//             SPACE=(CYL,(10,5),RLSE)                                  04760000
+//*                 SORTED UPDATED MASTER                               04790000
+//*                                                                     04800000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630030),                              04810000
+//             DISP=SHR                                                 04820000
+//*                 SORTING BY CHECK NUMBER AND DEPARTMENT CODE         04830000
+//*                                                                     04840000
+//SYSOUT   DD  SYSOUT=*                                                 04850000
+//SYSPRINT DD  SYSOUT=*                                                 04860000
+//SYSUDUMP DD  SYSOUT=*                                                 04870000
+//SYSABOUT DD  SYSOUT=*                                                 04880000
+//SYSDBOUT DD  SYSOUT=*                                                 04890000
+//*                                                                     04840000
+//*=====================================================================04900000
+//CCAC630C EXEC  PGM=SORT                                               04910000
+//*          REMOVE HEADER AND TRAILER FROM                             04920000
+//*          MASTER FILE FOR CUSTOMER USE                               04930000
+//*=====================================================================04940000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.SR.M01AC634(+1),                                  04950000
+//             DISP=SHR                                                 04950000
+//*                 SORTED MASTER FILE                                  04960000
+//*                                                                     04970000
+//DD01O    DD  DSN=CCAC.MISC1099.MASTER.FILE,                           05000000
+//             DISP=(NEW,CATLG,DELETE),                                 04980000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      05010000
+//             UNIT=DISK,                                               04980000
+//             SPACE=(TRK,(800,50),RLSE)                                04990000
+//*                 NON PRODUCTION MASTER FILE W/O HDR AND TRL          05020000
+//*                                                                     05030000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630080),                              05040000
+//             DISP=SHR                                                 05050000
+//*                                                                     05060000
+//SYSUDUMP DD  SYSOUT=*                                                 05070000
+//SYSPRINT DD  SYSOUT=*                                                 05080000
+//*                                                                     05060000
+//*=====================================================================05110000
+//CCAC630D EXEC  SSORT,                                                 05120000
+//             SPARM='RC16=ABE,IOERR=ABE'                               05120000
+//*          SORT REJECT FILE                                           05130000
+//*=====================================================================05140000
+//SORTIN   DD  DSN=CC.AC.T02AC632(+1),                                  05160000
+//             DISP=SHR                                                 05150000
+//*                 REJECT FILE                                         05170000
+//*                                                                     05180000
+//SORTOUT  DD  DSN=CC.SR.T02AC630(+1),                                  05210000
+//             DISP=(NEW,CATLG,DELETE),                                 05190000
+//             DCB=(RECFM=FB,LRECL=526,BLKSIZE=27878),                  05220000
+//             UNIT=DISK,                                               05190000
+//             SPACE=(TRK,(10,5),RLSE)                                  05200000
+//*                 SORTED REJECT FILE                                  05230000
+//*                                                                     05240000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630040),                              05250000
+//             DISP=SHR                                                 05260000
+//*                 SORT KEY=OPERATION LOCATION,BRANCH/DEPT,            05270000
+//*                  CHECK NO.                                          05280000
+//*                                                                     05290000
+//SYSOUT   DD  SYSOUT=*                                                 05300000
+//SYSPRINT DD  SYSOUT=*                                                 05310000
+//*                                                                     05290000
+//*=====================================================================05320000
+//CCAC630E EXEC  PGM=SORT                                               05330000
+//*          REMOVE HEADER AND TRAILER AND CREATE A                     05340000
+//*          NON PRODUCTION REJECT RECYCLE FILE                         05350000
+//*=====================================================================05360000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.SR.T02AC630(+1),                                  05370000
+//             DISP=SHR                                                 05370000
+//*                 NON PRODUCTION REJECT FILE                          05380000
+//*                                                                     05390000
+//DD01O    DD  DSN=CCAC.MISC1099.REJECT.FILE,                           05420000
+//             DISP=(NEW,CATLG,DELETE),                                 05400000
+//             DCB=(RECFM=FB,LRECL=526,BLKSIZE=27878),                  05430000
+//             UNIT=DISK,                                               05400000
+//             SPACE=(TRK,(10,5),RLSE)                                  05410000
+//*                 NON PRODUCTION REJECT FILE                          05440000
+//*                  W/O HDR AND TRL                                    05450000
+//*                                                                     05460000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630090),                              05470000
+//             DISP=SHR                                                 05480000
+//*                                                                     05490000
+//SYSUDUMP DD  SYSOUT=*                                                 05500000
+//SYSPRINT DD  SYSOUT=*                                                 05510000
+//*                                                                     05490000
+//*=====================================================================05320000
+//CCAC630F EXEC  PGM=FILEMGR                                            05330000
+//*          REMOVE HEADER AND TRAILER AND CREATE TWO FILES,ONE WITH    05340000
+//*          THE NUMERIC AMOUNT FIELDS AND THE OTHER WITH THE           05350000
+//*          ALPHA-NUMERIC AMOUNT FIELDS.                               05350000
+//*=====================================================================05360000
+//DD01     DD  DSN=CC.AC.C01AC632(+1),                                  05370000
+//             DISP=SHR                                                 05370000
+//*                 1099 REJECT FILE                                    05380000
+//*                                                                     05390000
+//DD01O    DD  DSN=&&C01AC632,                                          05420000
+//             DISP=(NEW,PASS),                                         05400000
+//             DCB=(RECFM=FB,LRECL=425,BLKSIZE=0),                      05430000
+//             UNIT=DISK,                                               05400000
+//             SPACE=(TRK,(10,5),RLSE)                                  05410000
+//*                 1099 REJECT FILE WITH NUMERIC AMOUNT FIELDS         05440000
+//*                  W/O HDR AND TRL                                    05450000
+//*                                                                     05460000
+//DD02O    DD  DSN=&&C02AC632,                                          05420000
+//             DISP=(NEW,PASS),                                         05400000
+//             DCB=(RECFM=FB,LRECL=425,BLKSIZE=0),                      05430000
+//             UNIT=DISK,                                               05400000
+//             SPACE=(TRK,(10,5),RLSE)                                  05410000
+//*                 1099 REJECT FILE WITH ALPHA-NUMERIC AMOUNT FIELDS   05440000
+//*                  W/O HDR AND TRL                                    05450000
+//*                                                                     05460000
+//SYSIN    DD  DSN=CC.FILEMGR.DATA(AC630060),                           05470000
+//             DISP=SHR                                                 05480000
+//*                                                                     05490000
+//SYSUDUMP DD  SYSOUT=*                                                 05500000
+//SYSPRINT DD  SYSOUT=*                                                 05510000
+//*                                                                     05490000
+//*=====================================================================05540000
+//CCAC630G EXEC  PGM=FOCUS                                              05550000
+//*          CREATE REJECT REPORT - NUMERIC AMOUNT FIELDS               05560000
+//*                       AND ALPHA-NUMERIC AMOUNT FIELDS               05560000
+//*=====================================================================05570000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  05590000
+//             DISP=SHR                                                 05580000
+//*                 PRODUCTION FOCEXEC LIBRARY                          05600000
+//*                                                                     05610000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   05630000
+//             DISP=SHR                                                 05620000
+//*                 MASTER FILE DESCRIPTIONS                            05640000
+//*                                                                     05650000
+//AC6301M0 DD  DSN=&&C01AC632,                                          05670000
+//             DISP=(OLD,DELETE,DELETE),                                05660000
+//             DCB=(RECFM=FB,LRECL=425,BLKSIZE=0)
+//*                 REJECT REPORT FILE WITH NUMERIC AMOUNT FIELDS       05680000
+//*                                                                     05700000
+//AC630200 DD  DSN=&&C02AC632,                                          05670000
+//             DISP=(OLD,DELETE,DELETE),                                05660000
+//             DCB=(RECFM=FB,LRECL=425,BLKSIZE=0)
+//*                 REJECT REPORT FILE WITH ALPHA-NUMERIC AMOUNT FIELDS 05680000
+//*                                                                     05700000
+//OFFLINE  DD  DSN=CC.AC.P01AC630.XEROX(+1),                            05720000
+//             DISP=(NEW,CATLG,DELETE),                                 05710000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 05740000
+//             UNIT=DISK,                                               05730000
+//             SPACE=(TRK,(50,10))                                      05730000
+//*                 1099 REJECT REPORT FILE #4606                       05750000
+//*                                                                     05760000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   05780000
+//             DISP=SHR                                                 05770000
+//*                 CONTROL CARD                                        05790000
+//*                                                                     05800000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               05820000
+//             DISP=SHR                                                 05810000
+//*                                                                     05830000
+//SYSPRINT DD  SYSOUT=*                                                 05840000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC630010),                             05850000
+//             DISP=SHR                                                 05860000
+//*                                                                     05830000
+//*=====================================================================06160000
+//CCAC630H EXEC  PGM=FOCUS                                              06170000
+//*          1099 EXCLUSION REPORT #4608                                06180000
+//*=====================================================================06190000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  06210000
+//             DISP=SHR                                                 06200000
+//*                 PRODUCTION FOCEXEC LIBRARY                          06220000
+//*                                                                     06230000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   06250000
+//             DISP=SHR                                                 06240000
+//*                 MASTER FILE DESCRIPTIONS                            06260000
+//*                                                                     06270000
+//FOCSORT  DD  UNIT=DISK,                                               06280000
+//             SPACE=(CYL,(8,8),RLSE)                                   06290000
+//SORTWK04 DD  UNIT=DISK,                                               06300000
+//             SPACE=(TRK,(100,50))                                     06300000
+//SORTWK05 DD  UNIT=DISK,                                               06310000
+//             SPACE=(TRK,(100,50))                                     06310000
+//*                 FOCUS RQRD ALLC - INTERNAL SORTS                    06320000
+//*                                                                     06330000
+//AC6303M0 DD  DSN=CC.AC.T04AC632(+1),                                  06350000
+//             DISP=SHR,                                                06340000
+//             UNIT=DISK                                                06340000
+//*                 EXCLUSIONS FILE FOR 1099 PROCESSING                 06360000
+//*                                                                     06370000
+//OFFLINE  DD  DSN=CC.AC.P02AC630.XEROX(+1),                            06400000
+//             DISP=(NEW,CATLG,DELETE),                                 06380000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 06410000
+//             UNIT=DISK,                                               06390000
+//             SPACE=(CYL,(80,20),RLSE)                                 06390000
+//*                 1099 EXCLUSION REPORT FILE #4608                    06420000
+//*                                                                     06430000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   06450000
+//             DISP=SHR                                                 06440000
+//*                 CONTROL CARD                                        06460000
+//*                                                                     06470000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               06490000
+//             DISP=SHR                                                 06480000
+//*                                                                     06500000
+//SYSPRINT DD  SYSOUT=*                                                 06510000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC630020),                             06520000
+//             DISP=SHR                                                 06480000
+//*                                                                     06470000
+//*=====================================================================06560000
+//CCAC630I EXEC  PGM=FOCUS                                              06570000
+//*          FOCUS REPORT--1099 MASTER DUPLICATE REPORT                 06580000
+//*=====================================================================06590000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  06610000
+//             DISP=SHR                                                 06600000
+//*                 PRODUCTION FOCEXEC LIBRARY                          06620000
+//*                                                                     06630000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   06650000
+//             DISP=SHR                                                 06640000
+//*                 MASTER FILE DESCRIPTIONS                            06660000
+//*                                                                     06670000
+//AC630400 DD  DSN=CC.AC.T01AC633(+1),                                  06690000
+//             DISP=SHR,                                                06680000
+//             UNIT=DISK                                                06680000
+//*                 MASTER FILE DUPLICATES                              06700000
+//*                                                                     06710000
+//OFFLINE  DD  DSN=CC.AC.P03AC630.XEROX(+1),                            06740000
+//             DISP=(NEW,CATLG,DELETE),                                 06720000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 06750000
+//             UNIT=DISK,                                               06730000
+//             SPACE=(TRK,(5,1),RLSE)                                   06730000
+//*                 1099 MASTER DUPLICATE REPORT 4609                   06760000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   06780000
+//             DISP=SHR                                                 06770000
+//*                 CONTROL CARD                                        06790000
+//*                                                                     06800000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               06820000
+//             DISP=SHR                                                 06810000
+//*                                                                     06830000
+//SYSPRINT DD  SYSOUT=*                                                 06840000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC630030),                             06850000
+//             DISP=SHR                                                 06810000
+//*                                                                     06830000
+//*=====================================================================
+//* CC4606A020 - 1099 REJECT REPORT - FORM#:C980
+//*=====================================================================
+//CCAC630J EXEC ARSSYA1,
+//         REPORT=CC4606A020,
+//         INP=CC.AC.P01AC630.XEROX(+1)
+//*
+//*=====================================================================
+//* CC4608A020 - 1099 EXCLUSION REPORT FILE - FORM#:C982
+//*=====================================================================
+//CCAC630K EXEC ARSSYA1,
+//         REPORT=CC4608A020,
+//         INP=CC.AC.P02AC630.XEROX(+1)
+//*                                                                     00454800
+//*=====================================================================
+//* CC4609A020 - 1099 MASTER DUPLICATE REPORT FILE - FORM#:C983
+//*=====================================================================
+//CCAC630L EXEC ARSSYA1,
+//         REPORT=CC4609A020,
+//         INP=CC.AC.P03AC630.XEROX(+1)
+//*
+#JI,ID=(1,2)                                                            07160000
+//*=====================================================================07170000
+//CCAC630M EXEC  PGM=IEBGENER                                           07180000
+//*          GENER  AIS B&CCW DETAIL TO A YTD FILE                      07190000
+//*=====================================================================07200000
+//SYSUT1   DD  DSN=CC.IE.T02AC630(+1),                                  07220000
+//             DISP=SHR                                                 07210000
+//*                 AIS B&CCW DETAIL FILE - TAX TYPE ASSIGNED           07230000
+//*                                                                     07240000
+//SYSUT2   DD  DSN=CC.IE.T09AC630,                                      07270000
+//             DISP=MOD,                                                07250000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      07280000
+//             UNIT=DISK,                                               07250000
+//             SPACE=(CYL,(10,5),RLSE)                                  07260000
+//*                 AIS B&CCW YTD DETAIL FILE                           07290000
+//*                                                                     07300000
+//SYSOUT   DD  SYSOUT=*                                                 07310000
+//SYSPRINT DD  SYSOUT=*                                                 07320000
+//SYSIN    DD  DUMMY                                                    07330000
+//*                                                                     07420000
+//*=====================================================================07340000
+//CCAC630N EXEC  PGM=SORT                                               07350000
+//*               MOVE FIELDS OF AIS B&CCW YTD FILE                     07360000
+//*=====================================================================07370000
+//*                                                                     07380000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.IE.T09AC630,                                      07400000
+//             DISP=SHR                                                 07390000
+//*                 AIS B&CCW YTD DETAIL FILE                           07410000
+//*                                                                     07420000
+//DD01O    DD  DSN=CC.SR.T09AC630,                                      07450000
+//             DISP=(NEW,CATLG,DELETE),                                 07430000
+//             UNIT=3390,                                               07430000
+//             SPACE=(CYL,(10,5),RLSE)                                  07440000
+//*                 RE-FORMATTED AIS B&CCW YTD DETAIL FILE              07460000
+//*                                                                     07470000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630100),                              07490000
+//             DISP=SHR                                                 07480000
+//*                                                                     07500000
+//SYSUDUMP DD  SYSOUT=*                                                 07510000
+//SYSPRINT DD  SYSOUT=*                                                 07520000
+//*                                                                     07550000
+//*=====================================================================00630000
+//CCAC630P EXEC  PGM=SORT                                               00640000
+//*          GENER  DEFT 1099 TAX DETAIL TO A YTD FILE                  07190000
+//*=====================================================================00670000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.AC.T05AC630(+1),                                  07220000
+//             DISP=SHR                                                 07210000
+//*                 DEFT 1099 FILE - TAX TYPE ASSIGNED                  07230000
+//*                                                                     07240000
+//DD01O    DD  DSN=&&T11AC630,                                          00730000
+//             UNIT=DISK,                                               00710000
+//             DISP=(NEW,PASS),                                         00710000
+//             SPACE=(TRK,(5,1),RLSE),                                  00720000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0)                       00740000
+//*                 DEFT 1099 HEADER RECORD                             00750000
+//*                                                                     00760000
+//DD02O    DD  DSN=CC.AC.T10AC630,                                      00790000
+//             DISP=MOD                                                 00770000
+//*                 DEFT 1099 YTD DETAIL RECORDS                        00810000
+//*                                                                     00820000
+//DD03O    DD  DSN=&&T12AC630,                                          00850000
+//             DISP=(NEW,PASS),                                         00830000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      00860000
+//             UNIT=DISK,                                               00830000
+//             SPACE=(TRK,(5,1),RLSE)                                   00840000
+//*                 DEFT 1099 TRAILER RECORD                            00870000
+//*                                                                     00880000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630070),                              00890000
+//             DISP=SHR                                                 00900000
+//*                 CONTROL FOR SELECTING HEADER/DETAIL/TRAILER         00960000
+//SYSUDUMP DD  SYSOUT=*                                                 00980000
+//SYSPRINT DD  SYSOUT=*                                                 00990000
+//*                                                                     01020000
+//*=====================================================================07340000
+//CCAC630Q EXEC  PGM=SORT                                               07350000
+//*               MOVE FIELDS OF DEFT 1099 TAX YTD FILE                 07360000
+//*=====================================================================07370000
+//*                                                                     07380000
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.AC.T10AC630,                                      07400000
+//             DISP=SHR                                                 07390000
+//*                 DEFT 1099 YTD DETAIL FILE                           07410000
+//*                                                                     07420000
+//DD01O    DD  DSN=CC.SR.T10AC630,                                      07450000
+//             UNIT=DISK,                                               07430000
+//             DISP=(NEW,CATLG,DELETE),                                 07430000
+//             SPACE=(CYL,(10,5),RLSE)                                  07440000
+//*                 RE-FORMATTED DEFT 1099 YTD DETAIL FILE              07460000
+//*                                                                     07470000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC630100),                              07490000
+//             DISP=SHR                                                 07480000
+//*                                                                     07500000
+//SYSUDUMP DD  SYSOUT=*                                                 07510000
+//SYSPRINT DD  SYSOUT=*                                                 07520000
+//SYSLIST  DD  SYSOUT=*                                                 07530000
+//SYSTOTAL DD  SYSOUT=*                                                 07540000
+//*                                                                     07550000
+#JEND                                                                   07560000
+//********************************************************************* 07570000
+//* DELETE CC.DE.PROD.USA.D01630BA
+//********************************************************************* 07570000
+//CCAC630R EXEC  PGM=IEFBR14
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//DELETE   DD  DSN=CC.DE.PROD.USA.D01630BA,
+//             DISP=(OLD,DELETE)
+//*                                                                     07580000
+//*---------------------------------------------------------------------
+//*    EMAIL FCFINSYS & CALL EVERBRIDGE IF JOB FAILS
+//*---------------------------------------------------------------------
+//CCAC9999 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD  DSN=CC.AC.R01AC630.EVRBDG.SUB,DISP=SHR
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),DISP=SHR
+//SYSUT2   DD  SYSOUT=A
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//********************************************************************* 02910000
+//**             LIST OF REPORTS                                     ** 02910000
+//**                                                                 ** 02910000
+//**  RPT #   REPORT TITLE                       COPIES              ** 02910000
+//**  ------  -------------------------------    -------             ** 02910000
+//**  4606    1099-MISC TRANSACTION REJECTS       CMOD   ONLY        ** 02910000
+//**  4608    1099-MISC EXCLUSIONS                CMOD   ONLY        ** 02910000
+//**  4609    1099-MISC MASTER DUPLICATE CHECKS   CMOD   ONLY        ** 02910000
+//**                                                                 ** 02910000
+//**================= END OF CCAC@630 ===============================**
+

@@ -1,0 +1,7 @@
+    CC.SYSIN.DATA(AC630010) - 01.01            
+ ===>                                          
+***************************** Top of Data *****
+OFFLINE                                        
+EX AC630100                                    
+FIN                                            
+**************************** Bottom of Data ***

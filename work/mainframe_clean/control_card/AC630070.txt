@@ -1,0 +1,12 @@
+    CC.SORT.DATA(AC630070) - 01.05                  Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+ OPTION  COPY                                                           
+  OUTFIL FNAMES=DD01O,                                                  
+   INCLUDE=(1,1,CH,EQ,X'00')                                            
+  OUTFIL FNAMES=DD02O,                                                  
+   INCLUDE=(1,1,CH,NE,X'00',                                            
+            &,1,1,CH,NE,X'FF')                                          
+  OUTFIL FNAMES=DD03O,                                                  
+   INCLUDE=(1,1,CH,EQ,X'FF')                                            
+*+* FMC2DFS: End of DFSORT statement output *+*                         
+**************************** Bottom of Data ****************************

@@ -1,0 +1,134 @@
+-***********************************************************************
+-*  FOCEXEC: AC625100                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  1099-MISC REJECT DELETES     # 4607                *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |      NEW FOCEXEC - 1099 MISC TRANSACTION
+-*           |              |                    DELETES
+-* D.OPPERMANN     01/2004  |      RENAMED FROM MR625100 TO AC625100
+-*           |              |      MR PREFIX ON FILE,DD NAMES TO AC
+-* A.DOBRYNSKI     06/2008  |      2007-ACC-086 - ACCEPT DEFT FILE
+-*           |              |      MODIFY HEADERS
+-*           |              |
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC625100 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R   &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC625100
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT REJECT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A38 = OP_LOC| DEPT_CD | CHECK_NUM | CHECK_DT | SOURCE_CODE;
+TRL_REC/A38 = OP_LOC| DEPT_CD | CHECK_NUM | CHECK_DT | SOURCE_CODE;
+CCW_TYPE/A3 = EDIT(SOURCE_CODE,'999$');
+END
+
+DEFINE FILE AC625110
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT CORRECTED REJECT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A38 = NOP_LOC| NDEPT_CD | NCHECK_NUM | NCHECK_DT | NSOURCE_CODE;
+TRL_REC/A38 = NOP_LOC| NDEPT_CD | NCHECK_NUM | NCHECK_DT | NSOURCE_CODE;
+CCW_TYPE/A3 = EDIT(NSOURCE_CODE,'999$');
+END
+
+MATCH FILE AC625100
+PRINT OP_LOC
+      SOURCE_CODE
+      DEPT_CD
+      CHECK_DT
+BY CHECK_NUM
+BY DEPT_CD
+IF HDR_REC GT 'AAAAAAAAA'
+IF TRL_REC LT '999999999'
+RUN
+
+FILE AC625110
+PRINT NOP_LOC
+      NSOURCE_CODE
+      NDEPT_CD
+      NCHECK_DT
+BY NCHECK_NUM
+BY NDEPT_CD
+IF HDR_REC GT 'AAAAAAAAA'
+IF TRL_REC LT '999999999'
+AFTER MATCH HOLD AS DELETES OLD-NOT-NEW
+END
+
+DEFINE FILE DELETES
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+RPT_MO/A10 =     IF '&CNTL_MM' EQ '01' THEN 'JANUARY '    ELSE
+                 IF '&CNTL_MM' EQ '02' THEN 'FEBRUARY '   ELSE
+                 IF '&CNTL_MM' EQ '03' THEN 'MARCH '      ELSE
+                 IF '&CNTL_MM' EQ '04' THEN 'APRIL '      ELSE
+                 IF '&CNTL_MM' EQ '05' THEN 'MAY '        ELSE
+                 IF '&CNTL_MM' EQ '06' THEN 'JUNE '       ELSE
+                 IF '&CNTL_MM' EQ '07' THEN 'JULY '       ELSE
+                 IF '&CNTL_MM' EQ '08' THEN 'AUGUST '     ELSE
+                 IF '&CNTL_MM' EQ '09' THEN 'SEPTEMBER '  ELSE
+                 IF '&CNTL_MM' EQ '10' THEN 'OCTOBER '    ELSE
+                 IF '&CNTL_MM' EQ '11' THEN 'NOVEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '12' THEN 'DECEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '13' THEN 'YEAR-END 1'  ELSE
+                 IF '&CNTL_MM' EQ '14' THEN 'YEAR-END 2'  ELSE
+                 IF '&CNTL_MM' EQ '15' THEN 'YEAR-END 3';
+CK_DT_MO/A2 = EDIT(CHECK_DT,'$$$$99$');
+CK_DT_DA/A2 = EDIT(CHECK_DT,'$$$$$$99');
+CK_DT_YR/A4 = EDIT(CHECK_DT,'9999$');
+PRT_CK_DT/A10 = CK_DT_MO | '/' | CK_DT_DA | '/' | CK_DT_YR;
+END
+
+TABLE FILE DELETES
+HEADING
+" "
+"PROGRAM:  AC625100  <57 1099-MISC REJECT DELETES   <115 REPORT:  4607"
+"&DATE  <11 &TOD     <60 FOR <RPT_MO  <RPT_YY <115   PAGE:<TABPAGENO  "
+"                                                                      "
+"                                                                      "
+"                                                                      "
+" "
+PRINT OP_LOC      AS 'OPERATION,LOCATION' IN +15
+      DEPT_CD     AS 'BRANCH/DEPT,CODE'   IN +10
+      CHECK_NUM   AS 'CHECK/BATCH,NUMBER' IN +10
+      PRT_CK_DT   AS 'CHECK/STLMT,DATE'   IN +7
+      SOURCE_CODE AS 'SOURCE,CODE'        IN +9
+BY OP_LOC NOPRINT
+BY DEPT_CD NOPRINT
+BY CHECK_NUM NOPRINT
+END
+

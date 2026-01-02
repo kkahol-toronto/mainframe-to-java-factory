@@ -1,0 +1,311 @@
+//CCAC@626 JOB (1,20074,FMCC),FORD.CREDIT.COCS,
+// USER=CCCA7AC,REGION=2400K,
+// MSGCLASS=M
+//JES3DS OUTPUT JESDS=ALL,DEFAULT=YES,CLASS=*,WRITER=JCL400
+//*MAIN LINES=(200,W),FAILURE=CANCEL
+//*FORMAT PR,DDNAME=CCAC9999.SYSUT2,DEST=DRBN004.VIPDIST7
+//* FORMAT PR,DEST=LAS02.FMCCRJE,FORMS=PXCC1,DDNAME=
+//*
+//*=====================================================================
+//*    CCAC@626   1099 FILE PREPARATION
+//*
+//* SYSTEM NARRATIVE
+//* -----------------
+//* THIS JOB CREATES THE 1099 MASTER UPDATES FILE WHICH CONTAINS ONLY
+//* THE DELETE AND CHANGE TRANSACTIONS.  IT ALSO MAINTAINS THE CORPORATE
+//* FILE BY COPYING AND REFORMATTING FROM THE ACCOUNTING SUPERVISOR
+//* APPROVED 1099 USER MASTER FILE ALL RECORDS CONTINAING "B" IN COLUMN
+//* 205.  CCAC@626 COPIES THE REJECT AND MANUAL ISSUES FILE TO A GDG,
+//* EXTRACTS THE MASTER RECORDS THAT HAVE BEEN FLAGGED AS CHANGE OR
+//* DELETE AND CREATES HEADER AND TRAILER RECORDS FOR THE MASTER UPDATES
+//* FILE.  THE MANUAL ISSUES FILE (USED IN CCAC@625) IS THEN EMPTIED.
+//*
+//* PROCESSING SCHEDULE
+//* ---------------------
+//* THIS JOB IS RUN UNDER CA-7. IT RUNS MONTHLY ON THE FOURTH WORKDAY.
+//* IT IS DEPENDENT ON JOB CCAC626X SUBMITTED BY ACCOUNTING AND
+//* SUCCESSFUL COMPLETION OF JOB CCAC@625. IT HAS ONLY ONE PROCESSING
+//* SCHEDULE.
+//*
+//* SPECIAL INSTRUCTIONS
+//* ---------------------
+//* VERIFY ACCOUNTING SUBMITTED JOB CCAC625X TO SATISFY DEPENDENCY.
+//*
+//* RERUN/RESTART INSTRUCTIONS
+//* --------------------------
+//* TO RERUN THIS JOB THE ACCOUNTING ANALYST WILL SUBMIT A REQUEST.
+//* TO RESTART THIS JOB, EXECUTE FROM THE BEGINNING.
+//*
+//* CHANGE LOG
+//* ----------
+//*
+//*    DATE       CHANGED BY       DESCRIPTION
+//*  --------  | --------------- | -------------------------------------
+//* 12/03/1997 |   R. PETTS      |  CHANGED LRECL ON MANUAL ISSUES
+//*            |                 |  FILE FROM 320 TO 80
+//* 10/15/1998 |   R. PETTS      |  CHANGED SYSOUT FROM RMDS TO MOBIUS
+//*            |                 |  MSGCLASS=O  INSTEAD OF MSGCLASS=J
+//* 07/30/1999 |   D. CLAYTON    |  REMOVE UNUSED LIBRARIES FROM JOBLIB.
+//* 08/20/1999 |   D. CLAYTON    |  CONVERT JCL TO FORD STANDARDS
+//* 09/22/1999 |   D. CLAYTON    |  CHANGE DATECARD FROM CC.U7CNTL.DATA
+//*            |                 |  (CCMR625A) TO AUTOMATED GDG
+//*            |                 |  CC.MR.R01MR625.
+//* 12/11/2000 |   K. KIRBY      |  MODIFIED STEP CCMR6267 FOR CREATION
+//*            |                 |  OF EMPTY CCMR.MISC1099.MANUAL.ISSUES
+//* 07/19/2001 |   J. GORSKI     |  CHG MSGCLASS FROM O TO M.  CHANGE
+//*            |                 |  FORMS=CC2R TO WRITER=JCL400. CHANGE
+//*            |                 |  THE DCB FOR MANUAL.ISSUES FILE FROM
+//*            |                 |  80 TO 320.
+//* 12/09/2003 |   A. PRASAD     |  CHANGED NAME OF DATE CONTROL CARD
+//*            |                 |  FROM CC.MR.R01MR625
+//*            |                 |  TO CC.AC.R01AC625 SO THAT JOB CAN
+//*            |                 |  USE BATCH ID CCCA7AC.
+//* 01/08/2004 |   D. OPPERMANN  |  CHG JOBNAME AND DATASETS FROM CCMR
+//*            |                 |  AND CC.MR TO CCAC AND CC.AC
+//*            |                 |  RESPECTIVELY. CHANGED RACF BATCH ID
+//*            |                 |  FROM CCOCPR1 TO UNIQUE BATCH ID
+//*            |                 |  CCCA7AC.
+//* 09/02/11   |  R. FORTUNATE   | IBM FILEAID/FILEMGR CONVER
+//*            |                 | CR 2011-ACC-036  ET 10487562
+//*            |                 | CHANGE STEP
+//*            |                 |        CCAC6265
+//*            |                 | FROM FILEAID TO SORT.
+//* 08/2024    |   ASHAIK56      |  CRQ:CRQ000000881292
+//*            |                 |  ADDED A STEP TO CALL EVERBRIDGE
+//*            |                 |  IF JOB ABENDS
+//*=====================================================================
+//JOBLIB   DD  DSN=CC.PRPGMLIB,
+//             DISP=SHR
+//*                 PRODUCTION PROGRAM LIBRARY
+//*
+//*===================================================================
+//CCAC6261 EXEC  PGM=IEBGENER
+//*          GENER COPY OF REJECT FILE
+//*===================================================================
+//SYSUT1   DD  DSN=CC.AC.T01AC625(0),
+//             DISP=SHR,
+//             UNIT=DISK
+//*                 REJECT FILE
+//*
+//SYSUT2   DD  DSN=CC.IE.T01AC626(+1),
+//             DISP=(NEW,CATLG,DELETE),
+//             DCB=(LRECL=526,BLKSIZE=27878,RECFM=FB),
+//             UNIT=DISK,
+//             SPACE=(TRK,(10,05),RLSE)
+//*                 REJECT FILE
+//*
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//*===================================================================
+//CCAC6262 EXEC  PGM=IEBGENER
+//*          GENER COPY OF FORM 20071-MANUAL ISSUES FILE
+//*==================================================================
+//SYSUT1   DD  DSN=CC.AC.T02AC625(0),
+//             DISP=SHR,
+//             UNIT=DISK
+//*                 FORM 20071 MANUAL ISSUES FILE
+//*
+//SYSUT2   DD  DSN=CC.IE.T02AC626(+1),
+//             DISP=(NEW,CATLG,DELETE),
+//             DCB=(LRECL=320,BLKSIZE=28160,RECFM=FB),
+//             UNIT=DISK,
+//             SPACE=(TRK,(10,05),RLSE)
+//*                 FORM 20071 MANUAL ISSUES FILE
+//*
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//*===================================================================
+//CCAC6263 EXEC  SSORT,
+//             SPARM='RC16=ABE,IOERR=ABE'
+//*          THIS STEP COPIES ALL RECORDS FROM THE USER
+//*          ALTERED/APPROVED 1099 FILE THAT CONTAINS A "B" IN
+//*          IN COLUMN 205.  THE RECORDS ARE REFORMATTED TO AN 80
+//*          COLUMN RECORD THAT CONTAINS SSN AND COMPANY NAME.  THE
+//*          TEMPORARY FILE THAT IS CREATED IS USED TO UPDATE THE
+//*          CORPORATE FILE FOR USE IN CCAC@630.
+//*===================================================================
+//SORTWK01 DD  UNIT=DISK,
+//             SPACE=(CYL,5)
+//SORTIN   DD  DSN=CC.AC.M01AC625(0),
+//             DISP=SHR
+//*                 MASTER FILE
+//*
+//SORTOUT  DD  DSN=&&I02AC626,
+//             DISP=(NEW,PASS),
+//             DCB=(RECFM=FB,LRECL=80,BLKSIZE=0),
+//             UNIT=SYSDA,
+//             SPACE=(CYL,(2,5),RLSE)
+//*                 CORPORATE FILE MAINTENANCE RECORDS
+//*
+//SYSIN    DD  DSN=CC.SORT.DATA(AC626010),
+//             DISP=SHR
+//*                 REFORMAT TO SSN AND COMPANY NAME
+//*
+//SYSOUT   DD  SYSOUT=*
+//SYSPRINT DD  SYSOUT=*
+//*
+//*===================================================================
+//CCAC6264 EXEC  SSORT,
+//             SPARM='RC16=ABE,IOERR=ABE'
+//*          SORT CORPORATE MAINTENANCE FILE WITH MASTER CORPORATE
+//*          FILE.  ELIMINATE DUPLICATE RECORDS.
+//*===================================================================
+//SORTWK01 DD  UNIT=DISK,
+//             SPACE=(CYL,5)
+//SORTIN   DD  DSN=&&I02AC626,
+//             DISP=(OLD,PASS)
+//*            TEMPORARY CORPORATE MAINTENANCE FILE
+//*
+//         DD  DSN=CC.AC.R02AC626(0),
+//             DISP=SHR
+//*                 1099 CORPORATE FILE
+//*
+//SORTOUT  DD  DSN=CC.AC.R02AC626(+1),
+//             DISP=(NEW,CATLG,DELETE),
+//             DCB=(RECFM=FB,LRECL=80,BLKSIZE=0),
+//             UNIT=DISK,
+//             SPACE=(CYL,(10,5),RLSE)
+//*                 UPDATED CORPORATE FILE
+//*
+//SYSIN    DD  DSN=CC.SORT.DATA(AC626020),
+//             DISP=SHR
+//*                 SORTING BY SSN
+//*
+//SYSOUT   DD  SYSOUT=*
+//SYSPRINT DD  SYSOUT=*
+//*
+//*===================================================================
+//CCAC6265 EXEC  PGM=SORT
+//*                 EXTRACT THE (B)BUSINESS, (C)CHANGE, (D)DELETE,
+//*                 AND (M)MECHANICAL MASTER RECS ONLY FROM THE
+//*                 CUSTOMER UPDATED MASTER FILE
+//*===================================================================
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD  DSN=CC.AC.M01AC625(0),
+//             DISP=SHR,
+//             UNIT=DISK
+//*                 1099 MASTER FILE
+//*
+//DD01O    DD  DSN=CC.IE.I01AC626(+1),
+//             DISP=(NEW,CATLG,DELETE),
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=28000),
+//             UNIT=DISK,
+//             SPACE=(CYL,(5,5),RLSE)
+//*                 MASTER UPDATES FILE W/CHANGES AND DELETES ONLY
+//*
+//SYSIN    DD  DSN=CC.SORT.DATA(AC626030),
+//             DISP=SHR
+//*
+//SYSUDUMP DD  SYSOUT=*
+//SYSPRINT DD  SYSOUT=*
+//*
+//*===================================================================
+//CCAC6266 EXEC  PGM=CCAC6250
+//*
+//*                 THIS PROGRAM ADDS A HEADER AND TRAILER TO THE
+//*                 MASTER UPDATES FILE.  THE REJECT AND MANUAL
+//*                 ISSUES FILES ARE DUMMIED.
+//*
+//*===================================================================
+//CCACT01R DD  DUMMY
+//*                 REJECT FILE
+//*
+//CCACT02R DD  DUMMY
+//*                 MANUAL ISSUES FILE
+//*
+//CCACM01R DD  DSN=CC.IE.I01AC626(+1),
+//             DISP=SHR,
+//             UNIT=DISK
+//*                 MASTER UPDATES FILE
+//*
+//CCACT01W DD  DUMMY
+//*                 REJECT FILE
+//*
+//CCACT02W DD  DUMMY
+//*                 MANUAL ISSUES FILE
+//*
+//CCACM01W DD  DSN=CC.AC.T02AC626(+1),
+//             DISP=(NEW,CATLG,DELETE),
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),
+//             UNIT=DISK,
+//             SPACE=(CYL,(05,05),RLSE)
+//*                 MASTER UPDATES FILE
+//*
+//CCACE01W DD  DSN=CC.AC.E01AC626(+1),
+//             DISP=(NEW,CATLG,CATLG),
+//             DCB=(RECFM=FB,LRECL=00133,BLKSIZE=0),
+//             UNIT=DISK,
+//             SPACE=(TRK,(05,05),RLSE)
+//*                 DISPLAY FILE
+//*
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),
+//             DISP=SHR
+//*                 CONTROL CARD
+//*
+//SYSUDUMP DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSPRINT DD  SYSOUT=*
+//SYSABOUT DD  SYSOUT=*
+//SYSDBOUT DD  SYSOUT=*
+//*
+//*===================================================================
+//CCAC6267 EXEC  PGM=IEBGENER
+//*
+//*                 GENER EMPTY DATASET TO MANUAL ISSUES FILE
+//*===================================================================
+//SYSUT1   DD  DUMMY,
+//             DCB=(LRECL=80,BLKSIZE=28160,RECFM=FB)
+//*
+//SYSUT2   DD  DSN=CCAC.MISC1099.MANUAL.ISSUES,
+//             DISP=SHR,
+//             DCB=(LRECL=320,BLKSIZE=27840,RECFM=FB),
+//             UNIT=DISK,
+//             SPACE=(TRK,(10,05),RLSE)
+//*                 MANUAL ISSUES FILE
+//*
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//*---------------------------------------------------------------------
+//*    EMAIL FCFINSYS & CALL EVERBRIDGE IF JOB FAILS
+//*---------------------------------------------------------------------
+//CCAC9999 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD  DSN=CC.AC.R01AC626.EVRBDG.SUB,DISP=SHR
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),DISP=SHR
+//SYSUT2   DD  SYSOUT=A
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+/*
+//*********************************************************************
+//**             LIST OF REPORTS                                     **
+//**                                                                 **
+//**  RPT #   REPORT TITLE                       COPIES              **
+//**  ------  -------------------------------    -------             **
+//**  ******  NO REPORTS ARE PRODUCED IN THIS JOB  ******            **
+//**                                                                 **
+//**                                                                 **
+//**     CONTROL CARD INFORMATION                                    **
+//**         CCAC@626                                                **
+//**                                                                 **
+//** CONTROL CARD:   CC.AC.R01AC625(0)                               **
+//**                                                                 **
+//** FIELD       FORMAT          CONTENT                             **
+//** ------    --------------    --------------------------------    **
+//** 01-02     X(2)  CC          CENTURY OF PREVIOUS MONTH           **
+//** 03-04     X(2)  YY          YEAR OF PREVIOUS MONTH              **
+//** 05-06     X(2)  MM          PREVIOUS MONTH                      **
+//**                             FOR YEAR-END PROCESSING:            **
+//**                               USE '13' FOR FIRST RUN            **
+//**                               USE '14' FOR SECOND RUN           **
+//**                               USE '15' FOR THIRD RUN            **
+//** 07-08     X(2)  DD          LAST DAY OF PREVIOUS MONTH.         **
+//** 09-80     X(63) BLANK                                           **
+//**================= END OF CCAC@626 ===============================**
+

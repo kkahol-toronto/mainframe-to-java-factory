@@ -1,0 +1,13 @@
+    CC.SORT.DATA(AC630010) - 01.02                  Columns 00001 000
+ ===>                                                  Scroll ===> CS
+***************************** Top of Data ***************************
+* CHANGE LOG                                                         
+* 01/03/2011   R. FORTUNATE                                          
+*              EPM#2666 DISB RISK MITIGATION                         
+*              MODIFY SORT MEMBER TO INCLUDE TAX TYPE AND TIN.       
+*                                                                    
+ SORT  FIELDS=(1,8,CH,A,                  * CHECK NUMBER             
+               9,1,CH,A,                  * TAX TYPE                 
+               10,1,CH,A,                 * TIN                      
+               25,3,CH,A)                 * DEPARTMENT / BRANCH      
+**************************** Bottom of Data *************************

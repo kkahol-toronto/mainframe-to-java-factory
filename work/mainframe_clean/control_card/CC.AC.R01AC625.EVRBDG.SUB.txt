@@ -1,0 +1,5 @@
+BROWSE     CC.AC.R01AC625.EVRBDG.SUB                Line 0000000000 Col 001 080 
+Command ===>                                                   Scroll ===> PAGE
+********************************* Top of Data **********************************
+VIP12 EXTERNAL AAGENT    CCAC       CCAC@625 JOB FAILED. THANKS - FCFINSYS       
+******************************** Bottom of Data ********************************

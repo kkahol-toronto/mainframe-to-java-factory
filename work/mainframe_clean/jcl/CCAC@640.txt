@@ -1,0 +1,139 @@
+//CCAC@640 JOB (1,20074,FMCC),FORD.CREDIT.COCS,
+// USER=CCCA7AC,REGION=2400K,
+// MSGCLASS=M
+//JES3DS OUTPUT JESDS=ALL,DEFAULT=YES,CLASS=*,WRITER=JCL400
+//*MAIN LINES=(400,W),FAILURE=CANCEL
+//*FORMAT PR,DDNAME=CCAC6402.SYSUT2,DEST=DRBN004.VIPDIST7
+//*FORMAT PR,DDNAME=CCAC6404.SYSUT2,DEST=DRBN004.VIPDIST7
+//*
+//*=====================================================================
+//*    CCAC@640    1099 MISC YEAR-END PROCESSING
+//*
+//* SYSTEM NARRATIVE
+//* ----------------
+//* CCAC@640 TRANSFERS THE YEAR END 1099 FILE TO ERNST AND YOUNG (E&Y)
+//*
+//* PROCESSING SCHEDULE
+//* -------------------
+//* THIS JOB IS RUN UNDER CA-7 AND HAS ONE SCHEDULE.  IT IS RUN ANNUALLY
+//* IN JANUARY FOR YEAR-END.
+//*
+//* THIS JOB IS TRIGGERED BY CCAC@635.
+//* THIS JOB SUBMITS CCAC@641 BY RELEASING IT FROM THE INTERNAL READER.
+//*
+//*
+//* RERUN/RESTART INSTRUCTIONS
+//* --------------------------
+//* IF THIS JOB ABENDS, FIX THE PROBLEM AND RESTART FROM THE ABENDING
+//* STEP.
+//*
+//*
+//* MODIFICATION HISTORY
+//* --------------------
+//*  01/06/2000  D. CLAYTON
+//*              CREATE JOB TO REFORMAT 320-BYTE RECORDS TO 80-BYTE
+//*              RECORDS AND TRANSMIT TO VENDOR.
+//*  01/16/2001  M. KARRICK
+//*              CHANGE OUTPUT NAME TO CCMR.MR.XMITFILE.M122000
+//*              FROM CCMR.MR.XMITFILE.M121999
+//*  02/08/2001  M. KARRICK
+//*              1. ADD FIRST STEP TO COPY 1099 FILE TO 320 RECORD
+//*              LENGTH FILE.
+//*              2. CHANGE OUTPUT NAMES TO NOT INCLUDE THE YEAR:
+//*              CCMR.MR.XMITFILE.M122000 TO CCMR.MR.XMITFILE.M1099
+//*              NOTE: VERIFY FILE DOES NOT EXIST BEFORE RUNNING.
+//*  06/30/2004  D. OPPERMANN - CR# 2004-ACC-18
+//*              RENAMED FROM CCGL.JCL.CNTL(RFMT1099) TO CREATE A
+//*              PRODUCTION JOB FOR SOX COMPLIANCE. ADDED A STEP TO
+//*              AUTOMATICALLY EMAIL COMERICA UPON SUCCESSFUL COMPLETION
+//*              OF THE JOB.
+//*  01/11/2008  D. OPPERMANN - CR# 2007-ACC-084
+//*              REMOVE STEP CCAC6402 THAT REFORMATTED FILE TO LRECL 320
+//*              REMOVE STEP CCAC6403 THAT TRANSMITTED A FILE TO
+//*              COMERICA. COMERICA WILL NOW PULL A 250 BYTE RECORD
+//*              FILE VIA A FTP CONNECTION TO FACILITY A.
+//*              RENUMBERED STEPS.
+//*  09/02/2011  R. FORTUNATE - CR# 2011-ACC-036   ET 10487562
+//*              IBM FILEAID/FILEMGR CONVER
+//*              CHANGE STEP CCAC6401 FROM FILEAID TO SORT
+//*  01/04/2013  R. FORTUNATE - 2012-ACC-024 (1ST RUN DATE JAN 2013)    00182102
+//*                 - USE FILE CC.AC.C01AC635 IN STEP CCAC6401          00182202
+//*                   PREVIOUS FILE CC.AC.C01AC635.Y - LTR              00182202
+//*  05/04/2020  MATT MERRITT - 2020-ACC-017 - TRACKLITE - F1358.       00182102
+//*              REPLACE STEP CCAC6402 - EMAIL TO E&Y THAT FILE IS READY00182202
+//*              WITH INTERNAL READER TO RUN CCAC@641 SPUT FILE TO E&Y. 00182202
+//*  01/28/2021  MATT MERRITT - 2021-ACC-004 - TRACKLITE - F1420.       00182102
+//*              CC.IBM.UTIL.DATA(ACCPAGER) - PAGER FOR ACCOUNTING & TAX
+//* 03/31/2021  KODEESHWARI  - 2022-ACC-020 - TRACKLITE - F1532.
+//*             FC.TSOA.PROD.PARMLIB(SPLNKCAL) FOR ACCOUNTING & TAX
+//*=====================================================================
+//JOBLIB   DD  DSN=CC.PRPGMLIB,
+//             DISP=SHR
+//*                 PRODUCTION PROGRAM LIBRARY
+//         DD  DSN=CC.SWPGMLIB,
+//             DISP=SHR
+//*                 PRODUCTION SUBROUTINE LOAD LIBRARY
+//         DD  DSN=CC.SRPGMLIB,
+//             DISP=SHR
+//*                 PRODUCTION SUBROUTINE LOAD LIBRARY
+//*
+//*=====================================================================
+//* STEP CCAC6401: COPY FILE FOR SFTP SPUT TO E&Y IN JOB CCAC@641
+//*=====================================================================
+//CCAC6401 EXEC PGM=SORT
+//*
+//SYSOUT   DD  SYSOUT=*
+//SORTIN   DD DSN=CC.AC.C01AC635,
+//            DISP=SHR
+//*
+//DD01O    DD DSN=CC.AC.T01AC640,
+//            DISP=(NEW,CATLG,DELETE),
+//            UNIT=SYSDA,
+//            SPACE=(CYL,(15,5),RLSE)
+//**********************************************************************
+//**           FILE TO BE SFTP SPUT TO E&Y IN JOB CCAC@641            **
+//**********************************************************************
+//*
+//SYSIN    DD DSN=CC.SORT.DATA(AC640010),
+//            DISP=SHR
+//*
+//SYSUDUMP DD SYSOUT=*
+//SYSPRINT DD SYSOUT=*
+//*=====================================================================
+//* STEP CCAC6402: THIS STEP WILL RUN IF SORT STEP CCAC6401 HAS COND=0.
+//*                SUBMITS CCAC@641 TO INTERNAL READER WHICH WILL
+//*                SFTP SPUT THE MISC1099 YEARLY FILE TO E&Y.
+//*---------------------------------------------------------------------
+//*          NOTE:                 ENDEVOR TYPES
+//*          FC.TSOA.PROD.PARMLIB(CCAC@641) CTL - JOB CARD, USER=CCFTPEY
+//*          FCU@JCL.TSOA.PRODJCL(CCAC@641) JOB - JCL WITHOUT A JOB CARD
+//*=====================================================================
+//CCAC6402 EXEC  PGM=IEBGENER,COND=(0,NE,CCAC6401)
+//SYSIN    DD DUMMY
+//SYSPRINT DD SYSOUT=*
+//SYSUDUMP DD SYSOUT=*
+//SYSUT1   DD DSN=FC.TSOA.PROD.PARMLIB(CCAC@641),DISP=SHR
+//         DD DSN=FCU@JCL.TSOA.PRODJCL(CCAC@641),DISP=SHR
+//SYSUT2   DD SYSOUT=(R,INTRDR)
+//*---------------------------------------------------------------------
+//* STEP CCAC6403: ABEND IF NON-ZERO CONDITION CODE FROM CCAC@6402
+//*---------------------------------------------------------------------
+//CCAC6403 EXEC PGM=ZZZZ9999,COND=(0,EQ,CCAC6402)
+//*---------------------------------------------------------------------
+//* STEP CCAC6404: CALL THE PRIMARY SUPPORT IF THE JOB ABENDS
+//*---------------------------------------------------------------------
+//CCAC6404 EXEC PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD  DSN=FC.TSOA.PROD.PARMLIB(AC640SUB),
+//             DISP=SHR
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),
+//             DISP=SHR
+//* NOTE:CONTAINS THE SPLUNK EMAIL TO MAKE CALL TO PRIMARY/SECONDARY
+//* SUPPORT
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(AC640011),
+//             DISP=SHR
+//SYSUT2   DD  SYSOUT=P
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//****************** E N D * O F * C C A C @ 6 4 0 *********************
+

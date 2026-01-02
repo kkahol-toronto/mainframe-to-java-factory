@@ -1,0 +1,533 @@
+//CCAC@635 JOB (1,20074,FMCC),FORD.CREDIT.COCS,                         00010000
+// USER=CCCA7AC,REGION=2400K,                                           00020000
+// MSGCLASS=M                                                           00030000
+//JES3DS OUTPUT JESDS=ALL,DEFAULT=YES,CLASS=*,WRITER=JCL400             00040000
+//*MAIN LINES=(400,W),FAILURE=CANCEL,SYSTEM=JGLOBAL                     00060000
+//*FORMAT PR,DDNAME=CCAC9999.SYSUT2,DEST=DRBN004.VIPDIST7
+//*                                                                     00080000
+//*=====================================================================00090000
+//*    CCAC@635    1099 MISC YEAR-END PROCESSING                        00100000
+//*                                                                     00120000
+//* SYSTEM NARRATIVE                                                    00120000
+//* ----------------                                                    00120000
+//* CCAC@635 CREATES THE CUSTOMIZED 1099-MISC SUMMARY FILE RECORDS THAT 00120000
+//* WILL BE SENT TO THE BANK TO CREATE THE 1099 IRS FORMS BY DOING THE  00120000
+//* FOLLOWING:                                                          00120000
+//* 1) GENERS THE 1099-MISC MASTER FILE TO A .Y VERSION                 00120000
+//* 2) REMOVES RECORDS MARKED FOR DELETION ("D" OR "M")                 00120000
+//* 3) CREATES CUSTOMIZED 1099-MISC FILE SUMMARIZED BY SSN, WITH RECORDS00120000
+//*    ADDED FOR EACH MANUAL ISSUE (FORM 20071)                         00120000
+//* 4) CREATES A SUMMARY REPORT BASED ON OPLOC WHICH IS E-MAILED TO THE 00120000
+//*    BANK.                                                            00120000
+//*                                                                     00120000
+//* THIS JOB ALSO CREATES THREE REPORTS: #4610-1099-MISC REPORTABLE     00120000
+//* MASTER DELETES, #4612-1099-MISC REPORTABLE MASTER, AND              00120000
+//* #4613-SUMMARIZED 1099-MISC YEAR-END REPORT                          00120000
+//*                                                                     00120000
+//*                                                                     00120000
+//* PROCESSING SCHEDULE                                                 00120000
+//* -------------------                                                 00120000
+//* THIS JOB IS RUN UNDER CA-7 AND HAS ONE SCHEDULE.  IT IS RUN ANNUALLY00120000
+//* IN JANUARY FOR YEAR-END.                                            00120000
+//*                                                                     00130000
+//* THIS JOB IS DEPENDENT ON A RELEASE FROM THE MISC 1099 PROCESSING    00130000
+//* GROUP.                                                              00130000
+//* THIS JOB TRIGGERS JOB CCAC@640.                                     00130000
+//*                                                                     00130000
+//*                                                                     00130000
+//* RERUN/RESTART INSTRUCTIONS                                          00130000
+//* --------------------------                                          00140000
+//* IF THIS JOB ABENDS, FIX THE PROBLEM AND RESTART FROM THE ABENDING   00140000
+//* STEP.                                                               00140000
+//*                                                                     00140000
+//*                                                                     00150000
+//* MODIFICATION HISTORY                                                00160000
+//* --------------------                                                00170000
+//*  10/15/1998  R. PETTS                                               00180000
+//*              CHANGED SYSOUT FROM RMDS TO MOBIUS                     00181000
+//*              MSGCLASS=O  INSTEAD OF MSGCLASS=J                      00182000
+//*  08/02/1999  D. CLAYTON                                             00182102
+//*              REMOVE UNUSED LIBRARIES FROM JOBLIB.                   00182202
+//*  08/23/1999  D. CLAYTON                                             00182102
+//*              CONVERT JCL TO FORD STANDARDS                          00182202
+//*  09/22/1999  D. CLAYTON                                             00182102
+//*              CHANGE DATECARD FROM CC.U7CNTL.DATA(CCMR625A) TO       00182202
+//*              AUTOMATED GDG CC.MR.R01MR625.                          00182202
+//*  03/20/2001  CH.SUDHEER                                             00182102
+//*              DELETED THE STEP WHICH COPIES THE YEAR-END FILE TO A   00182202
+//*              TAPE AND INSERTED A STEP WHICH GENERATES A SUMMARY     00182202
+//*              BASED ON OPLOC.                                        00182202
+//*  08/07/2001  JOHN GORSKI                                            00182102
+//*              REMOVED THE SORT DJDELIB AND SPLITTER STEP FOR RPT     00182202
+//*              4612.  SEND REPORT TO MOBIUS USING IEBGENER.           00182202
+//*  10/25/2001  JOHN GORSKI                                            00182102
+//*              CORRECTED THE LRECL FROM 225 TO 320 IN STEP 5 AND 6.   00182202
+//*              THIS WAS SUPPOSE TO BE DONE AS PART OF CARS RELEASE II 00182202
+//*              BACK IN JANUARY.                                       00182202
+//*  12/09/2003  A. PRASAD                                              00290000
+//*              CHANGED NAME OF DATE CONTROL CARD FROM CC.MR.R01MR625
+//*              TO CC.AC.R01AC625 SO THAT JOB CAN USE BATCH ID CCCA7AC.
+//*  01/08/2004  D. OPPERMANN                                           00182102
+//*              CHANGED JOBNAME AND DATASETS FROM CCMR AND CC.MR       00182102
+//*              TO CCAC AND CC.AC RESPECTIVELY. CHANGED RACF BATCH ID  00182202
+//*              FROM CCOCPR1 TO UNIQUE BATCH ID CCCA7AC.               00182202
+//*              ADDED UNIT=ARCHIVE TO .Y YEARLY DATASETS.              00182202
+//*  06/30/2004  D. OPPERMANN  CR # 2004-ACC-18 & CR # 2004-ACC-21      00182102
+//*              ADDED TRIGGER COMMENT FOR NEW PRODUCTION JOB CCAC@640. 00182102
+//*              MODIFIED DCB'S FOR CC.AC.P04AC635.ZEROX TO LRECL=80    00182102
+//*              FROM LRECL=160 SO THAT THE FILE CAN BE CONCATENATED    00182102
+//*              WITH CC.IBM.UTIL.DATA AND AUTOMATICALLY EMAILED TO
+//*              COMERICA IN JOB CCAC@640. REMOVE UNIT=ARCHIVE FROM
+//*              CC.SR.M01AC635.Y IN STEP CCAC6352.
+//*  01/05/2009  A. DOBRYNSKI - 2007-ACC-086 - ACCEPT DEFT 1099 FILE    00182102
+//*                             ADD DEFT 1099 TAX FILE                  00182202
+//*  01/25/2011  R. FORTUNATE - EPM 2666 ERM 10.3                       00182102
+//*                             CHANGE FOCUS DEFINITIONS FOR REPORT     00182202
+//*                             INPUT FILES.                            00182202
+//*                 REPORT 4610 AC6351M0 =>  CC.SR.M01AC635.Y(+1)       00182202
+//*                 REPORT 4612 AC6352M0 =>  CC.SR.M01AC635.Y(+1)       00182202
+//*                 REPORT 4613 AC6353M0 =>  CC.AC.C01AC635.Y(+1)       00182202
+//*  01/04/2013  R. FORTUNATE - 2012-ACC-024 (1ST RUN DATE JAN 2013)    00182102
+//*                 - CREATE NEW FILES FOR SUBSEQUENT STEPS - ELIMINATE 00182202
+//*                   LTR. (CC.AC.M01AC635 & CC.AC.C01AC635)            00182202
+//*                 - ADD 2 STEPS TO COPY FILES TO LTR GDG              00182202
+//*                   CCAC635R - COPY YEAR END MASTER                   00182202
+//*                              CC.AC.M01AC635.Y                       00182202
+//*                   CCAC635S - COPY COMERICA CUSTOM FILE              00182202
+//*                              CC.AC.C01AC635.Y                       00182202
+//*  07/01/2013  R. FORTUNATE - 2013-ACC-056 MOBIUS PROC                00182102
+//*                 - USE MOBIUS PROC TO SEND REPORTS                   00182202
+//*                           REPORT         STEP                       00182202
+//*                           CC4610A020     CCAC635A
+//*                           CC4612A020     CCAC635C
+//*                           CC4613A020     CCAC635E
+//*                 - REMOVE SYS3.XEROX.LOAD FROM JOBLIB                00182202
+//*                 - REMOVE FORMAT PR,DEST=LAS02.FMCCRJE,              00182202
+//*                          FORMS=PXCC1,DDNAME=                        00182202
+//*  06/01/2020  M. MERRITT - CR 2020-ACC-022 FINEFTCC-1364             00182102
+//*                 CHANGE FROM MOBIUS TO CMOD                          00182202
+//*  08/2024     ASHAIK56   CRQ:CRQ000000881292                         00182102
+//*                        ADDED A STEP TO CALL EVERBRIDGE IF JOB ABENDS00182202
+//*
+//*=====================================================================00183000
+//JOBLIB   DD  DSN=CC.PRPGMLIB,                                         00185000
+//             DISP=SHR                                                 00184000
+//*                 PRODUCTION PROGRAM LIBRARY                          00186000
+//         DD  DSN=SYSF.PROD.FOCLIB.LOAD,                               00380000
+//             DISP=SHR                                                 00370000
+//*                 FOCUS PROGRAM LIBRARY                               00390000
+//         DD  DSN=SYSF.PROD.FUSELIB.LOAD,                              00410000
+//             DISP=SHR                                                 00400000
+//*                                                                     00420000
+//*=====================================================================00440000
+//CCAC6351 EXEC  PGM=IEBGENER                                           00450000
+//*          GENER A COPY OF THE YEAR-END 1099 MASTER                   00460000
+//*=====================================================================00470000
+//SYSUT1   DD  DSN=CC.AC.M01AC633(0),                                   00490000
+//             DISP=SHR                                                 00480000
+//*                 YEAR END 1099 MASTER FILE                           00500000
+//*                                                                     00510000
+//SYSUT2   DD  DSN=CC.AC.M01AC635,                                      00540000
+//             DISP=(NEW,CATLG,DELETE),                                 00520000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=28000),                  00550000
+//             SPACE=(TRK,(800,50),RLSE)                                00530000
+//*                 YEAR END 1099 MASTER FILE                           00560000
+//*                                                                     00570000
+//SYSPRINT DD  SYSOUT=*                                                 00580000
+//SYSOUT   DD  SYSOUT=*                                                 00590000
+//SYSIN    DD  DUMMY                                                    00600000
+//*                                                                     00570000
+//*=====================================================================00610000
+//CCAC6352 EXEC  SSORT,                                                 00620000
+//             SPARM='RC16=ABE,IOERR=ABE'                               00620000
+//*                 SORT THE YEAR-END 1099 MASTER FILE                  00630000
+//*=====================================================================00640000
+//SORTIN   DD  DSN=CC.AC.M01AC635,                                      00660000
+//             DISP=SHR,                                                00650000
+//             UNIT=DISK                                                00650000
+//*                 YEAR END MASTER FILE                                00670000
+//*                                                                     00680000
+//SORTOUT  DD  DSN=CC.SR.M01AC635.Y(+1),                                00710000
+//             DISP=(NEW,CATLG,DELETE),                                 00690000
+//             DCB=(LRECL=400,BLKSIZE=28000,RECFM=FB),                  00720000
+//             UNIT=DISK,                                               00690000
+//             SPACE=(TRK,(800,50),RLSE)                                00700000
+//*                 SORTED YEAR END MASTER FILE                         00730000
+//*                  BY OP LOC, SSN, BRANCH/DEPT, AND CHK DATE          00740000
+//*                                                                     00750000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC635010),                              00760000
+//             DISP=SHR                                                 00770000
+//*                 SORT BY OP LOC, SSN, BR/DEPT, AND CHK DATE          00800000
+//*                                                                     00810000
+//SORT.SYSOUT DD SYSOUT=*                                               00820000
+//SORT.SYSPRINT DD SYSOUT=*                                             00830000
+//*                                                                     00840000
+//*=====================================================================00850000
+//CCAC6353 EXEC  PGM=CCAC6350                                           00860000
+//*                 CREATE 1099 MISC CUSTOMIZED SUMMARY FILE            00870000
+//*=====================================================================00880000
+//CCACM01R DD  DSN=CC.SR.M01AC635.Y(+1),                                00900000
+//             DISP=SHR,                                                00890000
+//             UNIT=DISK                                                00890000
+//*                 SORTED YEAR END MASTER FILE                         00910000
+//*                                                                     00920000
+//CCACC01W DD  DSN=CC.AC.C01AC635,                                      00950000
+//             DISP=(NEW,CATLG,DELETE),                                 00930000
+//             DCB=(RECFM=FB,LRECL=250,BLKSIZE=0),                      00960000
+//             SPACE=(TRK,(100,40),RLSE)                                00940000
+//*                 CUSTOMIZED SUMMARY FILE                             00970000
+//*                                                                     00980000
+//CCACE01W DD  DSN=CC.AC.E01AC635(+1),                                  01010000
+//             DISP=(NEW,CATLG,CATLG),                                  00990000
+//             DCB=(RECFM=FB,LRECL=00133,BLKSIZE=0),                    01020000
+//             UNIT=DISK,                                               00990000
+//             SPACE=(TRK,(5,1),RLSE)                                   01000000
+//*                 DISPLAY FILE                                        01030000
+//*                                                                     01040000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   01060000
+//             DISP=SHR                                                 01050000
+//*                 CONTROL CARD                                        01070000
+//*                                                                     01080000
+//SYSUDUMP DD  SYSOUT=*                                                 01090000
+//SYSOUT   DD  SYSOUT=*                                                 01100000
+//SYSPRINT DD  SYSOUT=*                                                 01110000
+//SYSABOUT DD  SYSOUT=*                                                 01120000
+//SYSDBOUT DD  SYSOUT=*                                                 01130000
+//*                                                                     01140000
+//*=====================================================================01740000
+//CCAC6354 EXEC  PGM=FOCUS                                              01750000
+//*                 1099 SUMMARY REPORT BY OPLOC                        01760000
+//*=====================================================================01770000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  01790000
+//             DISP=SHR                                                 01780000
+//*                 PRODUCTION FOCEXEC LIBRARY                          01800000
+//*                                                                     01810000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   01830000
+//             DISP=SHR                                                 01820000
+//*                 MASTER FILE DESCRIPTIONS                            01840000
+//FOCSORT  DD  UNIT=DISK,                                               01850000
+//             SPACE=(CYL,(20,10),RLSE)                                 01860000
+//SORTWK04 DD  UNIT=DISK,                                               01870000
+//             SPACE=(TRK,(100,80))                                     01870000
+//SORTWK05 DD  UNIT=DISK,                                               01880000
+//             SPACE=(TRK,(100,80))                                     01880000
+//*                 FOCUS RQRD ALLC - INTERNAL SORTS                    01890000
+//*                                                                     01900000
+//AC635300 DD  DSN=CC.AC.C01AC635,                                      01920000
+//             DISP=SHR,                                                01910000
+//             UNIT=DISK                                                01910000
+//*                 1099 CUSTOMIZED SUMMARY FILE(FILE SENT TO COMERICA) 01930000
+//*                                                                     01940000
+//OFFLINE  DD  DSN=CC.AC.P04AC635.XEROX(+1),                            01970000
+//             DISP=(NEW,CATLG,DELETE),                                 01950000
+//             DCB=(RECFM=FB,LRECL=80,BLKSIZE=0),                       01980000
+//             UNIT=DISK,                                               01960000
+//             SPACE=(TRK,(1,1),RLSE)                                   01960000
+//*                 TOTALS TO E-MAIL TO COMERICA                        01990000
+//*                                                                     02000000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               02060000
+//             DISP=SHR                                                 02050000
+//*                                                                     02070000
+//SYSPRINT DD  SYSOUT=*                                                 02080000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC635040),                             02090000
+//             DISP=SHR                                                 02100000
+//*                                                                     02220000
+//*=====================================================================01360000
+//CCAC6355 EXEC  PGM=IEBGENER                                           01370000
+//*       GENER AIS B&CCW DETAIL YTD FILE TO A YEARLY                   01380000
+//*       GDG AT YEAR END PROCESSING                                    01390000
+//*=====================================================================01400000
+//SYSUT1   DD  DSN=CC.SR.T09AC630,                                      01420000
+//             DISP=SHR                                                 01410000
+//*                 AIS B&CCW YTD DETAIL FILE                           01430000
+//*                                                                     01440000
+//SYSUT2   DD  DSN=CC.IE.T01AC635.Y(+1),                                01470000
+//             DISP=(NEW,CATLG,DELETE),                                 01450000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      01480000
+//             UNIT=ARCHIVE,                                            01450000
+//             SPACE=(CYL,(10,05),RLSE)                                 01460000
+//*                 AIS B&CCW YEARLY GDG (15 GENS)                      01490000
+//*                                                                     01500000
+//*                                                                     01510000
+//SYSOUT   DD  SYSOUT=*                                                 01520000
+//SYSPRINT DD  SYSOUT=*                                                 01530000
+//SYSIN    DD  DUMMY                                                    01540000
+//*                                                                     01550000
+//*=====================================================================01560000
+//CCAC6356 EXEC  PGM=IEBGENER                                           01570000
+//*       CREATE EMPTY DETAIL YTD FILE FOR FIRST RUN                    01580000
+//*       OF NEW YEAR OF CCAC@630                                       01590000
+//*=====================================================================01600000
+//SYSUT1   DD  DUMMY,                                                   01610000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0)                       01620000
+//*                                                                     01630000
+//SYSUT2   DD  DSN=CC.IE.T09AC630,                                      01660000
+//             DISP=(NEW,CATLG,DELETE),                                 01640000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      01670000
+//             UNIT=DISK,                                               01640000
+//             SPACE=(CYL,(10,05),RLSE)                                 01650000
+//*                 EMPTY AIS B&CCW YTD DETAIL FILE                     01680000
+//*                                                                     01690000
+//SYSOUT   DD  SYSOUT=*                                                 01700000
+//SYSPRINT DD  SYSOUT=*                                                 01710000
+//SYSIN    DD  DUMMY                                                    01720000
+//*                                                                     01730000
+//*=====================================================================01360000
+//CCAC6357 EXEC  PGM=IEBGENER                                           01370000
+//*       GENER DEFT 1099 DETAIL YTD FILE TO A YEARLY                   01380000
+//*       GDG AT YEAR END PROCESSING                                    01390000
+//*=====================================================================01400000
+//SYSUT1   DD  DSN=CC.SR.T10AC630,                                      01420000
+//             DISP=SHR                                                 01410000
+//*                 DEFT 1099 YTD DETAIL FILE                           01430000
+//*                                                                     01440000
+//SYSUT2   DD  DSN=CC.AC.T10AC635.Y(+1),                                01470000
+//             DISP=(NEW,CATLG,DELETE),                                 01450000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      01480000
+//             UNIT=ARCHIVE,                                            01450000
+//             SPACE=(CYL,(10,05),RLSE)                                 01460000
+//*                 DEFT 1099 YEARLY GDG (15 GENS)                      01490000
+//*                                                                     01500000
+//*                                                                     01510000
+//SYSOUT   DD  SYSOUT=*                                                 01520000
+//SYSPRINT DD  SYSOUT=*                                                 01530000
+//SYSIN    DD  DUMMY                                                    01540000
+//*                                                                     01550000
+//*=====================================================================01560000
+//CCAC6358 EXEC  PGM=IEBGENER                                           01570000
+//*       CREATE EMPTY DEFT DETAIL YTD FILE FOR FIRST RUN               01580000
+//*       OF NEW YEAR OF CCAC@630                                       01590000
+//*=====================================================================01600000
+//SYSUT1   DD  DUMMY,                                                   01610000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0)                       01620000
+//*                                                                     01630000
+//SYSUT2   DD  DSN=CC.AC.T10AC630,                                      01660000
+//             DISP=(NEW,CATLG,DELETE),                                 01640000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      01670000
+//             UNIT=DISK,                                               01640000
+//             SPACE=(CYL,(10,05),RLSE)                                 01650000
+//*                 EMPTY DEFT 1099 YTD DETAIL FILE                     01680000
+//*                                                                     01690000
+//SYSOUT   DD  SYSOUT=*                                                 01700000
+//SYSPRINT DD  SYSOUT=*                                                 01710000
+//SYSIN    DD  DUMMY                                                    01720000
+//*                                                                     01730000
+//*=====================================================================01740000
+//CCAC6359 EXEC  PGM=FOCUS                                              01750000
+//*                 1099 MASTER DELETE REPORT #4610                     01760000
+//*=====================================================================01770000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  01790000
+//             DISP=SHR                                                 01780000
+//*                 PRODUCTION FOCEXEC LIBRARY                          01800000
+//*                                                                     01810000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   01830000
+//             DISP=SHR                                                 01820000
+//*                 MASTER FILE DESCRIPTIONS                            01840000
+//FOCSORT  DD  UNIT=DISK,                                               01850000
+//             SPACE=(CYL,(20,10),RLSE)                                 01860000
+//SORTWK04 DD  UNIT=DISK,                                               01870000
+//             SPACE=(TRK,(100,80))                                     01870000
+//SORTWK05 DD  UNIT=DISK,                                               01880000
+//             SPACE=(TRK,(100,80))                                     01880000
+//*                 FOCUS RQRD ALLC - INTERNAL SORTS                    01890000
+//*                                                                     01900000
+//AC6351M0 DD  DSN=CC.SR.M01AC635.Y(+1),                                01920000
+//             DISP=SHR,                                                01910000
+//             UNIT=DISK                                                01910000
+//*                 SORTED YEAR END MASTER FILE                         01930000
+//*                                                                     01940000
+//OFFLINE  DD  DSN=CC.AC.P01AC635.XEROX(+1),                            01970000
+//             DISP=(NEW,CATLG,DELETE),                                 01950000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 01980000
+//             UNIT=DISK,                                               01960000
+//             SPACE=(CYL,(5,1),RLSE)                                   01960000
+//*                 1099 MASTER DELETE REPORT #4610                     01990000
+//*                                                                     02000000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   02020000
+//             DISP=SHR                                                 02010000
+//*                 CONTROL CARD                                        02030000
+//*                                                                     02040000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               02060000
+//             DISP=SHR                                                 02050000
+//*                                                                     02070000
+//SYSPRINT DD  SYSOUT=*                                                 02080000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC635010),                             02090000
+//             DISP=SHR                                                 02100000
+//*                                                                     02220000
+//*=====================================================================
+//* CC4610A020 - 1099 MASTER DELETE REPORT - FORM#:C984
+//*=====================================================================
+//CCAC635A EXEC ARSSYA1,
+//         REPORT=CC4610A020,
+//         INP=CC.AC.P01AC635.XEROX(+1)
+//*
+//*=====================================================================02400000
+//CCAC635B EXEC  PGM=FOCUS                                              02410000
+//*                 1099 YEAR END REPORTABLE MASTER FILE                02420000
+//*=====================================================================02430000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  02450000
+//             DISP=SHR                                                 02440000
+//*                 PRODUCTION FOCEXEC LIBRARY                          02460000
+//*                                                                     02470000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   02490000
+//             DISP=SHR                                                 02480000
+//*                 MASTER FILE DESCRIPTIONS                            02500000
+//FOCSORT  DD  UNIT=DISK,                                               02510000
+//             SPACE=(CYL,(8,8),RLSE)                                   02520000
+//SORTWK04 DD  UNIT=DISK,                                               02530000
+//             SPACE=(TRK,(100,50))                                     02530000
+//SORTWK05 DD  UNIT=DISK,                                               02540000
+//             SPACE=(TRK,(100,50))                                     02540000
+//*                 FOCUS RQRD ALLC - INTERNAL SORTS                    02550000
+//*                                                                     02560000
+//AC6352M0 DD  DSN=CC.SR.M01AC635.Y(+1),                                02580000
+//             DISP=SHR,                                                02570000
+//             UNIT=DISK                                                02570000
+//*                 YEAR END REPORTABLE MASTER FILE                     02590000
+//*                                                                     02600000
+//OFFLINE  DD  DSN=CC.AC.P02AC635.XEROX(+1),                            02630000
+//             DISP=(NEW,CATLG,DELETE),                                 02610000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 02640000
+//             UNIT=DISK,                                               02620000
+//             SPACE=(CYL,(50,10),RLSE)                                 02620000
+//*                 1099 YEAR END REPORTABLE MASTER FILE                02650000
+//*                 REPORT #4612                                        02660000
+//*                                                                     02670000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   02690000
+//             DISP=SHR                                                 02680000
+//*                 CONTROL CARD                                        02700000
+//*                                                                     02710000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               02730000
+//             DISP=SHR                                                 02720000
+//*                                                                     02740000
+//SYSPRINT DD  SYSOUT=*                                                 02750000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC635020),                             02760000
+//             DISP=SHR                                                 02770000
+//*                                                                     02890000
+//*================================================================     02890000
+//* CC4612A020 - 1099 MISC REPORTABLE MASTER - FORM#:C986
+//*================================================================     02890000
+//CCAC635C EXEC ARSSYA1,
+//         REPORT=CC4612A020,
+//         INP=CC.AC.P02AC635.XEROX(+1)
+//*
+//*=====================================================================03070000
+//CCAC635D EXEC  PGM=FOCUS                                              03080000
+//*          SUMMARIZED 1099 MISC YEAR END REPORT #4613                 03090000
+//*=====================================================================03100000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  03120000
+//             DISP=SHR                                                 03110000
+//*                 PRODUCTION FOCEXEC LIBRARY                          03130000
+//*                                                                     03140000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   03160000
+//             DISP=SHR                                                 03150000
+//*                 MASTER FILE DESCRIPTIONS                            03170000
+//*                                                                     03180000
+//AC6353M0 DD  DSN=CC.AC.C01AC635,                                      03200000
+//             DISP=SHR,                                                03190000
+//             UNIT=DISK                                                03190000
+//*                 CUSTOMIZED SUMMARY FILE                             03210000
+//*                                                                     03220000
+//OFFLINE  DD  DSN=CC.AC.P03AC635.XEROX(+1),                            03250000
+//             DISP=(NEW,CATLG,DELETE),                                 03230000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 03260000
+//             UNIT=DISK,                                               03240000
+//             SPACE=(CYL,(50,10),RLSE)                                 03240000
+//*                 SUMMARIZED 1099 MISC YEAR END REPORT FILE           03270000
+//*                 REPORT #4613                                        03280000
+//*                                                                     03290000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   03310000
+//             DISP=SHR                                                 03300000
+//*                 CONTROL CARD                                        03320000
+//*                                                                     03330000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               03350000
+//             DISP=SHR                                                 03340000
+//*                                                                     03360000
+//SYSPRINT DD  SYSOUT=*                                                 03370000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC635030),                             03380000
+//             DISP=SHR                                                 03390000
+/*                                                                      03420000
+//*================================================================     02890000
+//* CC4613A020 - SUMMARIZED 1099 MISC YEAR END REPORT - FORM#:C985
+//*================================================================     02890000
+//CCAC635E EXEC ARSSYA1,
+//         REPORT=CC4613A020,
+//         INP=CC.AC.P03AC635.XEROX(+1)
+//*
+//*=====================================================================00440000
+//CCAC635R EXEC  PGM=IEBGENER                                           00450000
+//*          GENER A COPY OF THE YEAR-END 1099 MASTER TO ARCHIVE FILE   00460000
+//*=====================================================================00470000
+//SYSUT1   DD  DSN=CC.AC.M01AC635,                                      00490000
+//             DISP=SHR                                                 00480000
+//*                 YEAR END 1099 MASTER FILE                           00500000
+//*                                                                     00510000
+//SYSUT2   DD  DSN=CC.IE.M01AC635.Y(+1),                                00540000
+//             DISP=(NEW,CATLG,DELETE),                                 00520000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=28000),                  00550000
+//             DATACLAS=LTR10Y,                                         00520000
+//             SPACE=(TRK,(800,50),RLSE)                                00530000
+//*                 YEAR END 1099 MASTER FILE - ARCHIVE                 00560000
+//*                                                                     00570000
+//SYSPRINT DD  SYSOUT=*                                                 00580000
+//SYSOUT   DD  SYSOUT=*                                                 00590000
+//SYSIN    DD  DUMMY                                                    00600000
+//*                                                                     00570000
+//*=====================================================================00440000
+//CCAC635S EXEC  PGM=IEBGENER                                           00450000
+//*          GENER A COPY OF THE COMERICA CUSTOMIZED SUMMARY FILE       00460000
+//*          TO ARCHIVE                                                 00460000
+//*=====================================================================00470000
+//SYSUT1   DD  DSN=CC.AC.C01AC635,                                      00490000
+//             DISP=SHR                                                 00480000
+//*                 CUSTOMIZED SUMMARY FILE                             00500000
+//*                                                                     00510000
+//SYSUT2   DD  DSN=CC.AC.C01AC635.Y(+1),                                00950000
+//             DISP=(NEW,CATLG,DELETE),                                 00930000
+//             DCB=(RECFM=FB,LRECL=250,BLKSIZE=0),                      00960000
+//             DATACLAS=LTR10Y,                                         00520000
+//             SPACE=(TRK,(100,40),RLSE)                                00940000
+//*                 CUSTOMIZED SUMMARY FILE - ARCHIVED                  00970000
+//*                                                                     00570000
+//SYSPRINT DD  SYSOUT=*                                                 00580000
+//SYSOUT   DD  SYSOUT=*                                                 00590000
+//SYSIN    DD  DUMMY                                                    00600000
+//*                                                                     00570000
+//*---------------------------------------------------------------------
+//*    EMAIL FCFINSYS & CALL EVERBRIDGE IF JOB FAILS
+//*---------------------------------------------------------------------
+//CCAC9999 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD  DSN=CC.AC.R01AC635.EVRBDG.SUB,DISP=SHR
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),DISP=SHR
+//SYSUT2   DD  SYSOUT=A
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//********************************************************************* 02910000
+//**             LIST OF REPORTS                                     ** 02910000
+//**                                                                 ** 02910000
+//**  RPT #   REPORT TITLE                        COPIES             ** 02910000
+//**  ------  -------------------------------     -------            ** 02910000
+//**  4610    1099-MISC REPORTABLE MASTER DELETES  CMOD   ONLY       ** 02910000
+//**  4612    1099-MISC REPORTABLE MASTER          CMOD   ONLY       ** 02910000
+//**  4613    SUMMARIZED 1099-MISC YEAR-END REPORT CMOD   ONLY       ** 02910000
+//**                                                                 ** 02910000
+//**     CONTROL CARD INFORMATION                                    **
+//**         CCAC@635                                                **
+//**                                                                 **
+//** CONTROL CARD:   CC.AC.R01AC625(0)                               **
+//**                                                                 **
+//** FIELD       FORMAT          CONTENT                             **
+//** ------    --------------    --------------------------------    **
+//** 01-02     X(2)  CC          CENTURY OF PREVIOUS MONTH           **
+//** 03-04     X(2)  YY          YEAR OF PREVIOUS MONTH              **
+//** 05-06     X(2)  MM          PREVIOUS MONTH                      **
+//**                             FOR YEAR-END PROCESSING:            **
+//**                               USE '13' FOR FIRST RUN            **
+//**                               USE '14' FOR SECOND RUN           **
+//**                               USE '15' FOR THIRD RUN            **
+//** 07-08     X(2)  DD          LAST DAY OF PREVIOUS MONTH.         **
+//** 09-80     X(63) BLANK                                           **
+//**================= END OF CCAC@635 ===============================**
+

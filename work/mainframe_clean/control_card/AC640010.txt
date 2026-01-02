@@ -1,0 +1,6 @@
+    CC.SORT.DATA(AC640010) - 01.04                  Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+ OPTION  COPY                                                           
+  OUTFIL FNAMES=DD01O,NULLOFL=RC4                                       
+*+* FMC2DFS: End of DFSORT statement output *+*                         
+**************************** Bottom of Data ****************************

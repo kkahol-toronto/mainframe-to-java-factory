@@ -1,0 +1,1144 @@
+IDENTIFICATION DIVISION.
+
+PROGRAM-ID. CCAC6250.
+000400*TRANSLATED BY MHTRAN-2  5/07/96                                  00040001
+AUTHOR. CATHIE LONGAN.
+DATE-WRITTEN. NOVEMBER 1994.
+DATE-COMPILED. TODAY.
+000800******************************************************************00080001
+000900*                                                                *00090001
+001000*                             CCAC6250                           *00100001
+001100*                      ENHANCED 1099 SYSTEMS                     *00110001
+001200*                            REJECT FILE                         *00120001
+001300*            --------------------------------------------        *00130001
+001400*                                                                *00140001
+001500*  THIS PROGRAM HAS THE FOLLOWING INPUTS:                        *00150001
+001600*                EDITED 1099 REJECT FILE                         *00160001
+001700*                CONTROL CARD FOR TRAILER DATE                   *00170001
+001800*                                                                *00180001
+001900*  AND THE FOLLOWING OUTPUTS:                                    *00190001
+002000*                REFORMATTED 1099 REJECT FILE WITH               *00200001
+002100*                HEADER AND TRAILER                              *00210001
+002200*                                                                *00220001
+002300******************************************************************00230001
+002400*                            REVISIONS                           *00240001
+002500******************************************************************00250001
+002600* DATE      LEVEL  AUTHOR            DESCRIPTION / PROJECT #     *00260001
+002700* --------  -----  ----------------  --------------------------  *00270001
+002800* 11-21-94  00001  C. LONGAN         NEW PROGRAM COPIED FROM     *00280001
+002900*                                    CCAC001                     *00290001
+003000* 01-24-95  0023   C. LONGAN         ADD VENDOR FILE FOR A HEADER*00300001
+003100*                                    AND TRAILER FOR CCAC6320    *00310001
+003110* 01-08-04  0024   D. OPPERMANN      RENAME PROGRAM FROM CCMR6250*00311001
+003120* 12-17-04  0025   D. OPPERMANN      EPM #1371 AIS/PS BRIDGE     *00312001
+003200*                                    ELIMINATION PROJECT.        *00320001
+003210*                                    CHANGE SOURCE CODE FROM     *00321001
+003220*                                    'AIS B&CCW' TO 'B&CCW    '  *00322001
+003230* 05-01-12 ET11126623 R. FORTUNATE   CORRECT TAX TYPE & TIN      *00323001
+003240*          SUPPORT LOG               FROM THE REJ/RECYCLE        *00324001
+003250*                                    FILE FOR THE TRANSACTION    *00325001
+003260*                                    UPDATE KEY =>CHECK NUM,     *00326001
+003270*                                    TAX TYPE, & TIN             *00327001
+003280*                                                                *00328001
+003230* 08-29-14 ET12841232 K. MULKA       ADD DEFT AS A SOURCE VALUE  *00323001
+003240*          SUPPORT LOG               FOR PROCESSING REJECTS.     *00324001
+003250*                                                                *00325001
+003260*                                                                *00326001
+003270*                                                                *00327001
+003280*                                                                *00328001
+003300******************************************************************00330001
+    EJECT
+ENVIRONMENT DIVISION.
+
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-3090.
+OBJECT-COMPUTER. IBM-3090.
+
+INPUT-OUTPUT SECTION.
+
+FILE-CONTROL.
+
+    SELECT CCAC-T01R-EDITED-1099-REJECT
+        ASSIGN TO UT-S-CCACT01R.
+
+    SELECT CCAC-T02R-1099-VENDOR-FILE
+        ASSIGN TO UT-S-CCACT02R.
+
+    SELECT CCAC-M01R-EDITED-1099-MASTER
+        ASSIGN TO UT-S-CCACM01R.
+
+    SELECT CCAC-T01W-FORMAT-1099-REJECT
+        ASSIGN TO UT-S-CCACT01W.
+
+    SELECT CCAC-T02W-FORMAT-1099-VENDOR
+        ASSIGN TO UT-S-CCACT02W.
+
+    SELECT CCAC-M01W-FORMAT-1099-MASTER
+        ASSIGN TO UT-S-CCACM01W.
+
+    SELECT CCAC-R01R-CONTROL-CARD
+        ASSIGN TO UT-S-CCACR01R.
+
+    SELECT CC-E01W-DISPLAY-FILE
+        ASSIGN TO UT-S-CCACE01W.
+
+    EJECT
+
+DATA DIVISION.
+
+FILE SECTION.
+
+FD  CCAC-T01R-EDITED-1099-REJECT
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-T01R-EDITED-REJECT-RCD                PIC X(526).
+    EJECT
+FD  CCAC-T02R-1099-VENDOR-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-T02R-1099-VENDOR-RCD                  PIC X(320).
+    EJECT
+FD  CCAC-M01R-EDITED-1099-MASTER
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-M01R-EDITED-MASTER-RCD                PIC X(400).
+    EJECT
+FD  CCAC-T01W-FORMAT-1099-REJECT
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-T01W-FORMAT-REJECT-RCD                PIC X(526).
+    EJECT
+FD  CCAC-T02W-FORMAT-1099-VENDOR
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-T02W-FORMAT-VENDOR-RCD                PIC X(320).
+    EJECT
+FD  CCAC-M01W-FORMAT-1099-MASTER
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-M01W-FORMAT-MASTER-RCD                PIC X(400).
+    EJECT
+FD  CC-E01W-DISPLAY-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CC-E01W-DISPLAY-RCD                        PIC X(133).
+    EJECT
+FD  CCAC-R01R-CONTROL-CARD
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CCAC-R01R-CONTROL-CARD-RCD                 PIC X(80).
+EJECT
+
+WORKING-STORAGE SECTION.
+77  PAN-VALET PICTURE X(24) VALUE '005CCAC6250  06/07/96'.
+013400******************************************************************01340001
+013500*                                                                 01350001
+013600*                    WORKING STORAGE BEGIN                        01360001
+013700*                                                                 01370001
+013800******************************************************************01380001
+
+
+       01  PUPS2000.
+      *
+           05  FILLER                  PIC X(69)   VALUE
+               "PUPS2000 MULKA, K. (KATHLEEN)           CC38630  2014082
+      -        "9100148543815".
+
+01  FILLER                           PIC X(38)
+    VALUE "WORKING STORAGE BEGIN PROGRAM CCAC6250".
+
+014300******************************************************************01430001
+014400*                                                                 01440001
+014500*    WORKING STORAGE RECORD FOR INPUT EDITED REJECT FILE          01450001
+014600*                                                                 01460001
+014700******************************************************************01470001
+
+01  WS-T01R-INPUT-REJ-FILE.
+    05  WS-T01R-REJECT-KEY.
+        10  WS-T01R-KEY-OP-LOC       PIC X(04).
+        10  WS-T01R-KEY-BR-DEPT-CD   PIC X(03).
+        10  WS-T01R-KEY-CHECK-NUM    PIC X(08).
+        10  WS-T01R-KEY-CHECK-DT     PIC X(08).
+        10  WS-T01R-KEY-TAX-TYPE     PIC X(1).
+        10  WS-T01R-KEY-TIN-IND      PIC X(1).
+        10  WS-T01R-KEY-SOURCE-CODE  PIC X(13).
+    05  WS-T01R-REJECT-DETAIL        PIC X(488).
+
+    05  WS-T01R-MISC-FORM REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(25).
+        10  WS-T01R-MISC-FORM-AMT    PIC 9(8)V99.
+        10  FILLER                   PIC X(453).
+
+    05  WS-T01R-OLD-BCCW REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(127).
+        10  WS-T01R-OLD-BCCW-AMT     PIC S9(10)V99.
+        10  FILLER                   PIC X(349).
+
+    05  WS-T01R-BCCW REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(198).
+        10  WS-T01R-BCCW-AMT         PIC S9(10)V99.
+        10  FILLER                   PIC X(278).
+
+    05  WS-T01R-REACT-ISS REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(198).
+        10  WS-T01R-REACT-ISS-AMT    PIC S9(10)V99.
+        10  FILLER                   PIC X(278).
+
+    05  WS-T01R-MAN-INSUR REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(08).
+        10  WS-T01R-MAN-INSUR-AMT    PIC 9(10)V99.
+        10  FILLER                   PIC X(468).
+
+    05  WS-T01R-DEFT-FORM REDEFINES WS-T01R-REJECT-DETAIL.
+        10  FILLER                   PIC X(198).
+        10  WS-T01R-DEFT-AMT         PIC S9(10)V99.
+        10  FILLER                   PIC X(278).
+
+    EJECT
+
+018500******************************************************************01850001
+018600*                                                                 01860001
+018700*    WORKING STORAGE RECORD FOR INPUT VENDOR MISC FORM FILE       01870001
+018800*                                                                 01880001
+018900******************************************************************01890001
+
+01  WS-T02R-INPUT-VENDOR-FILE.
+    05  FILLER                       PIC X(25).
+    05  WS-T02R-MISC-FORM-AMT        PIC 9(8)V99.
+    05  FILLER                       PIC X(285).
+01  WS-T02R-INPUT-HEADER-REC REDEFINES
+                  WS-T02R-INPUT-VENDOR-FILE.
+    05  FILLER                       PIC XX.
+    05  WS-T02R-INPUT-HDR-NAME       PIC X(06).
+        88  VENDOR-HEADER   VALUE "HEADER".
+    05  FILLER                       PIC X(09).
+    05  WS-T02R-INPUT-HDR-DATE       PIC X(06).
+    05  FILLER                       PIC X(07).
+    05  WS-T02R-INPUT-HDR-CNT        PIC X(06).
+    05  FILLER                       PIC X(284).
+
+  EJECT
+020700******************************************************************02070001
+020800*                                                                 02080001
+020900*    WORKING STORAGE RECORD FOR INPUT EDITED MASTER FILE          02090001
+021000*                                                                 02100001
+021100******************************************************************02110001
+
+01  WS-M01R-INPUT-MSTR-FILE.
+    05  WS-M01R-FIRST-CHK-NUM        PIC X(01).
+    05  FILLER                       PIC X(203).
+    05  WS-M01R-DELETE-IND           PIC X(01).
+    05  FILLER                       PIC X(01).
+    05  WS-M01R-TOT-AMOUNT           PIC S9(10)V99.
+    05  WS-M01R-1099-AMOUNT          PIC S9(10)V99.
+    05  FILLER                       PIC X(170).
+    EJECT
+022200******************************************************************02220001
+022300*                                                                 02230001
+022400*    WORKING STORAGE RECORD FOR OUTPUT FORMATTED REJECT FILE      02240001
+022500*                                                                 02250001
+022600******************************************************************02260001
+
+01  WS-T01W-OUTPUT-FILE.
+    05  WS-T01W-REJECT-RCD.
+        10  WS-T01W-REJECT-KEY             PIC X(38).
+        10  WS-T01W-REJECT-DETAIL          PIC X(488).
+
+
+    05  WS-T01W-REJECT-HDR REDEFINES WS-T01W-REJECT-RCD.
+        10  WS-T01W-REJECT-HDR-VALUE       PIC X(10).
+        10  FILLER                         PIC XX.
+        10  WS-T01W-REJECT-HDR-ID          PIC X(20).
+        10  FILLER                         PIC XX.
+        10  WS-T01W-REJECT-HDR-DATE.
+            15  WS-T01W-REJECT-HDR-CC      PIC XX.
+            15  WS-T01W-REJECT-HDR-YY      PIC XX.
+            15  WS-T01W-REJECT-HDR-MM      PIC XX.
+        10  FILLER                         PIC X(486).
+
+    05  WS-T01W-REJECT-TRL REDEFINES WS-T01W-REJECT-RCD.
+        10  WS-T01W-REJECT-TRL-VALUE       PIC X(10).
+        10  FILLER                         PIC XX.
+        10  WS-T01W-REJECT-TRL-CNT         PIC 9(8).
+        10  FILLER                         PIC XX.
+        10  WS-T01W-REJECT-TRL-AMT         PIC S9(10)V99.
+        10  FILLER                         PIC X(492).
+    EJECT
+025300******************************************************************02530001
+025400*                                                                 02540001
+025500*    WORKING STORAGE RECORD FOR OUTPUT FORMATTED VENDOR FILE      02550001
+025600*                                                                 02560001
+025700******************************************************************02570001
+
+01  WS-T02W-OUTPUT-FILE.
+    05  WS-T02W-VENDOR-RCD                 PIC X(320).
+
+    05  WS-T02W-VENDOR-HDR REDEFINES WS-T02W-VENDOR-RCD.
+        10  WS-T02W-VENDOR-HDR-VALUE       PIC X(10).
+        10  FILLER                         PIC XX.
+        10  WS-T02W-VENDOR-HDR-ID          PIC X(20).
+        10  FILLER                         PIC XX.
+        10  WS-T02W-VENDOR-HDR-DATE.
+            15  WS-T02W-VENDOR-HDR-CC      PIC XX.
+            15  WS-T02W-VENDOR-HDR-YY      PIC XX.
+            15  WS-T02W-VENDOR-HDR-MM      PIC XX.
+        10  FILLER                         PIC X(280).
+
+    05  WS-T02W-VENDOR-TRL REDEFINES WS-T02W-VENDOR-RCD.
+        10  WS-T02W-VENDOR-TRL-VALUE       PIC X(10).
+        10  FILLER                         PIC XX.
+        10  WS-T02W-VENDOR-TRL-CNT         PIC 9(8).
+        10  FILLER                         PIC XX.
+        10  WS-T02W-VENDOR-TRL-AMT         PIC S9(10)V99.
+        10  FILLER                         PIC X(286).
+    EJECT
+028100******************************************************************02810001
+028200*                                                                 02820001
+028300*    WORKING STORAGE RECORD FOR MASTER HEADER AND TRAILERS        02830001
+028400*                                                                 02840001
+028500******************************************************************02850001
+
+01  WS-M01W-OUTPUT-FILE.
+    05  WS-M01W-MASTER-RCD                 PIC X(400).
+
+    05  WS-M01W-MASTER-HDR REDEFINES WS-M01W-MASTER-RCD.
+        10  WS-M01W-MSTR-HDR-VALUE         PIC X(33).
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-HDR-ID            PIC X(10).
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-HDR-DATE.
+            15  WS-M01W-MSTR-HDR-CC        PIC XX.
+            15  WS-M01W-MSTR-HDR-YY        PIC XX.
+            15  WS-M01W-MSTR-HDR-MM        PIC XX.
+        10  FILLER                         PIC X(347).
+
+    05  WS-M01W-MASTER-TRL REDEFINES WS-M01W-MASTER-HDR.
+        10  WS-M01W-MSTR-TRL-VALUE         PIC X(33).
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-NDEL-TRL-CNT      PIC 9(8).
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-NDEL-TRL-AMT      PIC S9(10)V99.
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-DEL-TRL-CNT       PIC 9(8).
+        10  FILLER                         PIC XX.
+        10  WS-M01W-MSTR-DEL-TRL-AMT       PIC S9(10)V99.
+        10  FILLER                         PIC X(319).
+    EJECT
+
+031400******************************************************************03140001
+031500*                                                                 03150001
+031600*    WORKING STORAGE RECORD FOR DISPLAY FILE                      03160001
+031700*                                                                 03170001
+031800******************************************************************03180001
+
+032000*++INCLUDE C2INX003                                               03200001
+COPY C2INX003.
+    EJECT
+
+032400******************************************************************03240001
+032500*                                                                 03250001
+032600*    WORKING STORAGE RECORD FOR CONTROL CARD                      03260001
+032700*                                                                 03270001
+032800******************************************************************03280001
+
+01  WS-R01R-CONTROL-CARD.
+    05  WS-R01R-CC-TAX-DATE.
+       10  WS-R01R-CC-CC             PIC XX.
+       10  WS-R01R-CC-YY             PIC XX.
+       10  WS-R01R-CC-MM             PIC XX.
+       10  WS-R01R-CC-DD             PIC XX.
+    05  FILLER                       PIC X(72).
+    EJECT
+
+033900******************************************************************03390001
+034000*                                                                 03400001
+034100*                WORKING STORAGE COUNTERS                         03410001
+034200*                                                                 03420001
+034300******************************************************************03430001
+
+01  WS-COUNTERS.
+    05  WS-TOT-REJ-RECDS-READ       PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-VEND-RECDS-READ      PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-MSTR-RECDS-READ      PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-REJ-WRITTEN-CNT      PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-VEND-WRITTEN-CNT     PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-MSTR-NDEL-CNT        PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-MSTR-DEL-CNT         PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-REJ-1099-AMT         PIC S9(10)V99 VALUE ZERO.
+    05  WS-TOT-VEND-1099-AMT        PIC S9(10)V99 VALUE ZERO.
+    05  WS-TOT-MSTR-NDEL-AMT        PIC S9(10)V99 VALUE ZERO.
+    05  WS-TOT-MSTR-DEL-AMT         PIC S9(10)V99 VALUE ZERO.
+
+    EJECT
+035900******************************************************************03590001
+036000*                                                                 03600001
+036100*         WORKING STORAGE SWITCHES AND INDICATORS                 03610001
+036200*                                                                 03620001
+036300******************************************************************03630001
+
+01  WS-SWITCHES.
+    05  WS-REJ-EOF-SW               PIC X       VALUE SPACE.
+        88  END-OF-REJECTS                      VALUE "Y".
+    05  WS-VEND-EOF-SW              PIC X       VALUE SPACE.
+        88  END-OF-VENDOR                       VALUE "Y".
+    05  WS-MSTR-EOF-SW              PIC X       VALUE SPACE.
+        88  END-OF-MASTER                       VALUE "Y".
+    EJECT
+037300******************************************************************03730001
+037400*                                                                 03740001
+037500*                 CONSTANTS AND LITERALS                          03750001
+037600*                                                                 03760001
+037700******************************************************************03770001
+
+01  WS-PARAGRAPH-LITERALS.
+    05  WS-99-LIT              PIC 9(02) VALUE 99.
+    05  WS-1-LIT               PIC 9(02) VALUE 01.
+
+01  WS-MISC-ALPHA-LITERALS.
+    05  WS-YES-LIT               PIC X(01)  VALUE "Y".
+    05  WS-NO-LIT                PIC X(01)  VALUE "N".
+    05  WS-MSTR-DELETE-RCD       PIC X(01)  VALUE "D".
+    05  WS-MSTR-BUSINESS-RCD     PIC X(01)  VALUE "B".
+    05  WS-MSTR-MECH-RCD         PIC X(01)  VALUE "M".
+    05  WS-SOURCE-SYSTEM-LIT     PIC X(08)  VALUE "1099    ".
+    05  WS-REJ-HDR-ID-LIT        PIC X(20)  VALUE
+                          "1099 REJECT CYCLE TR".
+    05  WS-VEN-HDR-ID-LIT        PIC X(20)  VALUE
+                          "1099 VENDOR CYCLE TR".
+    05  WS-MSTR-HDR-ID-LIT       PIC X(10)  VALUE
+                          "HEADER    ".
+    05  WS-MISC-FORM-LIT         PIC X(15)  VALUE
+                          "MISC FORM      ".
+    05  WS-OLD-BCCW-LIT          PIC X(15)  VALUE
+                          "OLD B&CCW      ".
+    05  WS-BCCW-LIT              PIC X(15)  VALUE
+                          "B&CCW          ".
+    05  WS-REACT-ISS-LIT         PIC X(15)  VALUE
+                          "REACT ISSUES   ".
+
+    05  WS-MAN-INSUR-LIT         PIC X(15)  VALUE
+                          "MAN. INSURANCE ".
+    05  WS-DEFT-LIT              PIC X(15)  VALUE
+                          "DEFT           ".
+
+01  WS-ERROR-MESS-LITERALS.
+    05  WS-EMPTY-CCRD-LIT        PIC X(40)
+        VALUE "NO CONTROL CARD                    ***  ".
+    05  WS-EMPTY-REJ-LIT         PIC X(40)
+        VALUE "REJECT FILE CONTAINS 0 RECORDS     ***  ".
+    05  WS-EMPTY-VEND-LIT        PIC X(40)
+        VALUE "VENDOR FILE CONTAINS 0 RECORDS     ***  ".
+    05  WS-EMPTY-MSTR-LIT        PIC X(40)
+        VALUE "MASTER FILE CONTAINS 0 RECORDS     ***  ".
+    05  WS-NOT-REJECT-RCD-LIT    PIC X(40)
+        VALUE "RECORD IS NOT REJECT RECORD        ***  ".
+
+01  WS-EOJ-MESS-LITERALS.
+    05  WS-EOJ-MSG-1             PIC X(40)
+        VALUE "TOTAL REJECTS READ :                    ".
+    05  WS-EOJ-MSG-2             PIC X(40)
+        VALUE "TOTAL REJECTS WRITTEN :                 ".
+    05  WS-EOJ-MSG-3             PIC X(40)
+        VALUE "TOTAL MASTERS READ :                    ".
+    05  WS-EOJ-MSG-4             PIC X(40)
+        VALUE "TOTAL MASTER DELETES WRITTEN :          ".
+    05  WS-EOJ-MSG-5             PIC X(40)
+        VALUE "TOTAL MASTER NON-DELETES WRITTEN :      ".
+    05  WS-EOJ-MSG-6             PIC X(40)
+        VALUE "TOTAL VENDOR  READ :                    ".
+    05  WS-EOJ-MSG-7             PIC X(40)
+        VALUE "TOTAL VENDOR  WRITTEN :                 ".
+043500******************************************************************04350001
+043600*                                                                 04360001
+043700*          WORKING STORAGE MISC WORK AREA                         04370001
+043800*                                                                 04380001
+043900******************************************************************04390001
+
+01  WS-MISC-AREA.
+    05  WS-REJECT-RECORD-LINE        PIC X(526).
+    05  WS-MASTER-RECORD-LINE        PIC X(400).
+    05  WS-VENDOR-RECORD-LINE        PIC X(320).
+    EJECT
+01  WS-DATE.
+    05  WS-DATE-MONTH                PIC 99.
+    05  FILLER                       PIC X.
+    05  WS-DATE-DAY                  PIC 99.
+    05  FILLER                       PIC X.
+    05  WS-DATE-YEAR                 PIC 99.
+
+EJECT
+PROCEDURE DIVISION.
+
+045600***************************************************************** 04560001
+045700* 0000-MAINLINE.                                                * 04570001
+045800*                                                               * 04580001
+045900* THIS PARAGRAPH CONTROLS MAIN PROCESSING LOGIC                 * 04590001
+046000*                                                               * 04600001
+046100* PERFORMS:  1000-GENERAL-HOUSEKEEPING                          * 04610001
+046200*            3000-PROCESS-REJECT-FILE                           * 04620001
+046300*            3500-PROCESS-MASTER-FILE                           * 04630001
+046400*            3600-PROCESS-VENDOR-FILE                           * 04640001
+046500*            5000-PROCESS-TRAILERS                              * 04650001
+046600*            9000-CLOSING-ROUTINE                               * 04660001
+046700*                                                               * 04670001
+046800***************************************************************** 04680001
+0000-MAINLINE.
+
+    PERFORM 1000-GENERAL-HOUSEKEEPING
+
+    PERFORM 3000-PROCESS-REJECT-FILE  UNTIL
+                 END-OF-REJECTS
+
+    PERFORM 3500-PROCESS-MASTER-FILE  UNTIL
+                 END-OF-MASTER
+
+    PERFORM 3600-PROCESS-VENDOR-FILE  UNTIL
+                 END-OF-VENDOR
+
+    PERFORM 5000-PROCESS-TRAILERS
+
+    PERFORM 9000-CLOSING-ROUTINE
+
+048600*OQ01 - "GOBACK" FLAGGED PER STOP-RUN OPTION                      04860001
+    GOBACK
+    .
+    EJECT
+049000***************************************************************** 04900001
+049100* 1000-GENERAL-HOUSEKEEPING.                                      04910001
+049200*                                                                 04920001
+049300* OPENS THE INPUT AND OUTPUT FILES, PRODUCES THE HEADER, SETS UP  04930001
+049400* TODAY'S DATE AND READS THE FIRST INPUT RECORD.                  04940001
+049500*                                                                 04950001
+049600* PERFORMED FROM 0000-MAINLINE.                                   04960001
+049700***************************************************************** 04970001
+1000-GENERAL-HOUSEKEEPING.
+
+    PERFORM 1400-OPEN-FILES
+
+    PERFORM 1600-INITIALIZATION
+
+    MOVE SWA-CURR-MO                  TO WS-DATE-MONTH
+    MOVE SWA-CURR-DA                  TO WS-DATE-DAY
+    MOVE SWA-CURR-YR                  TO WS-DATE-YEAR
+
+    PERFORM 7100-READ-CONTROL-CARD
+
+    PERFORM 1200-HEADER-REC-HOUSEKEEPING
+
+    PERFORM 7500-READ-REJECT-FILE
+    IF END-OF-REJECTS
+       MOVE WS-EMPTY-REJ-LIT  TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT         TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+
+    PERFORM 7600-READ-MASTER-FILE
+    IF END-OF-MASTER
+       MOVE WS-EMPTY-MSTR-LIT TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT         TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+
+    PERFORM 7700-READ-VENDOR-FILE
+    IF END-OF-VENDOR
+       MOVE WS-EMPTY-VEND-LIT TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT         TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       IF VENDOR-HEADER
+          PERFORM 7700-READ-VENDOR-FILE
+          IF END-OF-VENDOR
+             MOVE WS-EMPTY-VEND-LIT TO CC-E01W-DISPLAY-RCD
+             MOVE WS-99-LIT         TO RETURN-CODE
+             PERFORM 8999-WRITE-SYSOUT
+          END-IF
+       END-IF
+    END-IF
+    .
+    EJECT
+054300***************************************************************** 05430001
+054400* 1200-HEADER-REC-HOUSEKEEPING.                                   05440001
+054500*                                                                 05450001
+054600* CREATES THE OUTPUT REJECT HEADER RECORD.                        05460001
+054700*                                                                 05470001
+054800* PERFORMED FROM 0000-MAINLINE.                                   05480001
+054900***************************************************************** 05490001
+1200-HEADER-REC-HOUSEKEEPING.
+
+    PERFORM 1250-CREATE-REJ-HEADER
+
+    PERFORM 1300-CREATE-MSTR-HEADER
+
+    PERFORM 1350-CREATE-VEND-HEADER
+    .
+    EJECT
+055900***************************************************************** 05590001
+056000* 1250-CREATE-REJ-HEADER.                                         05600001
+056100*                                                                 05610001
+056200* CREATES THE OUTPUT REJECT HEADER RECORD.                        05620001
+056300*                                                                 05630001
+056400* PERFORMED FROM 1200-HEADER-REC-HOUSEKEEPING.                    05640001
+056500***************************************************************** 05650001
+1250-CREATE-REJ-HEADER.
+
+    INITIALIZE              WS-T01W-REJECT-RCD
+
+    MOVE LOW-VALUES           TO WS-T01W-REJECT-HDR-VALUE
+
+    MOVE WS-REJ-HDR-ID-LIT    TO WS-T01W-REJECT-HDR-ID
+
+    MOVE WS-R01R-CC-MM        TO WS-T01W-REJECT-HDR-MM
+
+    MOVE WS-R01R-CC-CC        TO WS-T01W-REJECT-HDR-CC
+
+    MOVE WS-R01R-CC-YY        TO WS-T01W-REJECT-HDR-YY
+
+    INITIALIZE              WS-REJECT-RECORD-LINE
+    MOVE WS-T01W-REJECT-HDR   TO WS-REJECT-RECORD-LINE
+    INITIALIZE              WS-T01W-OUTPUT-FILE
+
+    PERFORM 8700-WRITE-REJECT-RECORD
+058500*==============================================================*  05850001
+058600*    WRITE REJECT HEADER RECORD                                *  05860001
+058700*==============================================================*  05870001
+    .
+    EJECT
+059000***************************************************************** 05900001
+059100* 1300-CREATE-MSTR-HEADER.                                        05910001
+059200*                                                                 05920001
+059300* CREATES THE OUTPUT MASTER HEADER RECORD.                        05930001
+059400*                                                                 05940001
+059500* PERFORMED FROM 1200-HEADER-REC-HOUSEKEEPING.                    05950001
+059600***************************************************************** 05960001
+1300-CREATE-MSTR-HEADER.
+
+    INITIALIZE              WS-M01W-MASTER-RCD
+
+    MOVE LOW-VALUES           TO WS-M01W-MSTR-HDR-VALUE
+
+    MOVE WS-MSTR-HDR-ID-LIT   TO WS-M01W-MSTR-HDR-ID
+
+    MOVE WS-R01R-CC-MM        TO WS-M01W-MSTR-HDR-MM
+
+    MOVE WS-R01R-CC-CC        TO WS-M01W-MSTR-HDR-CC
+
+    MOVE WS-R01R-CC-YY        TO WS-M01W-MSTR-HDR-YY
+
+    INITIALIZE              WS-MASTER-RECORD-LINE
+    MOVE WS-M01W-MASTER-HDR   TO WS-MASTER-RECORD-LINE
+    INITIALIZE              WS-M01W-OUTPUT-FILE
+
+    PERFORM 8750-WRITE-MASTER-RECORD
+061600*==============================================================*  06160001
+061700*    WRITE MASTER HEADER RECORD                                *  06170001
+061800*==============================================================*  06180001
+    .
+    EJECT
+062100***************************************************************** 06210001
+062200* 1350-CREATE-VEND-HEADER.                                        06220001
+062300*                                                                 06230001
+062400* CREATES THE OUTPUT VENDOR HEADER RECORD.                        06240001
+062500*                                                                 06250001
+062600* PERFORMED FROM 1200-HEADER-REC-HOUSEKEEPING.                    06260001
+062700***************************************************************** 06270001
+1350-CREATE-VEND-HEADER.
+
+    INITIALIZE              WS-T02W-VENDOR-RCD
+
+    MOVE LOW-VALUES           TO WS-T02W-VENDOR-HDR-VALUE
+
+    MOVE WS-VEN-HDR-ID-LIT    TO WS-T02W-VENDOR-HDR-ID
+
+    MOVE WS-R01R-CC-MM        TO WS-T02W-VENDOR-HDR-MM
+
+    MOVE WS-R01R-CC-CC        TO WS-T02W-VENDOR-HDR-CC
+
+    MOVE WS-R01R-CC-YY        TO WS-T02W-VENDOR-HDR-YY
+
+    INITIALIZE              WS-VENDOR-RECORD-LINE
+    MOVE WS-T02W-VENDOR-HDR   TO WS-VENDOR-RECORD-LINE
+    INITIALIZE              WS-T02W-OUTPUT-FILE
+
+    PERFORM 8760-WRITE-VENDOR-RECORD
+064700*==============================================================*  06470001
+064800*    WRITE VENDOR HEADER RECORD                                *  06480001
+064900*==============================================================*  06490001
+    .
+    EJECT
+065200***************************************************************** 06520001
+065300* 1400-OPEN-FILES.                                                06530001
+065400*                                                                 06540001
+065500* OPENS THE INPUT AND OUTPUT FILES.                               06550001
+065600*                                                                 06560001
+065700* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       06570001
+065800***************************************************************** 06580001
+1400-OPEN-FILES.
+
+    OPEN INPUT  CCAC-T01R-EDITED-1099-REJECT
+                CCAC-T02R-1099-VENDOR-FILE
+                CCAC-M01R-EDITED-1099-MASTER
+                CCAC-R01R-CONTROL-CARD
+
+         OUTPUT CCAC-T01W-FORMAT-1099-REJECT
+                CCAC-T02W-FORMAT-1099-VENDOR
+                CCAC-M01W-FORMAT-1099-MASTER
+                CC-E01W-DISPLAY-FILE
+    .
+    EJECT
+067200***************************************************************** 06720001
+067300* 1600-INITIALIZATION.                                            06730001
+067400*                                                                 06740001
+067500* CREATES THE INITIAL DISPLAY FILE RECORD.                        06750001
+067600*                                                                 06760001
+067700* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       06770001
+067800***************************************************************** 06780001
+1600-INITIALIZATION.
+
+068100*++INCLUDE C2INZ001                                               06810001
+COPY C2INZ001.
+
+  EJECT
+068500***************************************************************** 06850001
+068600* 3000-PROCESS-REJECT-FILE.                                       06860001
+068700*                                                                 06870001
+068800* ADD THE CHECK AMOUNT FOR THE TRAILER AND WRITE OUT THE REJECT   06880001
+068900* RECORD. READ THE NEXT INPUT REJECT RECORD.                      06890001
+069000*                                                                 06900001
+069100* PERFORMED FROM 0000-MAINLINE.                                   06910001
+069200***************************************************************** 06920001
+3000-PROCESS-REJECT-FILE.
+
+    ADD WS-1-LIT                TO WS-TOT-REJ-RECDS-READ
+
+    EVALUATE WS-T01R-KEY-SOURCE-CODE
+         WHEN WS-MISC-FORM-LIT
+             ADD WS-T01R-MISC-FORM-AMT TO WS-TOT-REJ-1099-AMT
+         WHEN WS-OLD-BCCW-LIT
+             ADD WS-T01R-OLD-BCCW-AMT  TO WS-TOT-REJ-1099-AMT
+         WHEN WS-BCCW-LIT
+             ADD WS-T01R-BCCW-AMT      TO WS-TOT-REJ-1099-AMT
+         WHEN WS-REACT-ISS-LIT
+             ADD WS-T01R-REACT-ISS-AMT TO WS-TOT-REJ-1099-AMT
+         WHEN WS-MAN-INSUR-LIT
+             ADD WS-T01R-MAN-INSUR-AMT TO WS-TOT-REJ-1099-AMT
+         WHEN WS-DEFT-LIT
+             ADD WS-T01R-DEFT-AMT TO WS-TOT-REJ-1099-AMT
+         WHEN OTHER
+             MOVE WS-NOT-REJECT-RCD-LIT TO CC-E01W-DISPLAY-RCD
+             PERFORM 8999-WRITE-SYSOUT
+    END-EVALUATE
+
+    INITIALIZE                WS-REJECT-RECORD-LINE
+    MOVE WS-T01R-INPUT-REJ-FILE TO WS-REJECT-RECORD-LINE
+
+    PERFORM 8700-WRITE-REJECT-RECORD
+
+    ADD WS-1-LIT                TO WS-TOT-REJ-WRITTEN-CNT
+
+    PERFORM 7500-READ-REJECT-FILE
+    .
+    EJECT
+072300***************************************************************** 07230001
+072400* 3500-PROCESS-MASTER-FILE.                                       07240001
+072500*                                                                 07250001
+072600* ADD THE 1099  AMOUNT FOR THE TRAILER AND WRITE OUT THE MASTER   07260001
+072700* RECORD. READ THE NEXT INPUT MASTER RECORD.                      07270001
+072800*                                                                 07280001
+072900* PERFORMED FROM 0000-MAINLINE.                                   07290001
+073000***************************************************************** 07300001
+3500-PROCESS-MASTER-FILE.
+
+    ADD WS-1-LIT                 TO WS-TOT-MSTR-RECDS-READ
+
+    EVALUATE WS-M01R-DELETE-IND
+    WHEN WS-MSTR-DELETE-RCD
+         ADD WS-M01R-1099-AMOUNT TO WS-TOT-MSTR-DEL-AMT
+         ADD WS-1-LIT            TO WS-TOT-MSTR-DEL-CNT
+    WHEN WS-MSTR-BUSINESS-RCD
+         ADD WS-M01R-1099-AMOUNT TO WS-TOT-MSTR-DEL-AMT
+         ADD WS-1-LIT            TO WS-TOT-MSTR-DEL-CNT
+    WHEN WS-MSTR-MECH-RCD
+         ADD WS-M01R-1099-AMOUNT TO WS-TOT-MSTR-DEL-AMT
+         ADD WS-1-LIT            TO WS-TOT-MSTR-DEL-CNT
+    WHEN OTHER
+         ADD WS-M01R-1099-AMOUNT TO WS-TOT-MSTR-NDEL-AMT
+         ADD WS-1-LIT            TO WS-TOT-MSTR-NDEL-CNT
+    END-EVALUATE
+
+    INITIALIZE                 WS-MASTER-RECORD-LINE
+    MOVE WS-M01R-INPUT-MSTR-FILE TO WS-MASTER-RECORD-LINE
+
+    PERFORM 8750-WRITE-MASTER-RECORD
+
+    PERFORM 7600-READ-MASTER-FILE
+    .
+    EJECT
+075800***************************************************************** 07580001
+075900* 3600-PROCESS-VENDOR-FILE.                                       07590001
+076000*                                                                 07600001
+076100* ADD THE 1099  AMOUNT FOR THE TRAILER AND WRITE OUT THE VENDOR   07610001
+076200* RECORD. READ THE NEXT INPUT VENDOR RECORD.                      07620001
+076300*                                                                 07630001
+076400* PERFORMED FROM 0000-MAINLINE.                                   07640001
+076500***************************************************************** 07650001
+3600-PROCESS-VENDOR-FILE.
+
+    ADD WS-1-LIT                   TO WS-TOT-VEND-RECDS-READ
+
+    ADD WS-T02R-MISC-FORM-AMT      TO WS-TOT-VEND-1099-AMT
+
+    INITIALIZE                   WS-VENDOR-RECORD-LINE
+    MOVE WS-T02R-INPUT-VENDOR-FILE TO WS-VENDOR-RECORD-LINE
+
+    PERFORM 8760-WRITE-VENDOR-RECORD
+
+    ADD WS-1-LIT                   TO WS-TOT-VEND-WRITTEN-CNT
+
+    PERFORM 7700-READ-VENDOR-FILE
+    .
+    EJECT
+078200************************************************************      07820001
+078300* 5000-PROCESS-TRAILERS.                                          07830001
+078400*                                                                 07840001
+078500* CREATE OUTPUT REJECT TRAILER.                                   07850001
+078600*                                                                 07860001
+078700* PERFORMED FROM 1000-MAINLINE.                                   07870001
+078800************************************************************      07880001
+5000-PROCESS-TRAILERS.
+
+    PERFORM 5100-CREATE-REJ-TRAILER
+
+    PERFORM 5200-CREATE-MSTR-TRAILER
+    .
+    PERFORM 5300-CREATE-VEND-TRAILER
+    .
+    EJECT
+079800************************************************************      07980001
+079900* 5100-CREATE-REJ-TRAILER.                                        07990001
+080000*                                                                 08000001
+080100* CREATE OUTPUT REJECT TRAILER.                                   08010001
+080200*                                                                 08020001
+080300* PERFORMED FROM 5000-PROCESS-TRAILERS.                           08030001
+080400************************************************************      08040001
+5100-CREATE-REJ-TRAILER.
+
+    INITIALIZE                WS-T01W-OUTPUT-FILE
+    MOVE WS-TOT-REJ-WRITTEN-CNT TO WS-T01W-REJECT-TRL-CNT
+    MOVE WS-TOT-REJ-1099-AMT
+                                TO WS-T01W-REJECT-TRL-AMT
+    MOVE HIGH-VALUES
+                                TO WS-T01W-REJECT-TRL-VALUE
+
+    INITIALIZE                WS-REJECT-RECORD-LINE
+    MOVE WS-T01W-REJECT-TRL     TO WS-REJECT-RECORD-LINE
+
+    PERFORM 8700-WRITE-REJECT-RECORD
+    .
+    EJECT
+082000************************************************************      08200001
+082100* 5200-CREATE-MSTR-TRAILER.                                       08210001
+082200*                                                                 08220001
+082300* CREATE OUTPUT MASTER TRAILER.                                   08230001
+082400*                                                                 08240001
+082500* PERFORMED FROM 5000-PROCESS-TRAILERS.                           08250001
+082600************************************************************      08260001
+5200-CREATE-MSTR-TRAILER.
+
+    INITIALIZE                WS-M01W-OUTPUT-FILE
+    MOVE WS-TOT-MSTR-NDEL-CNT   TO WS-M01W-MSTR-NDEL-TRL-CNT
+    MOVE WS-TOT-MSTR-NDEL-AMT
+                                TO WS-M01W-MSTR-NDEL-TRL-AMT
+
+    MOVE WS-TOT-MSTR-DEL-CNT    TO WS-M01W-MSTR-DEL-TRL-CNT
+    MOVE WS-TOT-MSTR-DEL-AMT
+                                TO WS-M01W-MSTR-DEL-TRL-AMT
+
+    MOVE HIGH-VALUES
+                                TO WS-M01W-MSTR-TRL-VALUE
+
+    INITIALIZE                WS-MASTER-RECORD-LINE
+    MOVE WS-M01W-MASTER-TRL     TO WS-MASTER-RECORD-LINE
+
+    PERFORM 8750-WRITE-MASTER-RECORD
+    .
+    EJECT
+084700************************************************************      08470001
+084800* 5300-CREATE-VEND-TRAILER.                                       08480001
+084900*                                                                 08490001
+085000* CREATE OUTPUT VENDOR TRAILER.                                   08500001
+085100*                                                                 08510001
+085200* PERFORMED FROM 5000-PROCESS-TRAILERS.                           08520001
+085300************************************************************      08530001
+5300-CREATE-VEND-TRAILER.
+
+    INITIALIZE                WS-T02W-OUTPUT-FILE
+    MOVE WS-TOT-VEND-WRITTEN-CNT TO WS-T02W-VENDOR-TRL-CNT
+    MOVE WS-TOT-VEND-1099-AMT
+                                 TO WS-T02W-VENDOR-TRL-AMT
+    MOVE HIGH-VALUES
+                                 TO WS-T02W-VENDOR-TRL-VALUE
+
+    INITIALIZE                 WS-VENDOR-RECORD-LINE
+    MOVE WS-T02W-VENDOR-TRL      TO WS-VENDOR-RECORD-LINE
+
+    PERFORM 8760-WRITE-VENDOR-RECORD
+    .
+    EJECT
+086900***************************************************************** 08690001
+087000* 7100-READ-CONTROL-CARD.                                         08700001
+087100*                                                                 08710001
+087200* READS THE CONTROL CARD FOR HEADER DATE.                         08720001
+087300*                                                                 08730001
+087400* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       08740001
+087500***************************************************************** 08750001
+7100-READ-CONTROL-CARD.
+
+    READ CCAC-R01R-CONTROL-CARD INTO WS-R01R-CONTROL-CARD
+    AT END
+       MOVE WS-EMPTY-CCRD-LIT TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT         TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    END-READ
+    .
+    EJECT
+088700************************************************************      08870001
+088800* 7500-READ-REJECT-FILE.                                          08880001
+088900*                                                                 08890001
+089000* READ THE INPUT REJECT FILE.                                     08900001
+089100*                                                                 08910001
+089200* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       08920001
+089300*                3000-PROCESS-REJECT-FILE.                        08930001
+089400************************************************************      08940001
+7500-READ-REJECT-FILE.
+
+    READ CCAC-T01R-EDITED-1099-REJECT
+                          INTO WS-T01R-INPUT-REJ-FILE
+        AT END
+            MOVE WS-YES-LIT TO WS-REJ-EOF-SW
+    END-READ
+    .
+    EJECT
+090400************************************************************      09040001
+090500* 7600-READ-MASTER-FILE.                                          09050001
+090600*                                                                 09060001
+090700* READ THE INPUT MASTER FILE.                                     09070001
+090800*                                                                 09080001
+090900* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       09090001
+091000*                3500-PROCESS-MASTER-FILE.                        09100001
+091100************************************************************      09110001
+7600-READ-MASTER-FILE.
+
+    READ CCAC-M01R-EDITED-1099-MASTER
+                          INTO WS-M01R-INPUT-MSTR-FILE
+        AT END
+            MOVE WS-YES-LIT TO WS-MSTR-EOF-SW
+    END-READ
+    .
+    EJECT
+092100************************************************************      09210001
+092200* 7700-READ-VENDOR-FILE.                                          09220001
+092300*                                                                 09230001
+092400* READ THE INPUT VENDOR FILE.                                     09240001
+092500*                                                                 09250001
+092600* PERFORMED FROM 1000-GENERAL-HOUSEKEEPING.                       09260001
+092700*                3600-PROCESS-VENDOR-FILE.                        09270001
+092800************************************************************      09280001
+7700-READ-VENDOR-FILE.
+
+    READ CCAC-T02R-1099-VENDOR-FILE
+                          INTO WS-T02R-INPUT-VENDOR-FILE
+        AT END
+            MOVE WS-YES-LIT TO WS-VEND-EOF-SW
+    END-READ
+    .
+    EJECT
+093800***************************************************************** 09380001
+093900* 8700-WRITE-REJECT-RECORD.                                       09390001
+094000*                                                                 09400001
+094100* WRITE THE REJECT RECORD OUT.                                    09410001
+094200*                                                                 09420001
+094300* PERFORMED FROM 1250-CREATE-REJ-HEADER-REC.                      09430001
+094400*                3000-PROCESS-REJECT-FILE.                        09440001
+094500*                5000-PROCESS-REJECT-TRAILER.                     09450001
+094600***************************************************************** 09460001
+8700-WRITE-REJECT-RECORD.
+
+    WRITE CCAC-T01W-FORMAT-REJECT-RCD
+                    FROM WS-REJECT-RECORD-LINE
+    END-WRITE
+
+    INITIALIZE      WS-REJECT-RECORD-LINE
+    .
+    EJECT
+095600***************************************************************** 09560001
+095700* 8750-WRITE-MASTER-RECORD.                                       09570001
+095800*                                                                 09580001
+095900* WRITE THE MASTER RECORD OUT.                                    09590001
+096000*                                                                 09600001
+096100* PERFORMED FROM 1300-CREATE-MSTR-HEADER-REC.                     09610001
+096200*                3500-PROCESS-MASTER-FILE.                        09620001
+096300*                5500-PROCESS-MASTER-TRAILER.                     09630001
+096400***************************************************************** 09640001
+8750-WRITE-MASTER-RECORD.
+
+    WRITE CCAC-M01W-FORMAT-MASTER-RCD
+                    FROM WS-MASTER-RECORD-LINE
+    END-WRITE
+
+    INITIALIZE      WS-MASTER-RECORD-LINE
+    .
+    EJECT
+097400***************************************************************** 09740001
+097500* 8760-WRITE-VENDOR-RECORD.                                       09750001
+097600*                                                                 09760001
+097700* WRITE THE VENDOR RECORD OUT.                                    09770001
+097800*                                                                 09780001
+097900* PERFORMED FROM 1350-CREATE-VEND-HEADER-REC.                     09790001
+098000*                3600-PROCESS-VENDOR-FILE.                        09800001
+098100*                5300-PROCESS-VENDOR-TRAILER.                     09810001
+098200***************************************************************** 09820001
+8760-WRITE-VENDOR-RECORD.
+
+    WRITE CCAC-T02W-FORMAT-VENDOR-RCD
+                    FROM WS-VENDOR-RECORD-LINE
+    END-WRITE
+
+    INITIALIZE      WS-VENDOR-RECORD-LINE
+    .
+    EJECT
+099200***************************************************************** 09920001
+099300* 8999-WRITE-SYSOUT.                                              09930001
+099400*                                                                 09940001
+099500* WRITE DISPLAY RECORD.                                           09950001
+099600*                                                                 09960001
+099700* PERFORMED FROM 3000-PROCESS-REJECT-FILE.                        09970001
+099800***************************************************************** 09980001
+
+100000*++INCLUDE C2INZ002                                               10000001
+COPY C2INZ002.
+
+    EJECT
+100400***************************************************************** 10040001
+100500* 9000-CLOSING-ROUTINE.                                           10050001
+100600*                                                                 10060001
+100700* WRITE OUT CLOSING RECORDS AND CLOSE FILES.                      10070001
+100800*                                                                 10080001
+100900* PERFORMED FROM 0000-MAINLINE.                                   10090001
+101000***************************************************************** 10100001
+9000-CLOSING-ROUTINE.
+
+    PERFORM 9100-DISPLAY-CLOSING-RECORD
+
+    PERFORM 9999-CLOSE-FILES
+    .
+    EJECT
+101800***************************************************************** 10180001
+101900* 9100-DISPLAY-CLOSING-RECORD.                                    10190001
+102000*                                                                 10200001
+102100* CREATE DISPLAY RECORD WITH CLOSING DATA.                        10210001
+102200*                                                                 10220001
+102300* PERFORMED FROM 9000-CLOSING-ROUTINE.                            10230001
+102400***************************************************************** 10240001
+9100-DISPLAY-CLOSING-RECORD.
+
+    MOVE WS-EOJ-MSG-1           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-REJ-RECDS-READ  TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-2           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-REJ-WRITTEN-CNT TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-3           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-MSTR-RECDS-READ TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-4           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-MSTR-DEL-CNT    TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-5           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-MSTR-NDEL-CNT   TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-6           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-VEND-RECDS-READ TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-7           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-VEND-WRITTEN-CNT TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+106900*++INCLUDE C2INZ003                                               10690001
+COPY C2INZ003.
+  EJECT
+107200******************************************************************10720001
+107300* 9998-COREDUMP.                                                  10730001
+107400*                                                                 10740001
+107500*                PROGRAM CCAC6250 DUMP ROUTINE                   *10750001
+107600*                                                                 10760001
+107700*                                                                 10770001
+107800******************************************************************10780001
+9998-COREDUMP.
+
+
+    CALL "COREDUMP"
+    .
+    EJECT
+108500***************************************************************** 10850001
+108600* 9999-CLOSE-FILES.                                               10860001
+108700*                                                                 10870001
+108800* CLOSE ALL FILES.                                                10880001
+108900*                                                                 10890001
+109000* PERFORMED FROM 9000-CLOSING-ROUTINE.                            10900001
+109100***************************************************************** 10910001
+
+
+109400*++INCLUDE C2INZ005                                               10940001
+COPY C2INZ005.
+
+           CCAC-T01R-EDITED-1099-REJECT
+           CCAC-T02R-1099-VENDOR-FILE
+           CCAC-M01R-EDITED-1099-MASTER
+           CCAC-T01W-FORMAT-1099-REJECT
+           CCAC-T02W-FORMAT-1099-VENDOR
+           CCAC-M01W-FORMAT-1099-MASTER
+           CCAC-R01R-CONTROL-CARD
+    .
+ EJECT
+110600******************************************************************11060001
+110700*                PROGRAM CCAC6250 END OF SOURCE                  *11070001
+110800******************************************************************11080001
+END PROGRAM CCAC6250.
+

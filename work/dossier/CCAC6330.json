@@ -1,0 +1,52 @@
+{
+  "source_file": "CCAC6330.txt",
+  "program_id": "CCAC6330",
+  "copies": [
+    "C2INX001",
+    "C2INX002",
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_available": [
+    "C2INX001",
+    "C2INX002",
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_missing": [],
+  "calls": [],
+  "selects": [
+    {
+      "file": "TEN99-T01R-TRANSACTION-FILE",
+      "assign": "UT-S-CCACT01R."
+    },
+    {
+      "file": "TEN99-M01R-MASTER-IN-FILE",
+      "assign": "UT-S-CCACM01R."
+    },
+    {
+      "file": "TEN99-T02R-MASTER-UPDATE-FILE",
+      "assign": "UT-S-CCACT02R."
+    },
+    {
+      "file": "TEN99-R01R-CONTROL-FILE",
+      "assign": "UT-S-CCACR01R."
+    },
+    {
+      "file": "TEN99-T01W-DUPLICATE-TRAN-FILE",
+      "assign": "UT-S-CCACT01W."
+    },
+    {
+      "file": "TEN99-M01W-MASTER-OUT-FILE",
+      "assign": "UT-S-CCACM01W."
+    }
+  ]
+}

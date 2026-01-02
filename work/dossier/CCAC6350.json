@@ -1,0 +1,40 @@
+{
+  "source_file": "CCAC6350.txt",
+  "program_id": "CCAC6350",
+  "copies": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_available": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_missing": [],
+  "calls": [],
+  "selects": [
+    {
+      "file": "TEN99-M01R-1099-MASTER-FILE",
+      "assign": "CCACM01R."
+    },
+    {
+      "file": "TEN99-R01R-CONTROL-CARD",
+      "assign": "CCACR01R."
+    },
+    {
+      "file": "TEN99-C01W-1099-SUMMARY-FILE",
+      "assign": "CCACC01W."
+    },
+    {
+      "file": "CC-E01W-DISPLAY-FILE",
+      "assign": "CCACE01W."
+    }
+  ]
+}

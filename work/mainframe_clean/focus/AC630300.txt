@@ -1,0 +1,121 @@
+-***********************************************************************
+-*  FOCEXEC: AC630300                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  1099-MISC EXCLUSIONS     # 4608                    *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |      NEW FOCEXEC - 1099 MISC EXCLUSIONS
+-* D.OPPERMANN     01/2004  |      RENAMED FROM MR630300 TO AC630300
+-*           |              |      MR PREFIX ON FILE,DD NAMES TO AC
+-*           |              |
+-* A.DOBRYNSKI     06/2008  |      2007-ACC-086 - ACCEPT DEFT FILE
+-*           |              |      CHANGE HEADER
+-*           |              |
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-*           |              |
+-* R FORTUNATE     01/2011  |   EPM 2666
+-*           |              |  -CHANGE AC630300 FOCUS MASTER
+-*           |              |   DESCRIPTION TO AC6303M0.
+-*           |              |  -ADD TIN & TAX TYPE TO REPORT
+-*           |              |  -CHANGE SSN COLUMN HEADING TO SSN/EIN
+-*           |              |  -REMOVE FORMATTING OF TAX ID (SSN/EIN)
+-*           |              |
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC630300 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC6303M0
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A08 = CHECK_NUM;
+TRL_REC/A08 = CHECK_NUM;
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+RPT_MO/A10 =     IF '&CNTL_MM' EQ '01' THEN 'JANUARY '    ELSE
+                 IF '&CNTL_MM' EQ '02' THEN 'FEBRUARY '   ELSE
+                 IF '&CNTL_MM' EQ '03' THEN 'MARCH '      ELSE
+                 IF '&CNTL_MM' EQ '04' THEN 'APRIL '      ELSE
+                 IF '&CNTL_MM' EQ '05' THEN 'MAY '        ELSE
+                 IF '&CNTL_MM' EQ '06' THEN 'JUNE '       ELSE
+                 IF '&CNTL_MM' EQ '07' THEN 'JULY '       ELSE
+                 IF '&CNTL_MM' EQ '08' THEN 'AUGUST '     ELSE
+                 IF '&CNTL_MM' EQ '09' THEN 'SEPTEMBER '  ELSE
+                 IF '&CNTL_MM' EQ '10' THEN 'OCTOBER '    ELSE
+                 IF '&CNTL_MM' EQ '11' THEN 'NOVEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '12' THEN 'DECEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '13' THEN 'YEAR-END 1'  ELSE
+                 IF '&CNTL_MM' EQ '14' THEN 'YEAR-END 2'  ELSE
+                 IF '&CNTL_MM' EQ '15' THEN 'YEAR-END 3';
+CK_DT_MO/A2 = EDIT(CHECK_DT,'$$$$99$');
+CK_DT_DA/A2 = EDIT(CHECK_DT,'$$$$$$99');
+CK_DT_YR/A4 = EDIT(CHECK_DT,'9999$');
+PRT_CK_DT/A10 = CK_DT_MO | '/' | CK_DT_DA | '/' | CK_DT_YR;
+SSN3/A3 = EDIT(SOC_NUM,'999$');
+SSN2/A2 = EDIT(SOC_NUM,'$$$99$');
+SSN4/A4 = EDIT(SOC_NUM,'$$$$$9999$');
+SSN7/A7 = EDIT(SOC_NUM,'$$$$$$$$$9999999$');
+CKVAL/A1= EDIT(CHECK_NUM,'9$$$$$$$');
+PRT_SSN/A19 =  IF SSN3 EQ ' ' THEN '                   ' ELSE
+               IF SSN7 EQ ' ' THEN
+                                     SSN3 | SSN2 | SSN4  ELSE
+                                     SSN3 | SSN2 | SSN4 | SSN7;
+END
+
+TABLE FILE AC6303M0
+HEADING
+" "
+"PROGRAM: AC630300   <57 1099-MISC EXCLUSIONS <115 REPORT:  4608 "
+"&DATE <11 &TOD      <60 FOR <RPT_MO  <RPT_YY <115 PAGE:<TABPAGENO     "
+"                                                                      "
+"                                                                      "
+"OPERATION LOCATION:   <OP_LOC                                         "
+"BRANCH/DEPT CODE:     <DEPARTMENT                                     "
+"                                                                      "
+" "
+PRINT DIST_AMT     AS 'DISBURSEMENT,AMOUNT'
+      ENTRY_CODE   AS 'ENTRY,CODES'
+      TIN          AS 'TIN'
+      TAX_TYP      AS 'TAX,TYPE'
+IF    HDR_REC GT 'AAAAAAAA'
+IF    TRL_REC LT '99999999'
+BY    OP_LOC     NOPRINT PAGE-BREAK
+BY    DEPARTMENT NOPRINT PAGE-BREAK
+BY    PRT_SSN      AS 'SSN/EIN'
+BY    1099_AMOUNT  AS '1099,AMOUNT'
+BY    NAME         AS 'NAME'
+BY    SOURCE       AS 'SOURCE,CODE'
+BY    CHECK_NUM    AS 'CHECK/BATCH,NUMBER'
+END
+

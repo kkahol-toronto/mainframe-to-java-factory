@@ -1,0 +1,6 @@
+    FC.TSOA.PROD.PARMLIB(CCAC@641) - 01.00          Columns
+ ===>                                                  Scro
+***************************** Top of Data *****************
+//CCAC@641 JOB (1,20074,FMCC),FORD.CREDIT.COCS,            
+// USER=CCFTPEY,MSGCLASS=M                                 
+**************************** Bottom of Data ***************

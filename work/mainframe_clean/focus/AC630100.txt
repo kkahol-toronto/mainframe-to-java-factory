@@ -1,0 +1,295 @@
+-***********************************************************************
+-*  FOCEXEC: AC630100                                                  *
+-*                                                                     *
+-*                FINANCE AND STAFF SYSTEMS                            *
+-*                1099-MISC. REPORTING SYSTEM                          *
+-*                                                                     *
+-*                1099-MISC TRANSACTION REJECTS    # 4606              *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  11/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     11/94    |      NEW FOCEXEC - 1099-MISC TRANSACTION
+-*           |              |                    REJECT REPORT
+-*           |              |
+-*CH.SUDHEER |     04/01    |      INCLUDED THE SWITCH TO EXCLUDE THE
+-*           |              |      HEADER AND TRAILER AND ALSO ADDED
+-*           |              |      LOGIC TO PROCESS ADDITIONAL FILE.
+-* J.GORSKI  |     07/01    |      CHANGE CENTURY FROM 19 TO 20.
+-* D.OPPERMANN     01/2004  |      RENAMED FROM MR630100 TO AC630100
+-*           |              |      MR PREFIX ON FILE,DD NAMES TO AC
+-* A.DOBRYNSKI     06/2008  |      2007-ACC-086 - ACCEPT FILE FROM
+-*           |              |      DEFT - HEADER CHANGE AND ADD
+-*           |              |      LINE # TO DETAIL
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-* R FORTUNATE     01/2011  |   EPM 2666
+-*           |              |   -CHANGE MASTER LIB FROM AC630100 TO
+-*           |              |    AC6301M0
+-*           |              |   -ADD TAX TYPE & TIN TO REPORT
+-*           |              |   -CHANGE COLUMN HEADING FROM SSN TO
+-*           |              |    EIN/SSN
+-*           |              |   -REMOVE FORMATTING OF TAX ID
+-*           |              |
+-* R FORTUNATE     02/2013  |   2012-ACC-009 FOCUS 7.7.3 UPGRADE
+-*           |              |   -REMOVE IF/THEN/ELSE OF LOW-VALUES
+-*           |              |    AND HIGH-VALUES TO SET PRINT_SW
+-*           |              |   -REPLACED WITH WHERE STATEMENTS
+-*           |              |   -LOW-VALUES AS A LITERAL CAUSES
+-*           |              |    FOCUS 7.7.3 TO STOP PROCESSING.
+-*           |              |   -REFER TO IBI CASE 81852515.
+-*           |              |
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC630100 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC6301M0
+BLANK_LINE/A157 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+RPT_MO/A10 =     IF '&CNTL_MM' EQ '01' THEN 'JANUARY '    ELSE
+                 IF '&CNTL_MM' EQ '02' THEN 'FEBRUARY '   ELSE
+                 IF '&CNTL_MM' EQ '03' THEN 'MARCH '      ELSE
+                 IF '&CNTL_MM' EQ '04' THEN 'APRIL '      ELSE
+                 IF '&CNTL_MM' EQ '05' THEN 'MAY '        ELSE
+                 IF '&CNTL_MM' EQ '06' THEN 'JUNE '       ELSE
+                 IF '&CNTL_MM' EQ '07' THEN 'JULY '       ELSE
+                 IF '&CNTL_MM' EQ '08' THEN 'AUGUST '     ELSE
+                 IF '&CNTL_MM' EQ '09' THEN 'SEPTEMBER '  ELSE
+                 IF '&CNTL_MM' EQ '10' THEN 'OCTOBER '    ELSE
+                 IF '&CNTL_MM' EQ '11' THEN 'NOVEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '12' THEN 'DECEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '13' THEN 'YEAR-END 1'  ELSE
+                 IF '&CNTL_MM' EQ '14' THEN 'YEAR-END 2'  ELSE
+                 IF '&CNTL_MM' EQ '15' THEN 'YEAR-END 3';
+
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A46 = REJECT_KEY | SOURCE | REJECT_IND;
+TRL_REC/A46 = REJECT_KEY | SOURCE | REJECT_IND;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE CHECK DATE SO THAT IT WILL PRINT SPACES ONLY IF THERE
+-*   IS NO CHECK DATE FROM THE INPUT FILE
+-*----------------------------------------------------------------------
+PRT_CHK_DT/A10 =  IF CHK_MO EQ '  ' THEN '        '
+                  ELSE CHK_MO | '/' | CHK_DAY | '/' | '20' | CHK_YR;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE SSN SO THAT IT WILL EITHER PRINT A SSN OR ONLY SPACES
+-*   IF THERE IS NO SSN FROM THE INPUT FILE
+-*----------------------------------------------------------------------
+SSN3/A3 = EDIT(SSN,'999$');
+SSN2/A2 = EDIT(SSN,'$$$99$');
+SSN4/A4 = EDIT(SSN,'$$$$$9999$');
+SSN7/A7 = EDIT(SSN,'$$$$$$$$$9999999$');
+
+PRT_SSN/A19 =  IF SSN3 EQ ' ' THEN '                   ' ELSE
+               IF SSN7 EQ ' ' THEN
+                                     SSN3 | SSN2 | SSN4  ELSE
+                                     SSN3 | SSN2 | SSN4 | SSN7;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE REJECT INDICATOR FIELDS BASED ON THE REJECT INDICATOR
+-*   SET ON THE INPUT FILE
+-*----------------------------------------------------------------------
+NAME_RJT/A1  = IF REJ_TWO   EQ 'Y' THEN '*' ELSE ' ';
+ADD_RJT/A1   = IF REJ_THREE EQ 'Y' THEN '*' ELSE ' ';
+CITY_RJT/A1  = IF REJ_FOUR  EQ 'Y' THEN '*' ELSE ' ';
+STATE_RJT/A1 = IF REJ_FIVE  EQ 'Y' THEN '*' ELSE ' ';
+ZIP_RJT/A1   = IF REJ_SIX   EQ 'Y' THEN '*' ELSE ' ';
+SSN_RJT/A1   = IF REJ_SEVEN EQ 'Y' THEN '*' ELSE ' ';
+AMT_RJT/A1   = IF REJ_EIGHT EQ 'Y' THEN '*' ELSE ' ';
+
+REACT_CD/A19  =
+  COMP_CD1 | ',' | COMP_CD2 | ',' | COMP_CD3 | ',' | COMP_CD4 | ',' |
+  COMP_CD5;
+PRINT_KEY/A7 = OP_LOC | DEPT_CD;
+END
+
+TABLE FILE AC6301M0
+HEADING
+" "
+"PROGRAM:  AC630100  <57 1099-MISC TRANSACTION REJECTS
+ <115 REPORT:  4606   "
+"&DATE               <11 &TOD
+                     <60 FOR <RPT_MO  <RPT_YY <115   PAGE:<TABPAGENO   "
+"                                                                      "
+"  <48 (NOTE:  '*' INDICATES MISSING OR INCORRECT DATA ) "
+"                                                                      "
+" "
+"OPERATION LOCATION:   <OP_LOC                    "
+"BRANCH/DEPT CODE:     <BRANCH                      "
+"                                                   "
+"                                                   "
+"<2 CHECK/BATCH <16 CHECK/STLMT            <109 DISB   <120 ENTRY
+ <139 TAX "
+"<3 NUMBER <16 DATE     <31 SSN/EIN  <51 NAME  <109 AMOUNT <120 CODES
+ <139 TYPE <144 TIN"
+"<3 ------ <16 -----    <31 -------  <51 ----  <109 ------ <120 ------
+ <139 --- <144 ---"
+" "
+PRINT CHECK_NUM   AS ''
+      PRT_CHK_DT  AS '' IN 13
+      SSN_RJT     AS '' IN 25
+      PRT_SSN     AS '' IN 30
+      NAME_RJT    AS '' IN 48
+      NAME        AS '' IN 50
+      AMT_RJT     AS '' IN 93
+      TOT_AMT     AS '' IN 98
+      REACT_CD    AS '' IN 117
+      TAX_TYPE    AS '' IN 139
+      TIN_IND     AS '' IN 143
+OVER  BLANK_LINE AS ''
+OVER  ADD_RJT AS '' ADDRESS1   AS 'ADDRESS:' IN +1 CITY_RJT AS '' IN 51
+    CITY AS 'CITY:' IN 55 STATE_RJT AS '' IN 81 STATE AS 'STATE:' IN 85
+    ZIP_RJT AS '' IN 100 ZIP AS 'ZIP:' IN 117 LINE_NBR AS 'LINE #:'
+OVER  BLANK_LINE AS ''
+OVER  BLANK_LINE AS ''
+OVER  BLANK_LINE AS ''
+WHERE PRINT_KEY GT '       '
+WHERE PRINT_KEY LT ''
+BY OP_LOC NOPRINT PAGE-BREAK
+BY BRANCH NOPRINT PAGE-BREAK
+BY CHECK_NUM NOPRINT
+END
+DEFINE FILE AC630200
+BLANK_LINE/A157 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+RPT_MO/A10 =     IF '&CNTL_MM' EQ '01' THEN 'JANUARY '    ELSE
+                 IF '&CNTL_MM' EQ '02' THEN 'FEBRUARY '   ELSE
+                 IF '&CNTL_MM' EQ '03' THEN 'MARCH '      ELSE
+                 IF '&CNTL_MM' EQ '04' THEN 'APRIL '      ELSE
+                 IF '&CNTL_MM' EQ '05' THEN 'MAY '        ELSE
+                 IF '&CNTL_MM' EQ '06' THEN 'JUNE '       ELSE
+                 IF '&CNTL_MM' EQ '07' THEN 'JULY '       ELSE
+                 IF '&CNTL_MM' EQ '08' THEN 'AUGUST '     ELSE
+                 IF '&CNTL_MM' EQ '09' THEN 'SEPTEMBER '  ELSE
+                 IF '&CNTL_MM' EQ '10' THEN 'OCTOBER '    ELSE
+                 IF '&CNTL_MM' EQ '11' THEN 'NOVEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '12' THEN 'DECEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '13' THEN 'YEAR-END 1'  ELSE
+                 IF '&CNTL_MM' EQ '14' THEN 'YEAR-END 2'  ELSE
+                 IF '&CNTL_MM' EQ '15' THEN 'YEAR-END 3';
+
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A46 = REJECT_KEY | SOURCE | REJECT_IND;
+TRL_REC/A46 = REJECT_KEY | SOURCE | REJECT_IND;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE CHECK DATE SO THAT IT WILL PRINT SPACES ONLY IF THERE
+-*   IS NO CHECK DATE FROM THE INPUT FILE
+-*----------------------------------------------------------------------
+PRT_CHK_DT/A10 =  IF CHK_MO EQ '  ' THEN '        '
+                  ELSE CHK_MO | '/' | CHK_DAY | '/' | '20' | CHK_YR;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE SSN SO THAT IT WILL EITHER PRINT A SSN OR ONLY SPACES
+-*   IF THERE IS NO SSN FROM THE INPUT FILE
+-*----------------------------------------------------------------------
+SSN3/A3 = EDIT(SSN,'999$');
+SSN2/A2 = EDIT(SSN,'$$$99$');
+SSN4/A4 = EDIT(SSN,'$$$$$9999$');
+SSN7/A7 = EDIT(SSN,'$$$$$$$$$9999999$');
+
+PRT_SSN/A19 =  IF SSN3 EQ ' ' THEN '                   ' ELSE
+               IF SSN7 EQ ' ' THEN
+                                     SSN3 | SSN2 | SSN4  ELSE
+                                     SSN3 | SSN2 | SSN4 | SSN7;
+
+-*----------------------------------------------------------------------
+-*   DEFINE THE REJECT INDICATOR FIELDS BASED ON THE REJECT INDICATOR
+-*   SET ON THE INPUT FILE
+-*----------------------------------------------------------------------
+NAME_RJT/A1  = IF REJ_TWO   EQ 'Y' THEN '*' ELSE ' ';
+ADD_RJT/A1   = IF REJ_THREE EQ 'Y' THEN '*' ELSE ' ';
+CITY_RJT/A1  = IF REJ_FOUR  EQ 'Y' THEN '*' ELSE ' ';
+STATE_RJT/A1 = IF REJ_FIVE  EQ 'Y' THEN '*' ELSE ' ';
+ZIP_RJT/A1   = IF REJ_SIX   EQ 'Y' THEN '*' ELSE ' ';
+SSN_RJT/A1   = IF REJ_SEVEN EQ 'Y' THEN '*' ELSE ' ';
+AMT_RJT/A1   = IF REJ_EIGHT EQ 'Y' THEN '*' ELSE ' ';
+
+REACT_CD/A19  =
+  COMP_CD1 | ',' | COMP_CD2 | ',' | COMP_CD3 | ',' | COMP_CD4 | ',' |
+  COMP_CD5;
+
+PRINT_KEY/A7 = OP_LOC | DEPT_CD;
+END
+
+TABLE FILE AC630200
+HEADING
+" "
+"PROGRAM:  AC630100  <57 1099-MISC TRANSACTION REJECTS
+ <115 REPORT:  4606   "
+"&DATE               <11 &TOD
+                     <60 FOR <RPT_MO  <RPT_YY <115   PAGE:<TABPAGENO   "
+"                                                                      "
+"  <48 (NOTE:  '*' INDICATES MISSING OR INCORRECT DATA ) "
+"                                                                      "
+" "
+"OPERATION LOCATION:   <OP_LOC                    "
+"BRANCH/DEPT CODE:     <BRANCH                      "
+"                                                   "
+"                                                   "
+"<2 CHECK/BATCH <16 CHECK/STLMT            <109 DISB   <120 ENTRY
+ <139 TAX "
+"<3 NUMBER <16 DATE     <31 SSN/EIN  <51 NAME  <109 AMOUNT <120 CODES
+ <139 TYPE <144 TIN"
+"<3 ------ <16 -----    <31 -------  <52 ----  <109 ------ <120 ------
+ <139 --- <144 ---"
+" "
+PRINT CHECK_NUM   AS ''
+      PRT_CHK_DT  AS '' IN 13
+      SSN_RJT     AS '' IN 25
+      PRT_SSN     AS '' IN 30
+      NAME_RJT    AS '' IN 48
+      NAME        AS '' IN 50
+      AMT_RJT     AS '' IN 93
+      TOT_AMT     AS '' IN 98
+      REACT_CD    AS '' IN 117
+      TAX_TYPE    AS '' IN 139
+      TIN_IND     AS '' IN 143
+OVER  BLANK_LINE AS ''
+OVER  ADD_RJT AS '' ADDRESS1   AS 'ADDRESS:' IN +1 CITY_RJT AS '' IN 51
+    CITY AS 'CITY:' IN 55 STATE_RJT AS '' IN 81 STATE AS 'STATE:' IN 85
+    ZIP_RJT AS '' IN 100 ZIP AS 'ZIP:' IN 117 LINE_NBR AS 'LINE #:'
+OVER  BLANK_LINE AS ''
+OVER  BLANK_LINE AS ''
+OVER  BLANK_LINE AS ''
+WHERE PRINT_KEY GT '       '
+WHERE PRINT_KEY LT ''
+BY OP_LOC NOPRINT PAGE-BREAK
+BY BRANCH NOPRINT PAGE-BREAK
+BY CHECK_NUM NOPRINT
+END
+

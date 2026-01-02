@@ -1,0 +1,18 @@
+    CC.FILEMGR.DATA(AC630060) - 01.05               Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+$$FILEM DSC  INPUT=DD01,                                                
+$$FILEM      OUTPUT=DD01O,                                              
+$$FILEM      PROC=*                                                     
+ IF FLD_TYPE(247,12,Z) = 1                                              
+ THEN DO                                                                
+  WRITE(DD01O)                                                          
+ END                                                                    
+ IF FLD_TYPE(247,12,Z) = 0,                                             
+  & FLD(1,1) \== 'FF'X,                                                 
+  & FLD(1,1) \== '00'X                                                  
+ THEN DO                                                                
+  WRITE(DD02O)                                                          
+ END                                                                    
+ RETURN DROP                       /* done USER processing of record */ 
+/+                                                                      
+**************************** Bottom of Data ****************************

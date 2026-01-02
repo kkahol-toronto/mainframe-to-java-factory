@@ -1,0 +1,72 @@
+//CCAC@641 JOB (1,20074,FMCC),FORD.CREDIT.COCS,
+// USER=CCFTPEY,MSGCLASS=M
+//* CCAC6411 - SFPT SPUT ANNUAL FILE CC.AC.T01AC640
+//*---------------------------------------------------------------------
+//CCAC6411 EXEC PGM=BPXBATSL,
+//             REGION=0M,
+//             PARM='PGM /opt/tectia/bin/sftpg3
+//             -B //DD:BATCHIN'
+//SYSTSPRT DD  SYSOUT=*
+//STDOUT   DD   SYSOUT=*,DCB=(LRECL=4000,RECFM=VB)
+//STDENV   DD   DSN=NTPROD.TECTIA.PARMLIB(SSHENV),DISP=SHR
+//BATCHIN  DD   *
+open fmcc.upload@gossft.ey.com
+sput /ftadv:P=WIN/___CC.AC.T01AC640 FMCC1099
+quit
+//*
+//*---------------------------------------------------------------------
+//* CCAC6412 - ABEND IF RETURN CODE FROM CCAC6411 GREATER THAN 0
+//*---------------------------------------------------------------------
+//CCAC6412 EXEC   PGM=ZZZZ9999,COND=(0,EQ,CCAC6411)
+//*
+//*---------------------------------------------------------------------
+//* CCAC6413 - EMAIL FCFINSYS IF THE JOB ABENDS
+//*            CC.IBM.UTIL.DATA(FCFINSYS) - FCFINSYS@FORD.COM
+//*            CC.IBM.UTIL.DATA(AC641010) - EMAIL MESSAGE
+//*---------------------------------------------------------------------
+//CCAC6413 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD   DSN=CC.IBM.UTIL.DATA(FCFINSYS),DISP=SHR
+//         DD   DSN=CC.IBM.UTIL.DATA(AC641010),DISP=SHR
+//SYSUT2   DD   SYSOUT=A
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD   SYSOUT=*
+//SYSIN    DD   DUMMY
+//*
+//*---------------------------------------------------------------------
+//* CCAC6414 - PAGE THE PRIMARY ANALYST IF THE JOB ABENDS
+//*            CC.IBM.UTIL.DATA(FINPAGER) - PAGER NUMBER - FCDEFTPR
+//*            CC.IBM.UTIL.DATA(AC641010) - TEXT MESSAGE
+//*---------------------------------------------------------------------
+//CCAC6414 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD   DSN=FC.TSOA.PROD.PARMLIB(AC641SUB),
+//             DISP=SHR
+//         DD   DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),
+//             DISP=SHR
+//* NOTE:CONTAINS THE SPLUNK EMAIL TO MAKE CALL TO PRIMARY/SECONDARY
+//* SUPPORT
+//         DD   DSN=FC.TSOA.PROD.PARMLIB(AC641010),
+//             DISP=SHR
+//SYSUT2   DD   SYSOUT=P
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD   SYSOUT=*
+//SYSIN    DD   DUMMY
+//*=====================================================================
+//* SEND EMAIL TO E&Y NOTIFYING OF AVAILABILITY OF MISC 1099 DATA
+//* FOR CURRENT TAX YEAR. THIS STEP SENDS OUTLOOK EMAIL IF THE CONDITION
+//* CODE OF STEP CCAC6411 IS ZERO.
+//*====================================================================
+//CCAC6415 EXEC   PGM=IEBGENER,COND=(0,NE,CCAC6411)
+//SYSPRINT DD  SYSOUT=*
+//SYSIN    DD   DUMMY
+//SYSUT1   DD   DSN=CC.IBM.UTIL.DATA(AC640010),
+//             DISP=SHR
+//*            OUTPUT DESTINATION
+//         DD   DSN=CC.IBM.UTIL.DATA(AC640020),
+//             DISP=SHR
+//         DD   DSN=CC.AC.P04AC635.XEROX(0),
+//             DISP=SHR
+//SYSUT2   DD   SYSOUT=A
+//*
+//*------------------------------------------------------
+//*                    END OF JOB CCAC@641
+//*------------------------------------------------------

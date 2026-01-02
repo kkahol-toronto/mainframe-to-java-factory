@@ -1,0 +1,302 @@
+//CCAC@625 JOB (1,20074,FMCC),FORD.CREDIT.COCS,                         00030000
+// USER=CCCA7AC,REGION=2400K,                                           00040000
+// MSGCLASS=M                                                           00050000
+//JES3DS OUTPUT JESDS=ALL,DEFAULT=YES,CLASS=*,WRITER=JCL400             00060000
+//*MAIN LINES=(200,W),FAILURE=CANCEL,SYSTEM=JGLOBAL                     00080000
+//*FORMAT PR,DDNAME=CCAC9999.SYSUT2,DEST=DRBN004.VIPDIST7
+//*                                                                     00100000
+//*=====================================================================00110000
+//*    CCAC@625   1099 FILE PREPARATION                                 00120000
+//*                                                                     00130000
+//* SYSTEM NARRATIVE
+//* ---------------------
+//* THIS JOB CREATES HEADERS AND TRAILERS FOR THE MASTER FILE, THE
+//* 1099 FORM 20071 MANUAL ISSUES FILE AND THE 1099 REJECT FILE. THE
+//* PURPOSE OF THIS JOB IS TO PROVIDE CONSISTENT HEADERS AND TRAILERS
+//* ON MANUALLY EDITED FILES AND PROVIDE A MEANS OF VERIFICATION FOR
+//* RECORD COUNTS, TOTAL AMOUNTS AND RUN DATES.
+//* THIS JOB ALSO PRODUCES A REPORT OF REJECT TRANSACTION DELETES.
+//*
+//* PROCESSING SCHEDULE
+//* ---------------------
+//* THIS JOB IS RUN UNDER CA-7. IT RUNS MONTHLY ON THE SECOND WORKDAY.  00140000
+//* IT IS DEPENDENT ON JOB CCAC625X SUBMITTED BY ACCOUNTING AND CONTROL 00180000
+//* CARD CCAC625A.  CCAC@625 HAS 2 SCHEDULE ID'S AS FOLLOWS:            00140000
+//*                                                                     00180000
+//* ID=1  FIRST PROCESSING MONTH OF THE YEAR (RUN FEBRUARY FOR JANUARY  00190000
+//*       DATA).  THIS SCHEDULE BYPASSES THE PRIOR MONTH REJECT AND     00200000
+//*       MASTER FILE PROCESSING AS WELL AS THE DELETED REJECT REPORT   00220000
+//*                                                                     00250000
+//* ID=2  REMAINDER OF THE PROCESSING MONTHS, INCLUDING YEAR-END        00260000
+//*       PROCESSING PERFORMED IN JANUARY, AFTER REGULAR DECEMBER       00270000
+//*       MONTH-END PROCESSING.                                         00280000
+//*                                                                     00310000
+//* SPECIAL INSTRUCTIONS
+//* ---------------------
+//* CHECK CONTROL CARD CCAC625A TO BE SURE IT WAS UPDATED
+//* VERIFY ACCOUNTING SUBMITTED JOB CCAC625X TO SATISFY DEPENDENCY.
+//*
+//* RERUN/RESTART INSTRUCTIONS
+//* ----------------------------
+//* IF CCAC@626 HAS BEEN RUN, RESTORE CCAC.MISC1099.MANUAL.ISSUES
+//* FILE.  EXECUTE THIS JOB FROM THE BEGINNING.
+//*
+//*    CHANGE LOG                                                       00370000
+//*                                                                     00380000
+//*    DATE       CHANGED BY       DESCRIPTION                          00390000
+//*  --------  | --------------- | -------------------------------------00400000
+//* 12/04/1997 |   R. PETTS      |  ADD FOCUS STEP TO CONVERT MANUAL    00410000
+//*            |                 |  ISSUES FILE FROM 4 RECORDS OF 80    00420000
+//*            |                 |  BYTES TO 1 RECORD OF 320 BYTES      00430000
+//*            |                 |                                      00440000
+//* 10/15/1998 |   R. PETTS      |  CHANGED SYSOUT FROM RMDS TO MOBIUS  00441000
+//*            |                 |  MSGCLASS=O  INSTEAD OF MSGCLASS=J   00442000
+//*            |                 |                                      00443000
+//* 08/02/1999 |   D. CLAYTON    |  REMOVE UNUSED LIBRARIES FROM JOBLIB 00444004
+//*            |                 |  REMOVE UNNECESSARY FOCUS STEPLIB    00445005
+//* 08/20/1999 |   D. CLAYTON    |  CONVERT JCL TO FORD STANDARDS       00444004
+//* 09/22/1999 |   D. CLAYTON    |  CHANGE DATECARD FROM CC.U7CNTL.DATA 00182102
+//*            |                 |  (CCMR625A) TO NEW AUTOMATED GDG     00182202
+//*            |                 |  CC.MR.R01MR625.                     00182202
+//* 07/19/2001 |   J. GORSKI     |  CHG MSGCLASS FROM O TO M. CHG       00182102
+//*            |                 |  FORMS=CC1Y TO WRITER=JCL400. REMOVED00182202
+//*            |                 |  1ST STEP. CHG MANUAL.ISSUE FILE     00182202
+//*            |                 |  REC LGTH FROM 80 TO 320.  VENDER    00182202
+//*            |                 |  FILE IS NOW FTP AT 320.  VENDER FILE00182202
+//*            |                 |  GETS MERGED IN TO MANUAL.ISSUE FILE.00182202
+//* 12/09/2003 |   A. PRASAD     |  CHANGED NAME OF DATE CONTROL CARD   00444004
+//*            |                 |  FROM CC.MR.R01MR625                 00445005
+//*            |                 |  TO CC.AC.R01AC625 SO THAT JOB CAN   00445005
+//*            |                 |  USE BATCH ID CCCA7AC.               00445005
+//* 01/08/2004 |   D. OPPERMANN  |  CHG JOBNAME AND DATASETS FROM CCMR  00182102
+//*            |                 |  AND CC.MR TO CCAC AND CC.AC         00182202
+//*            |                 |  RESPECTIVELY. CHANGED RACF BATCH ID 00182202
+//*            |                 |  FROM CCOCPR1 TO UNIQUE BATCH ID     00182202
+//*            |                 |  CCCA7AC.                            00182202
+//* 07/01/2013 |   R. FORTUNATE  |  CR 2013-ACC-056                     00182102
+//*            |                 | -USE MOBIUS PROC TO SEND REPORT      00182202
+//*            |                 |  CC4607A020 TO MOBIUS.               00182202
+//*            |                 |  STEP CCAC6255                       00182202
+//*            |                 | -REMOVE FORMAT PR,DEST=LAS02.FMCCRJE,00182202
+//*            |                 |  FORMS=PXCC1,DDNAME=                 00182202
+//* 06/01/2020 |   M. MERRITT    |  CR 2020-ACC-022. FINEFTCC-1364.
+//*            |                 |  REPLACE MOBIUS WITH CMOD.
+//* 08/2024    |   ASHAIK56      |  CRQ:CRQ000000881292                 00182202
+//*            |                 |  ADDED A STEP TO CALL EVERBRIDGE
+//*            |                 |  IF JOB ABENDS
+//*=====================================================================00450000
+//JOBLIB   DD  DSN=CC.PRPGMLIB,                                         00470000
+//             DISP=SHR                                                 00460000
+//*                 PRODUCTION PROGRAM LIBRARY                          00480000
+//         DD  DSN=SYSF.PROD.FOCLIB.LOAD,                               00680000
+//             DISP=SHR                                                 00640000
+//*                 FOCUS PROGRAM LIBRARY                               00690000
+//         DD  DSN=SYSF.PROD.FUSELIB.LOAD,                              00710000
+//             DISP=SHR                                                 00700000
+//*****************************************************************     00720000
+#JI,ID=(2)                                                              01180000
+//*===================================================================  01190000
+//CCAC6251 EXEC  SSORT,                                                 01200000
+//             SPARM='RC16=ABE,IOERR=ABE'                               01200000
+//*          SORT THE CUSTOMER MODIFIED REJECT FILE BY OP LOC,          01210000
+//*          DEPT, CHK# TO A SECURE DATASET.                            01220000
+//*===================================================================  01230000
+//SORTIN   DD  DSN=CCAC.MISC1099.REJECT.FILE,                           01250000
+//             DISP=SHR,                                                01240000
+//             UNIT=DISK                                                01240000
+//*                 CUSTOMER MODIFIED REJECT FILE                       01260000
+//*                                                                     01270000
+//SORTOUT  DD  DSN=CC.SR.T01AC625(+1),                                  01300000
+//             DISP=(NEW,CATLG,DELETE),                                 01280000
+//             DCB=(LRECL=526,BLKSIZE=27878,RECFM=FB),                  01310000
+//             UNIT=DISK,                                               01280000
+//             SPACE=(TRK,(05,05),RLSE)                                 01290000
+//*                 MODIFIED 1099 REJECT FILE                           01320000
+//*                                                                     01330000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC625010),                              01340000
+//             DISP=SHR                                                 01350000
+//*                 SORT BY OP LOC,BRANCH/DEPT CODE, CHK#               01360000
+//*                                                                     01370000
+//SORT.SORTMSG  DD SYSOUT=*                                             01380000
+//SORT.SYSOUT   DD SYSOUT=*                                             01390000
+//SORT.SYSUDUMP DD SYSOUT=*                                             01400000
+//SORT.SYSPRINT DD SYSOUT=*                                             01410000
+//*                                                                     01410000
+//*===================================================================  01420000
+//CCAC6252 EXEC  SSORT,                                                 01430000
+//             SPARM='RC16=ABE,IOERR=ABE'                               01430000
+//*                 SORT THE CUSTOMER MODIFIED 1099 MASTER FILE         01440000
+//*                 BY CHECK #, BRANCH/DEPT CODE TO A SECURE DATASET    01450000
+//*===================================================================  01460000
+//SORTIN   DD  DSN=CCAC.MISC1099.MASTER.FILE,                           01480000
+//             DISP=SHR,                                                01470000
+//             UNIT=DISK                                                01470000
+//*                 CUSTOMER MODIFIED 1099 MASTER FILE                  01490000
+//*                                                                     01500000
+//SORTOUT  DD  DSN=CC.SR.M01AC625(+1),                                  01530000
+//             DISP=(NEW,CATLG,DELETE),                                 01510000
+//             DCB=(LRECL=400,BLKSIZE=28000,RECFM=FB),                  01540000
+//             UNIT=DISK,                                               01510000
+//             SPACE=(TRK,(600,100),RLSE)                               01520000
+//*                 MODIFIED 1099 MASTER FILE                           01550000
+//SYSIN    DD  DSN=CC.SORT.DATA(AC625020),                              01560000
+//             DISP=SHR                                                 01570000
+//*                 SORT BY CHECK # AND BRANCH/DEPT CODE                01580000
+//*                                                                     01590000
+//SORT.SORTMSG  DD SYSOUT=*                                             01600000
+//SORT.SYSOUT   DD SYSOUT=*                                             01610000
+//SORT.SYSUDUMP DD SYSOUT=*                                             01620000
+//SORT.SYSPRINT DD SYSOUT=*                                             01630000
+//*
+#JEND                                                                   01640000
+//*===================================================================  01650000
+//CCAC6253 EXEC  PGM=CCAC6250                                           01660000
+//*                 FORMAT 1099 REJECT FILE/MASTER FILE/                01670000
+//*                 FORM 20071  WITH HEADERS AND TRAILERS.              01680000
+//*===================================================================  01690000
+#JI,ID=(1)                                                              01700000
+//CCACT01R DD  DUMMY                                                    01710000
+//*                 MODIFIED 1099 REJECT FILE FROM CCAC6251             01720000
+#JI,ID=(2)                                                              01730000
+//CCACT01R DD  DSN=CC.SR.T01AC625(+1),                                  01750000
+//             DISP=SHR,                                                01740000
+//             UNIT=DISK                                                01740000
+//*                 MODIFIED 1099 REJECT FILE FROM CCAC6251             01760000
+#JEND                                                                   01770000
+//*                                                                     01780000
+//CCACT02R DD  DSN=CCAC.MISC1099.MANUAL.ISSUES,                         01800000
+//             DISP=SHR,                                                01790000
+//             UNIT=DISK                                                01790000
+//*                 FORM 20071 MANUAL ISSUES FROM CCAC.REC.CNTL(VENCOPY)01810000
+//*                                                                     01820000
+#JI,ID=(1)                                                              01830000
+//CCACM01R DD  DUMMY                                                    01840000
+//*                 MODIFIED 1099 MASTER FILE FROM CCAC6252             01850000
+#JI,ID=(2)                                                              01860000
+//CCACM01R DD  DSN=CC.SR.M01AC625(+1),                                  01880000
+//             DISP=SHR,                                                01870000
+//             UNIT=DISK                                                01870000
+//*                 MODIFIED 1099 MASTER FILE FROM CCAC6252             01890000
+#JEND                                                                   01900000
+//*                                                                     01910000
+//CCACT01W DD  DSN=CC.AC.T01AC625(+1),                                  01940000
+//             DISP=(NEW,CATLG,DELETE),                                 01920000
+//             DCB=(RECFM=FB,LRECL=526,BLKSIZE=0),                      01950000
+//             UNIT=DISK,                                               01920000
+//             SPACE=(TRK,(05,05),RLSE)                                 01930000
+//*                 FORMATTED 1099 REJECT FILE                          01960000
+//*                                                                     01970000
+//CCACT02W DD  DSN=CC.AC.T02AC625(+1),                                  02000000
+//             DISP=(NEW,CATLG,DELETE),                                 01980000
+//             DCB=(RECFM=FB,LRECL=320,BLKSIZE=0),                      02010000
+//             UNIT=DISK,                                               01980000
+//             SPACE=(TRK,(10,05),RLSE)                                 01990000
+//*                 FORMATTED 1099 FORM 20071 FILE                      02020000
+//*                                                                     02030000
+//CCACM01W DD  DSN=CC.AC.M01AC625(+1),                                  02060000
+//             DISP=(NEW,CATLG,DELETE),                                 02040000
+//             DCB=(RECFM=FB,LRECL=400,BLKSIZE=0),                      02070000
+//             UNIT=DISK,                                               02040000
+//             SPACE=(TRK,(600,75),RLSE)                                02050000
+//*                 FORMATTED 1099 MASTER FILE                          02080000
+//*                                                                     02090000
+//CCACE01W DD  DSN=CC.AC.E01AC625(+1),                                  02120000
+//             DISP=(NEW,CATLG,CATLG),                                  02100000
+//             DCB=(RECFM=FB,LRECL=133,BLKSIZE=0),                      02130000
+//             UNIT=DISK,                                               02100000
+//             SPACE=(TRK,(05,05),RLSE)                                 02110000
+//*                 DISPLAY FILE                                        02140000
+//*                                                                     02150000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   02170000
+//             DISP=SHR                                                 02160000
+//*                 DATE CONTROL CARD                                   02180000
+//*                                                                     02190000
+//SYSUDUMP DD  SYSOUT=*                                                 02200000
+//SYSOUT   DD  SYSOUT=*                                                 02210000
+//SYSPRINT DD  SYSOUT=*                                                 02220000
+//SYSABOUT DD  SYSOUT=*                                                 02230000
+//SYSDBOUT DD  SYSOUT=*                                                 02240000
+//*                                                                     02250000
+#JI,ID=(2)                                                              02260000
+//*===================================================================  02270000
+//CCAC6254 EXEC  PGM=FOCUS                                              02280000
+//*                 REPORT #4607 PREPARATION                            02290000
+//*                 1099 REJECT TRANSACTIONS DELETED                    02300000
+//*===================================================================  02310000
+//MASTER   DD  DSN=CC.FOC.MASTER.LIB,                                   02330000
+//             DISP=SHR                                                 02320000
+//FOCEXEC  DD  DSN=CC.FOC.FOCEXEC.LIB,                                  02350000
+//             DISP=SHR                                                 02340000
+//*                 PRODUCTION FOCEXEC LIBRARY                          02360000
+//AC625100 DD  DSN=CC.SR.T02AC630(0),                                   02380000
+//             DISP=SHR,                                                02370000
+//             UNIT=DISK                                                02370000
+//*                 PRIOR MONTH'S SORTED REJECT FILE                    02390000
+//*                                                                     02400000
+//AC625110 DD  DSN=CC.AC.T01AC625(+1),                                  02420000
+//             DISP=SHR,                                                02410000
+//             UNIT=DISK                                                02410000
+//*                 MODIFIED REJECT FILE W/HEADER & TRAILER             02430000
+//*                                                                     02440000
+//OFFLINE  DD  DSN=CC.AC.P01AC625.XEROX(+1),                            02470000
+//             DISP=(NEW,CATLG,DELETE),                                 02450000
+//             DCB=(RECFM=FBA,LRECL=160,BLKSIZE=28160),                 02480000
+//             UNIT=DISK,                                               02460000
+//             SPACE=(TRK,(10,5))                                       02460000
+//*                 REJECT TRANSACTION DELETE REPORT #4607              02490000
+//*                                                                     02500000
+//CCACR01R DD  DSN=CC.AC.R01AC625(0),                                   02520000
+//             DISP=SHR                                                 02510000
+//*                 CONTROL CARD                                        02530000
+//*                                                                     02540000
+//ERRORS   DD  DSN=SYSF.PROD.ERRORS.DATA,                               02560000
+//             DISP=SHR                                                 02550000
+//*                 FOCUS RQRD ALLC - ERROR MESSAGES                    02570000
+//SYSPRINT DD  SYSOUT=*                                                 02580000
+//SYSIN    DD  DSN=CC.SYSIN.DATA(AC625020),                             02590000
+//             DISP=SHR                                                 02600000
+//*                                                                     02600000
+//*====================================================================
+//* CC4607A020 - 1099-MISC REJECT DELETES - FORM#:C981
+//*====================================================================
+//CCAC6255 EXEC ARSSYA1,
+//         REPORT=CC4607A020,
+//         INP=CC.AC.P01AC625.XEROX(+1)
+//*
+//*---------------------------------------------------------------------
+//*    EMAIL FCFINSYS & CALL EVERBRIDGE IF JOB FAILS
+//*---------------------------------------------------------------------
+//CCAC9999 EXEC  PGM=IEBGENER,COND=ONLY
+//SYSUT1   DD  DSN=CC.AC.R01AC625.EVRBDG.SUB,DISP=SHR
+//         DD  DSN=FC.TSOA.PROD.PARMLIB(SPLNKCAL),DISP=SHR
+//SYSUT2   DD  SYSOUT=A
+//SYSPRINT DD  SYSOUT=*
+//SYSOUT   DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//*
+//********************************************************************* 02910000
+//**             LIST OF REPORTS                                     ** 02910000
+//**                                                                 ** 02910000
+//**  RPT #   REPORT TITLE                       COPIES              ** 02910000
+//**  ------  -------------------------------    -------             ** 02910000
+//**  4607    1099-MISC REJECT DELETES            CMOD   ONLY        ** 02910000
+//**                                                                 ** 02910000
+//**                                                                 ** 02910000
+//**     CONTROL CARD INFORMATION                                    **
+//**         CCAC@625                                                **
+//**                                                                 **
+//** CONTROL CARD:   CC.AC.R01AC625(0)                               **
+//**                                                                 **
+//** FIELD       FORMAT          CONTENT                             **
+//** ------    --------------    --------------------------------    **
+//** 01-02     X(2)  CC          CENTURY OF PREVIOUS MONTH           **
+//** 03-04     X(2)  YY          YEAR OF PREVIOUS MONTH              **
+//** 05-06     X(2)  MM          PREVIOUS MONTH                      **
+//**                             FOR YEAR-END PROCESSING:            **
+//**                               USE '13' FOR FIRST RUN            **
+//**                               USE '14' FOR SECOND RUN           **
+//**                               USE '15' FOR THIRD RUN            **
+//** 07-08     X(2)  DD          LAST DAY OF PREVIOUS MONTH.         **
+//** 09-80     X(63) BLANK                                           **
+//**================= END OF CCAC@625 ===============================**
+

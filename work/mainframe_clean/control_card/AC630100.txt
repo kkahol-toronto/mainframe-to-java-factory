@@ -1,0 +1,12 @@
+    CC.SORT.DATA(AC630100) - 01.05                  Columns 00001 00072
+ ===>                                                  Scroll ===> CSR 
+ OPTION  COPY                                                          
+  OUTFIL FNAMES=DD01O,                                                 
+   OUTREC=(1:13,8,                                                     
+           9:269,16,                                                   
+           25:1,12,                                                    
+           37:21,248,                                                  
+           285:285,36)                                                 
+*+* FMC2DFS: End of DFSORT statement output *+*                        
+**************************** Bottom of Data ***************************
+

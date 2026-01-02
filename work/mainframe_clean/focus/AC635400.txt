@@ -1,0 +1,25 @@
+-***********************************************************************
+-*                  SUMMARIZED 1099-MISC YEAR-END REPORT   # 4613      *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* D.OPPERMANN     01/2004  |     RENAMED FROM MR635400 TO AC635400
+-*           |              |     MR PREFIX ON FILE,DD NAMES TO AC
+-*
+DEFINE FILE AC635300
+N_1099_AMT/P12.2M = IF SSN NE '         ' THEN 1099_AMT ELSE 0;
+N_COUNT/P12C      = IF SSN NE '         ' THEN 1        ELSE 0;
+END
+
+TABLE FILE AC635300
+SUM N_1099_AMT
+    N_COUNT
+BY LOC_CODE
+ON TABLE SUMMARIZE
+END
+

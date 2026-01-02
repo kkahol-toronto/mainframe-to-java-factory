@@ -1,0 +1,72 @@
+{
+  "source_file": "CCAC6320.txt",
+  "program_id": "CCAC6320",
+  "copies": [
+    "C2INX001",
+    "C2INX002",
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_available": [
+    "C2INX001",
+    "C2INX002",
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "copybooks_missing": [],
+  "calls": [],
+  "selects": [
+    {
+      "file": "TEN99-T01R-MISC-TRANS-FILE",
+      "assign": "UT-S-CCACT01R."
+    },
+    {
+      "file": "TEN99-T03R-BCCW-FILE",
+      "assign": "UT-S-CCACT03R."
+    },
+    {
+      "file": "TEN99-T04R-DEFT-FILE",
+      "assign": "UT-S-CCACT04R."
+    },
+    {
+      "file": "TEN99-T05R-REJ-CYCLE-FILE",
+      "assign": "UT-S-CCACT05R."
+    },
+    {
+      "file": "WS-T07R-1099ENTRY-CD-FILE",
+      "assign": "UT-S-CCACT07R."
+    },
+    {
+      "file": "TEN99-T01W-TRANS-OUTPUT-FILE",
+      "assign": "UT-S-CCACT01W."
+    },
+    {
+      "file": "TEN99-T02W-REJ-CYCLE-OUT-FILE",
+      "assign": "UT-S-CCACT02W."
+    },
+    {
+      "file": "TEN99-C01W-REJ-RPT-OUTPUT-FILE",
+      "assign": "UT-S-CCACC01W."
+    },
+    {
+      "file": "TEN99-T03W-FOREIGN-OUTPUT-FILE",
+      "assign": "UT-S-CCACT03W."
+    },
+    {
+      "file": "TEN99-T04W-EXCLUDES-FILE",
+      "assign": "UT-S-CCACT04W."
+    },
+    {
+      "file": "CC-R01R-CONTROL-CARD",
+      "assign": "UT-S-CCACR01R."
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+-***********************************************************************
+-*  FOCEXEC: AC635200                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  1099-MISC YEAR-END REPORTABLE MASTER  # 4612-A     *
+-*                                                              -B     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |   NEW FOCEXEC - 1099 MISC YEAR-END
+-*           |              |                 REPORTABLE MASTER
+-* D.OPPERMANN     01/2004  |     RENAMED FROM MR635200 TO AC635200
+-*           |              |     MR PREFIX ON FILE,DD NAMES TO AC
+-*           |              |
+-* A.DOBRYNSKI     06/2008  |   2008-ACC-086 - ACCEPT DEFT FILE
+-*           |              |   CHANGE HEADERS
+-*           |              |
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-*           |              |
+-* R FORTUNATE     01/2011  |   EPM 2666
+-*           |              |   -CHANGE FILE DESCRIPTION FROM AC635100
+-*           |              |    TO NEW DESCRIPTION AC6352M0
+-*           |              |   -ADD TAX TYPE & TIN TO REPORT
+-*           |              |   -REMOVE DASHES FROM TAX ID (EIN/SSN)
+-*           |              |
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC635200 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC6352M0
+BLANK_LINE/A160 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A38 = OPLOC| DEPT  | CHECK_NUM | CK_DT  | SOURCE;
+TRL_REC/A38 = OPLOC| DEPT  | CHECK_NUM | CK_DT  | SOURCE;
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY   = &CNTL_YY;
+CK_DT_MO/A2 = EDIT(CK_DT,'$$$$99$');
+CK_DT_DA/A2 = EDIT(CK_DT,'$$$$$$99');
+CK_DT_YR/A4 = EDIT(CK_DT,'9999$');
+PRT_CK_DT/A10 = CK_DT_MO | '/' | CK_DT_DA | '/' | CK_DT_YR;
+-*----------------------------------------------------------------------
+-*  TIN INDICATOR VALUE 1 => TAX FIELD IS AN EIN - FORMAT 99-9999999
+-*  TIN INDICATOR VALUE 2 => TAX FIELD IS AN SSN - FORMAT 999-99-9999
+-*----------------------------------------------------------------------
+-*SSN/A11 = IF TIN_IND = '1'  THEN   EDIT(SOC_NUM,'99-9999999 ')
+-*          ELSE                     EDIT(SOC_NUM,'999-99-9999');
+-*----------------------------------------------------------------------
+END
+TABLE FILE AC6352M0
+HEADING
+" "
+"PROGRAM:  AC635200
+<45 1099-MISC YEAR-END REPORTABLE MASTER (BY EIN/SSN)
+<115 REPORT:  4612-A"
+"&DATE  <11 &TOD     <60     FOR  <RPT_YY     <115   PAGE:<TABPAGENO   "
+"                                                                      "
+PRINT
+      C_CODE              AS 'ENTRY,CODE'  IN +1
+      D_AMT               AS '1099,AMOUNT' IN +1
+      TAX_TYPE            AS 'TAX,TYPE'    IN +1
+      TIN_IND             AS 'TIN,FORMAT'  IN +1
+BY SOC_NUM    AS 'EIN / SSN'
+BY NAME       AS 'NAME'
+BY DEPT       AS 'BRANCH/,DEPT CD'
+BY OPLOC      AS 'OPLOC'
+BY PRT_CK_DT  AS 'CHECK/STLMT,DATE'
+BY CHECK_NUM  AS 'CHECK/BRANCH,NUMBER'
+BY TOTAL_AMOUNT AS 'DISB,AMOUNT'
+IF HDR_REC GT 'AAAAAAAAA'
+IF TRL_REC LT '999999999'
+IF DEL_IND   EQ ' '
+IF D1099_IND EQ 'Y'
+ON TABLE COLUMN-TOTAL
+END
+-*
+TABLE FILE AC6352M0
+HEADING
+" "
+"PROGRAM:  AC635200
+<45 1099-MISC YEAR-END REPORTABLE MASTER (BY NAME) <115 REPORT: 4612-B"
+"&DATE  <11 &TOD     <60     FOR  <RPT_YY     <115   PAGE:<TABPAGENO  "
+"                                                                     "
+PRINT
+      C_CODE              AS 'ENTRY,CODE'  IN +1
+      D_AMT               AS '1099,AMOUNT' IN +1
+      TAX_TYPE            AS 'TAX,TYPE'    IN +1
+      TIN_IND             AS 'TIN,FORMAT'  IN +1
+BY NAME       AS 'NAME'
+BY SOC_NUM    AS 'EIN / SSN'
+BY DEPT       AS 'BRANCH/,DEPT CD'
+BY OPLOC      AS 'OPLOC'
+BY PRT_CK_DT  AS 'CHECK/STLMT,DATE'
+BY CHECK_NUM  AS 'CHECK/BRANCH,NUMBER'
+BY TOTAL_AMOUNT AS 'DISB,AMOUNT'
+IF HDR_REC GT 'AAAAAAAAA'
+IF TRL_REC LT '999999999'
+IF DEL_IND   EQ ' '
+IF D1099_IND EQ 'Y'
+ON TABLE COLUMN-TOTAL
+END
+

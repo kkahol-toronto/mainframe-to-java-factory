@@ -1,0 +1,107 @@
+-***********************************************************************
+-*  FOCEXEC: AC630400                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  1099-MISC REPORTABLE MASTER DUPLICATE CHECKS #4609 *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |   NEW FOCEXEC - 1099 MISC REPORTABLE
+-*           |              |                 MASTER DUPLICATE CHECKS
+-* D.OPPERMANN     01/2004  |     RENAMED FROM MR630400 TO AC630400
+-*           |              |     MR PREFIX ON FILE,DD NAMES TO AC
+-*           |              |
+-* A.DOBRYNSKI     06/2008  |   2007-ACC-086 - ACCEPT DEFT FILE
+-*           |              |   MODIFY HEADERS
+-*           |              |
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC630400 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC630400
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+-*HDR_REC/A38 = OPLOC| DEPT    | CHECK_NUM | CHECK_DT | SOURCE;
+-*TRL_REC/A38 = OPLOC| DEPT    | CHECK_NUM | CHECK_DT | SOURCE;
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+RPT_MO/A10 =     IF '&CNTL_MM' EQ '01' THEN 'JANUARY '    ELSE
+                 IF '&CNTL_MM' EQ '02' THEN 'FEBRUARY '   ELSE
+                 IF '&CNTL_MM' EQ '03' THEN 'MARCH '      ELSE
+                 IF '&CNTL_MM' EQ '04' THEN 'APRIL '      ELSE
+                 IF '&CNTL_MM' EQ '05' THEN 'MAY '        ELSE
+                 IF '&CNTL_MM' EQ '06' THEN 'JUNE '       ELSE
+                 IF '&CNTL_MM' EQ '07' THEN 'JULY '       ELSE
+                 IF '&CNTL_MM' EQ '08' THEN 'AUGUST '     ELSE
+                 IF '&CNTL_MM' EQ '09' THEN 'SEPTEMBER '  ELSE
+                 IF '&CNTL_MM' EQ '10' THEN 'OCTOBER '    ELSE
+                 IF '&CNTL_MM' EQ '11' THEN 'NOVEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '12' THEN 'DECEMBER '   ELSE
+                 IF '&CNTL_MM' EQ '13' THEN 'YEAR-END 1'  ELSE
+                 IF '&CNTL_MM' EQ '14' THEN 'YEAR-END 2'  ELSE
+                 IF '&CNTL_MM' EQ '15' THEN 'YEAR-END 3';
+CK_DT_MO/A2 = EDIT(CHECK_DT,'$$$$99$');
+CK_DT_DA/A2 = EDIT(CHECK_DT,'$$$$$$99');
+CK_DT_YR/A4 = EDIT(CHECK_DT,'9999$');
+PRT_CK_DT/A10 = CK_DT_MO | '/' | CK_DT_DA | '/' | CK_DT_YR;
+COMPASS_CODE/A20 = C_CODE1 | ',' | C_CODE2 | ',' | C_CODE3 | ',' |
+               C_CODE4 | ',' | C_CODE5 ;
+PRT_SSN/A11 =  EDIT(SOC_NUM,'999-99-9999');
+END
+
+TABLE FILE AC630400
+HEADING
+" "
+"PROGRAM: AC630400
+   <47 1099-MISC REPORTABLE MASTER DUPLICATE CHECKS <115 REPORT:  4609 "
+"&DATE  <11 &TOD     <60 FOR <RPT_MO  <RPT_YY  <115   PAGE:<TABPAGENO"
+"                                                                      "
+"                                                                      "
+"OPERATION LOCATION:   <OPLOC                                          "
+"BRANCH/DEPT CODE:     <DEPARTMENT                                     "
+" "
+PRINT
+      CHECK_NUM    AS 'CHECK/BATCH,NUMBER'
+      PRT_CK_DT    AS 'CHECK/STLMT,DATE'
+      PRT_SSN      AS 'SSN'
+      NAME         AS 'NAME'
+      TOTAL_AMOUNT AS 'DISB,AMOUNT'
+      COMPASS_CODE AS 'ENTRY,CODE'
+BY OPLOC        NOPRINT PAGE-BREAK
+BY DEPT         NOPRINT PAGE-BREAK
+BY CHECK_NUM    NOPRINT
+BY TOTAL_AMOUNT NOPRINT
+-*IF COMPASS_CODE GT 0
+END
+

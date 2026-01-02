@@ -1,0 +1,8 @@
+   CC.SORT.DATA(AC626010) - 01.01                  Columns 00001 00072 
+===>                                                  Scroll ===> CSR  
+**************************** Top of Data ******************************
+SORT  FIELDS=COPY                                                      
+INCLUDE COND=(205,1,CH,EQ,C'B')                                        
+OUTREC FIELDS=(13,9,                                                   
+              20:48,40)                                                
+*************************** Bottom of Data ****************************

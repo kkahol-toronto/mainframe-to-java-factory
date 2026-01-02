@@ -1,0 +1,1006 @@
+IDENTIFICATION DIVISION.
+
+PROGRAM-ID. CCAC6350.
+000400*TRANSLATED BY MHTRAN-2  1/12/96                                  00040001
+AUTHOR. CATHIE LONGAN.
+DATE-WRITTEN. DECEMBER 1994.
+DATE-COMPILED. TODAY.
+000800******************************************************************00080001
+000900*                                                                *00090001
+001000*                             CCAC6350                           *00100001
+001100*                      ENHANCED 1099 SYSTEMS                     *00110001
+001200*                      YEAR-END SUMMARY FILE                     *00120001
+001300*            --------------------------------------------        *00130001
+001400*                                                                *00140001
+001500*  ALL 1099 REPORTABLE ITEMS ARE TO BE SUMMARIZED ON A FILE THAT *00150001
+001600*  WILL BE PRINTED AND MAILED BY COMERICA.  THE 1099 FILE LAYOUT *00160001
+001700*  FOR COMERICA REQUIRES THE 1099 RECORD TO BE SUMMARIZED BY     *00170001
+001800*  LOCATION CODE, SOCIAL SECURITY NUMBER OR EIN, TAX TYPE,       *00180001
+001810*  TIN INDICATOR, AND BRANCH.  THE MANUAL CHECKS THAT ARE BEING  *00181001
+001900*  PROCESSED ARE TO BE REPORTED AS AN INDIVIDUAL RECORD.         *00190001
+002000*  THERE WILL BE A TRAILER RECORD FOR EACH LOCATION CODE WITH    *00200001
+002100*  THE RECORD COUNT AND A SUMMARIZATION OF 1099 AMOUNT FOR THAT  *00210001
+002200*  LOCATION CODE.                                                *00220001
+002300*                                                                *00230001
+002400*  THIS PROGRAM HAS THE FOLLOWING INPUTS:                        *00240001
+002500*                1099 MASTER FILE                                *00250001
+002600*                CONTROL CARD FOR 1099 DATE                      *00260001
+002700*                                                                *00270001
+002800*  AND THE FOLLOWING OUTPUTS:                                    *00280001
+002900*                YEAR-END SUMMARY FILE FOR 1099 REPORTING        *00290001
+003000*                WITH TRAILER                                    *00300001
+003100*                                                                *00310001
+003200******************************************************************00320001
+003300*                            REVISIONS                           *00330001
+003400******************************************************************00340001
+003500* DATE      LEVEL  AUTHOR            DESCRIPTION / PROJECT #     *00350001
+003600* --------  -----  ----------------  --------------------------  *00360001
+003700* 12-07-94  00001  C. LONGAN         NEW PROGRAM   #930526       *00370001
+003800*                                                                *00380001
+003900* 01-08-04  00002  D. OPPERMANN      RENAMED PROGRAM FROM        *00390001
+004000*                                    CCMR6350.                   *00400001
+004010* 01/03/11  00003  R. FORTUNATE      EPM 2666                    *00401001
+004020*                                    - ADD TAX TYPE & TIN IND    *00402001
+004030*                                      TO THE INPUT & OUTPUT     *00403001
+004040*                                      FILE.                     *00404001
+004050*                                    - USE TAX TYPE AND TIN IN   *00405001
+004060*                                      THE KEY FOR SUMMARIZING   *00406001
+004100*                                                                *00410001
+004200******************************************************************00420001
+    EJECT
+ENVIRONMENT DIVISION.
+
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-3090.
+OBJECT-COMPUTER. IBM-3090.
+
+INPUT-OUTPUT SECTION.
+
+FILE-CONTROL.
+
+    SELECT TEN99-M01R-1099-MASTER-FILE
+        ASSIGN TO CCACM01R.
+
+    SELECT TEN99-R01R-CONTROL-CARD
+        ASSIGN TO CCACR01R.
+
+    SELECT TEN99-C01W-1099-SUMMARY-FILE
+        ASSIGN TO CCACC01W.
+
+    SELECT CC-E01W-DISPLAY-FILE
+        ASSIGN TO CCACE01W.
+
+    EJECT
+
+DATA DIVISION.
+
+FILE SECTION.
+
+FD  TEN99-M01R-1099-MASTER-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  TEN99-M01R-1099-MASTER-RCD                 PIC X(400).
+    EJECT
+FD  TEN99-C01W-1099-SUMMARY-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  TEN99-C01W-1099-SUMMARY-RCD                PIC X(250).
+    EJECT
+FD  TEN99-R01R-CONTROL-CARD
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  TEN99-R01R-CONTROL-CARD-RCD                PIC X(80).
+EJECT
+FD  CC-E01W-DISPLAY-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    LABEL RECORDS STANDARD.
+
+01  CC-E01W-DISPLAY-RCD                        PIC X(133).
+    EJECT
+
+WORKING-STORAGE SECTION.
+77  PAN-VALET PICTURE X(24) VALUE '002CCAC6350  01/12/96'.
+010200******************************************************************01020001
+010300*                                                                 01030001
+010400*                    WORKING STORAGE BEGIN                        01040001
+010500*                                                                 01050001
+010600******************************************************************01060001
+
+
+       01  PUPS2000.
+      *
+           05  FILLER                  PIC X(69)   VALUE
+               "PUPS2000 FORTUNATE, R. J. (RICHARD)     EPM 2666 2011010
+      -        "3074722608183".
+
+01  FILLER                           PIC X(38)
+    VALUE "WORKING STORAGE BEGIN PROGRAM CCAC6350".
+
+011100******************************************************************01110001
+011200*                                                                 01120001
+011300*    WORKING STORAGE RECORD FOR INPUT 1099 MASTER FILE            01130001
+011400*                                                                 01140001
+011500******************************************************************01150001
+
+01  WS-M01R-MASTER-FILE.
+    05  WS-M01R-CHECK-NUMBER         PIC X(08).
+        88  MASTER-HEADER      VALUE LOW-VALUES.
+        88  MASTER-TRAILER     VALUE HIGH-VALUES.
+    05  WS-M01R-CHK REDEFINES WS-M01R-CHECK-NUMBER.
+        10  WS-M01R-CHECK-TYPE       PIC X.
+        10  FILLER                   PIC X(07).
+    05  WS-M01R-BR-DEPT              PIC X(03).
+    05  FILLER                       PIC X(01).
+    05  WS-M01R-SOC-SEC-NUM          PIC 9(09).
+    05  WS-M01R-SOC-SEC-REM          PIC 9(07).
+    05  WS-M01R-OPER-LOC-CODE        PIC 9(04).
+    05  WS-M01R-SOURCE               PIC X(15).
+    05  WS-M01R-EMP-NAME             PIC X(40).
+    05  WS-M01R-ADDRESS-1            PIC X(37).
+    05  WS-M01R-ADDRESS-2            PIC X(43).
+    05  WS-M01R-ADDR2 REDEFINES WS-M01R-ADDRESS-2.
+        10  WS-M01R-ADDR2-OUT        PIC X(40).
+        10  WS-M01R-ADDR-OVFL        PIC X(03).
+    05  WS-M01R-CITY                 PIC X(26).
+    05  WS-M01R-STATE                PIC X(02).
+    05  WS-M01R-ZIP                  PIC 9(09).
+    05  WS-M01R-DELETE-IND           PIC X(01).
+    05  FILLER                       PIC X(01).
+    05  WS-M01R-TOT-AMOUNT           PIC S9(10)V99.
+    05  WS-M01R-1099-AMOUNT          PIC S9(10)V99.
+    05  WS-M01R-1099-AMT REDEFINES WS-M01R-1099-AMOUNT.
+        10  WS-M01R-1099-AMT-OVFL    PIC 9(02).
+        10  WS-M01R-1099-AMT-OUT     PIC 9(08)V99.
+    05  WS-M01R-CHECK-DATE           PIC 9(08).
+    05  WS-M01R-MONTHEND-DATE        PIC 9(06).
+    05  WS-M01R-DIST-REC-NUM         PIC 9(02).
+    05  WS-M01R-DIST-REC OCCURS 5 TIMES.
+        10  WS-M01R-COMPASS-CODE     PIC X(03).
+        10  WS-M01R-DIST-1099-IND    PIC X(01).
+        10  WS-M01R-DIST-AMOUNT      PIC S9(10)V99.
+    05  WS-M01R-COMMENTS             PIC X(29).
+    05  WS-M01R-LINE-NBR             PIC X(07).
+    05  WS-M01R-TAX-TYPE             PIC X(01).
+    05  WS-M01R-TIN-IND              PIC X(01).
+    05  FILLER                       PIC X(36).
+
+    EJECT
+015700******************************************************************01570001
+015800*                                                                 01580001
+015900*    WORKING STORAGE RECORD FOR PREVIOUS 1099 MASTER FILE         01590001
+016000*                                                                 01600001
+016100******************************************************************01610001
+
+01  WS-PREV-MASTER-FILE.
+    05  WS-PREV-CHECK-NUMBER         PIC X(08).
+    05  WS-PREV-CHK REDEFINES WS-PREV-CHECK-NUMBER.
+        10  WS-PREV-CHECK-TYPE       PIC X.
+        10  FILLER                   PIC X(07).
+    05  WS-PREV-BR-DEPT              PIC X(03).
+    05  FILLER                       PIC X(01).
+    05  WS-PREV-SOC-SEC-NUM          PIC 9(09).
+    05  WS-PREV-SOC-SEC-REM          PIC 9(07).
+    05  WS-PREV-OPER-LOC-CODE        PIC 9(04).
+    05  WS-PREV-SOURCE               PIC X(15).
+    05  WS-PREV-EMP-NAME             PIC X(40).
+    05  WS-PREV-ADDRESS-1            PIC X(37).
+    05  WS-PREV-ADDRESS-2            PIC X(43).
+    05  WS-PREV-ADDR2 REDEFINES WS-PREV-ADDRESS-2.
+        10  WS-PREV-ADDR2-OUT        PIC X(40).
+        10  WS-PREV-ADDR-OVFL        PIC X(03).
+    05  WS-PREV-CITY                 PIC X(26).
+    05  WS-PREV-STATE                PIC X(02).
+    05  WS-PREV-ZIP                  PIC 9(09).
+    05  WS-PREV-DELETE-IND           PIC X(01).
+    05  FILLER                       PIC X(01).
+    05  WS-PREV-TOT-AMOUNT           PIC S9(10)V99.
+    05  WS-PREV-1099-AMOUNT          PIC S9(10)V99.
+    05  WS-PREV-1099-AMT REDEFINES WS-PREV-1099-AMOUNT.
+        10  WS-PREV-1099-AMT-OVFL    PIC 9(02).
+        10  WS-PREV-1099-AMT-OUT     PIC 9(08)V99.
+    05  WS-PREV-CHECK-DATE           PIC 9(08).
+    05  WS-PREV-MONTHEND-DATE        PIC 9(06).
+    05  WS-PREV-DIST-REC-NUM         PIC 9(02).
+    05  WS-PREV-DIST-REC OCCURS 5 TIMES.
+        10  WS-PREV-COMPASS-CODE     PIC X(03).
+        10  WS-PREV-DIST-1099-IND    PIC X(01).
+        10  WS-PREV-DIST-AMOUNT      PIC S9(10)V99.
+    05  WS-PREV-COMMENTS             PIC X(29).
+    05  WS-PREV-LINE-NBR             PIC X(07).
+    05  WS-PREV-MSTR-TAX-TYPE        PIC X(01).
+    05  WS-PREV-MSTR-TIN-IND         PIC X(01).
+    05  FILLER                       PIC X(36).
+    EJECT
+
+01  WS-DATE.
+    05  WS-DATE-MONTH                PIC 99.
+    05  FILLER                       PIC X.
+    05  WS-DATE-DAY                  PIC 99.
+    05  FILLER                       PIC X.
+    05  WS-DATE-YEAR                 PIC 99.
+020700******************************************************************02070001
+020800*                                                                 02080001
+020900*    WORKING STORAGE RECORD FOR OUTPUT 1099 SUMMARY FILE          02090001
+021000*                                                                 02100001
+021100******************************************************************02110001
+
+01  WS-C01W-OUTPUT-FILE.
+    05  WS-C01W-OPER-LOC-CODE              PIC 9(04).
+    05  WS-C01W-TYPE                       PIC X(01).
+    05  WS-C01W-SOC-SEC-NUM                PIC 9(09).
+    05  WS-C01W-REFERENCE-NUM              PIC X(11).
+    05  WS-C01W-TOT-AMOUNT                 PIC 9(08)V99.
+    05  WS-C01W-PAY-YEAR                   PIC 9(02).
+    05  WS-C01W-EMP-NAME                   PIC X(40).
+    05  WS-FILLER-1                        PIC X(03).
+    05  WS-C01W-ADDRESS-1                  PIC X(37).
+    05  WS-C01W-ADDRESS-2                  PIC X(40).
+    05  WS-C01W-CITY-MASTER                PIC X(26).
+    05  WS-C01W-CITY-OVFL                  PIC X(04).
+    05  WS-C01W-STATE                      PIC X(02).
+    05  WS-C01W-ZIP                        PIC 9(09).
+    05  WS-C01W-DESCRIPTION.
+        10  WS-C01W-DESC-BR-DEPT           PIC X(03).
+        10  WS-C01W-DESC-CHECK-NUM         PIC X(08).
+        10  WS-C01W-DESC-NUM REDEFINES WS-C01W-DESC-CHECK-NUM.
+            15  WS-C01W-FORM-NUM           PIC X(08).
+        10  WS-C01W-COMMENTS               PIC X(29).
+    05  WS-C01W-AMOUNT-IND                 PIC 9(01).
+    05  WS-C01W-SSN-IND                    PIC X(01).
+    05  WS-C01W-DEALER-CODE                PIC X(05).
+    05  WS-FILLER-2                        PIC X(04).
+    05  WS-C01W-TRANS-CODE                 PIC X(01).
+
+01  WS-C01W-OUTPUT-TRAILER REDEFINES WS-C01W-OUTPUT-FILE.
+    05  WS-C01W-TRLR-OPER-LOC-CODE         PIC 9(04).
+    05  WS-FILLER-3                        PIC X(12).
+    05  WS-C01W-TRLR-BATCH-NUM             PIC 9(04).
+    05  WS-C01W-TRLR-TOT-RECORDS           PIC 9(07).
+    05  WS-C01W-TRLR-TOT-AMOUNT            PIC 9(13)V99.
+    05  WS-FILLER-4                        PIC X(207).
+    05  WS-C01W-TRLR-TRANS-CODE            PIC X(01).
+    EJECT
+
+025000******************************************************************02500001
+025100*                                                                 02510001
+025200*    WORKING STORAGE RECORD FOR CONTROL CARD                      02520001
+025300*                                                                 02530001
+025400******************************************************************02540001
+
+01  WS-R01R-CONTROL-CARD.
+    05  WS-R01R-CC-RUN-DATE.
+       10  WS-R01R-CC-CC             PIC XX.
+       10  WS-R01R-CC-YY             PIC XX.
+       10  WS-R01R-CC-MM             PIC XX.
+       10  WS-R01R-CC-DD             PIC XX.
+    05  FILLER                       PIC X(72).
+    EJECT
+
+026500******************************************************************02650001
+026600*                                                                 02660001
+026700*    WORKING STORAGE RECORD FOR DISPLAY FILE                      02670001
+026800*                                                                 02680001
+026900******************************************************************02690001
+
+027100*++INCLUDE C2INX003                                               02710001
+COPY C2INX003.
+  EJECT
+
+027500******************************************************************02750001
+027600*                                                                 02760001
+027700*                WORKING STORAGE COUNTERS                         02770001
+027800*                                                                 02780001
+027900******************************************************************02790001
+
+01  WS-COUNTERS.
+    05  WS-TOT-RECDS-READ           PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-WRITTEN-CNT          PIC 9(08)     VALUE ZERO.
+    05  WS-1099-TRLR-CNT            PIC 9(08)     VALUE ZERO.
+    05  WS-TOT-1099-AMT             PIC 9(13)V99  VALUE ZERO.
+    05  WS-1099-TRLR-AMOUNT         PIC 9(13)V99  VALUE ZERO.
+    05  WS-TOT-BATCH-NUM            PIC 9(05)     VALUE ZERO.
+
+    EJECT
+029000******************************************************************02900001
+029100*                                                                 02910001
+029200*         WORKING STORAGE SWITCHES AND INDICATORS                 02920001
+029300*                                                                 02930001
+029400******************************************************************02940001
+
+01  WS-SWITCHES.
+    05  WS-EOF-SW                   PIC X       VALUE SPACE.
+        88  END-OF-INPUT                        VALUE "Y".
+01  WS-REC-KEY-AREA.
+    05 WS-CURR-REC-KEY.
+       10 WS-CURR-TAXID             PIC X(9).
+       10 WS-CURR-TAX-TYPE          PIC X(1).
+       10 WS-CURR-TAX-IND           PIC X(1).
+    05 WS-PREV-REC-KEY.
+       10 WS-PREV-TAXID             PIC X(9).
+       10 WS-PREV-TAX-TYPE          PIC X(1).
+       10 WS-PREV-TIN-IND           PIC X(1).
+
+030000******************************************************************03000001
+030100*                                                                 03010001
+030200*                 CONSTANTS AND LITERALS                          03020001
+030300*                                                                 03030001
+030400******************************************************************03040001
+
+01  WS-PARAGRAPH-LITERALS.
+    05  WS-99-LIT                PIC 9(02)  VALUE 99.
+    05  WS-1-LIT                 PIC 9(02)  VALUE 01.
+    05  WS-7-LIT                 PIC 9(02)  VALUE 07.
+
+01  WS-MISC-ALPHA-LITERALS.
+    05  WS-YES-LIT               PIC X(01)  VALUE "Y".
+    05  WS-NO-LIT                PIC X(01)  VALUE "N".
+    05  WS-MANUAL-CHECK-LIT      PIC X(01)  VALUE "M".
+    05  WS-1X-LIT                PIC X(01)  VALUE "1".
+    05  WS-2-LIT                 PIC X(01)  VALUE "2".
+    05  WS-T-LIT                 PIC X(01)  VALUE "T".
+    05  WS-A-LIT                 PIC X(01)  VALUE "A".
+    05  WS-20071-LIT             PIC X(08)  VALUE "  #20071".
+    05  WS-SPACES-4-LIT          PIC X(04)  VALUE "    ".
+    05  WS-SPACES-5-LIT          PIC X(05)  VALUE "     ".
+    05  WS-ZEROES-4-LIT          PIC 9(04)  VALUE 0000.
+    05  WS-ZEROES-5-LIT          PIC 9(05)  VALUE 00000.
+    05  WS-ALL-ASTERISKS         PIC X(133) VALUE ALL "*".
+    05  WS-SOURCE-SYSTEM-LIT     PIC X(08)  VALUE "1099    ".
+
+01  WS-ERROR-MESS-LITERALS.
+    05  WS-EMPTY-CCRD-LIT        PIC X(40)
+        VALUE "NO CONTROL CARD   *****                 ".
+    05  WS-EMPTY-FILE-LIT        PIC X(40)
+        VALUE "FILE CONTAINS 0 RECORDS    *****        ".
+    05  WS-MONEY-ERROR-LIT       PIC X(40)
+        VALUE "MONEY AMOUNT IS GREATER THAN FIELD LNGTH".
+    05  WS-ZIP-ZEROES-LIT        PIC X(40)
+        VALUE "ZIP CODE IS ALL ZEROES                  ".
+    05  WS-ZIP-SPACES-LIT        PIC X(40)
+        VALUE "ZIP CODE IS ALL SPACES                  ".
+01  WS-EOJ-MESS-LITERALS.
+    05  WS-EOJ-MSG-1             PIC X(40)
+        VALUE "TOTAL MASTERS READ :                    ".
+    05  WS-EOJ-MSG-2             PIC X(40)
+        VALUE "TOTAL 1099 RECS WRITTEN :               ".
+
+034300******************************************************************03430001
+034400*                                                                 03440001
+034500*          WORKING STORAGE MISC WORK AREA                         03450001
+034600*                                                                 03460001
+034700******************************************************************03470001
+
+01  WS-MISC-AREA.
+    05  WS-OUTPUT-RECORD-LINE        PIC X(250).
+    05  WS-CALC-TOT-AMOUNT           PIC 9(10)V99.
+    05  WS-CALC-TOT-AMT REDEFINES WS-CALC-TOT-AMOUNT.
+        10  WS-CALC-TOT-AMT-OVFL     PIC 9(02).
+        10  WS-CALC-TOT-AMT-OUT      PIC 9(08)V99.
+    05  WS-MANUAL-TOT-AMOUNT         PIC 9(10)V99.
+    05  WS-MANUAL-TOT-AMT REDEFINES WS-MANUAL-TOT-AMOUNT.
+        10  WS-MANUAL-TOT-AMT-OVF    PIC 9(02).
+        10  WS-MANUAL-TOT-AMT-OUT    PIC 9(08)V99.
+    05  WS-REFERENCE-NUM             PIC 9(11) VALUE ZEROES.
+
+01  WS-ZIP-AREAS.
+    05  WS-ZIP-CHECK                 PIC X(09).
+    05  WS-ZIP-CHECK-1 REDEFINES WS-ZIP-CHECK.
+        10  WS-ZIP-CHECK-NUM         PIC 9(09).
+
+    05  WS-EVAL-NUM-ZIP.
+        10  WS-EVAL-NUM-ZIP-4        PIC 9(04).
+        10  WS-EVAL-NUM-ZIP-5        PIC 9(05).
+    05  WS-EVAL-NUM-ZIP-SEC REDEFINES WS-EVAL-NUM-ZIP.
+        10  WS-EVAL-NUM2-ZIP-5       PIC 9(05).
+        10  WS-EVAL-NUM2-ZIP-4       PIC 9(04).
+
+    05  WS-EVAL-ALPHA-ZIP.
+        10  WS-EVAL-ALPHA-ZIP-4      PIC 9(04).
+        10  WS-EVAL-ALPHA-ZIP-5      PIC 9(05).
+    05  WS-EVAL-ALPHA-ZIP-SEC REDEFINES WS-EVAL-ALPHA-ZIP.
+        10  WS-EVAL-ALPHA2-ZIP-5     PIC 9(05).
+        10  WS-EVAL-ALPHA2-ZIP-4     PIC 9(04).
+
+    05  WS-ZIP-OK.
+        10  WS-ZIP-OK-5              PIC X(05).
+        10  WS-ZIP-OK-4              PIC X(04).
+    05  WS-ZIP-OK-NUM REDEFINES WS-ZIP-OK.
+        10  WS-ZIP-OK-NUM-5          PIC 9(05).
+        10  WS-ZIP-OK-NUM-4          PIC 9(04).
+
+
+EJECT
+PROCEDURE DIVISION.
+
+0000-MAINLINE.
+039200***************************************************************** 03920001
+039300*                                                               * 03930001
+039400* THIS PARAGRAPH CONTROLS MAIN PROCESSING LOGIC                 * 03940001
+039500*                                                               * 03950001
+039600* PERFORMS:  1000-GENERAL-HOUSEKEEPING                          * 03960001
+039700*            3000-PROCESS-MASTER-FILE                           * 03970001
+039800*            9000-CLOSING-ROUTINE                               * 03980001
+039900*                                                               * 03990001
+040000***************************************************************** 04000001
+
+    PERFORM 1000-GENERAL-HOUSEKEEPING
+
+    PERFORM 3000-PROCESS-MASTER-FILE  UNTIL
+                 END-OF-INPUT
+
+    PERFORM 9000-CLOSING-ROUTINE
+
+040900*OQ01 - "GOBACK" FLAGGED PER STOP-RUN OPTION                      04090001
+    GOBACK
+    .
+    EJECT
+041300***************************************************************** 04130001
+041400* 1000-GENERAL-HOUSEKEEPING.                                      04140001
+041500*                                                                 04150001
+041600* OPEN AND INITIALIZE FILES.  DO FIRST READ ON MASTER FILE.       04160001
+041700*                                                                 04170001
+041800* PERFORMED FROM 0000-MAINLINE.                                   04180001
+041900***************************************************************** 04190001
+1000-GENERAL-HOUSEKEEPING.
+
+    PERFORM 1400-OPEN-FILES
+
+    PERFORM 1600-INITIALIZATION
+
+    MOVE SWA-CURR-MO                  TO WS-DATE-MONTH
+    MOVE SWA-CURR-DA                  TO WS-DATE-DAY
+    MOVE SWA-CURR-YR                  TO WS-DATE-YEAR
+
+    PERFORM 7500-READ-MASTER-FILE
+    IF END-OF-INPUT
+       MOVE WS-EMPTY-FILE-LIT         TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT                 TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    ELSE
+        IF MASTER-HEADER
+           PERFORM 7500-READ-MASTER-FILE
+           IF END-OF-INPUT
+              MOVE WS-EMPTY-FILE-LIT  TO CC-E01W-DISPLAY-RCD
+              MOVE WS-99-LIT          TO RETURN-CODE
+              PERFORM 8999-WRITE-SYSOUT
+              PERFORM 9998-COREDUMP
+           END-IF
+        END-IF
+    END-IF
+
+    MOVE WS-M01R-MASTER-FILE   TO WS-PREV-MASTER-FILE
+    PERFORM 3900-SET-RECORD-KEY
+    .
+    EJECT
+045100***************************************************************** 04510001
+045200* 1400-OPEN-FILES.                                                04520001
+045300*                                                                 04530001
+045400* OPEN FILES.                                                     04540001
+045500*                                                                 04550001
+045600* PEFORMED FROM 1000-GENERAL-HOUSEKEEPING.                        04560001
+045700***************************************************************** 04570001
+1400-OPEN-FILES.
+
+    OPEN INPUT  TEN99-M01R-1099-MASTER-FILE
+                TEN99-R01R-CONTROL-CARD
+
+         OUTPUT TEN99-C01W-1099-SUMMARY-FILE
+                CC-E01W-DISPLAY-FILE
+    .
+    EJECT
+046700***************************************************************** 04670001
+046800* 1600-INITIALIZATION.                                            04680001
+046900*                                                                 04690001
+047000* READ CONTROL CARD AND WRITE FIRST DISPLAY RECORD.               04700001
+047100*                                                                 04710001
+047200* PEFORMED FROM 1000-GENERAL-HOUSEKEEPING.                        04720001
+047300***************************************************************** 04730001
+1600-INITIALIZATION.
+
+    INITIALIZE WS-OUTPUT-RECORD-LINE
+    INITIALIZE WS-C01W-OUTPUT-FILE
+    PERFORM 1700-INIT-FIRST-DISPLAY-RCD
+    PERFORM 7000-READ-CONTROL-CARD
+    .
+    EJECT
+048200***************************************************************** 04820001
+048300* 1700-INIT-FIRST-DISPLAY-RCD.                                    04830001
+048400*                                                                 04840001
+048500* CREATE FIRST DISPLAY RECORD.                                    04850001
+048600*                                                                 04860001
+048700* PEFORMED FROM 1600-INITIALIZATION.                              04870001
+048800***************************************************************** 04880001
+1700-INIT-FIRST-DISPLAY-RCD.
+
+049100*++INCLUDE C2INZ001                                               04910001
+COPY C2INZ001.
+
+  EJECT
+049500***************************************************************** 04950001
+049600* 3000-PROCESS-MASTER-FILE.                                       04960001
+049700*                                                                 04970001
+049800* SUMMARIZE THE 1099'S FOR OUTPUT.                                04980001
+049900*                                                                 04990001
+050000* PEFORMED FROM 0000-MAINLINE.                                    05000001
+050100***************************************************************** 05010001
+3000-PROCESS-MASTER-FILE.
+
+    ADD WS-1-LIT            TO WS-TOT-RECDS-READ
+
+    IF WS-PREV-OPER-LOC-CODE = WS-M01R-OPER-LOC-CODE
+       IF WS-PREV-REC-KEY = WS-CURR-REC-KEY
+          IF WS-PREV-BR-DEPT = WS-M01R-BR-DEPT
+             IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+                PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+             ELSE
+                CONTINUE
+             END-IF
+          ELSE
+             PERFORM 3100-BREAK-FOR-BRANCH
+          END-IF
+       ELSE
+          PERFORM 3200-BREAK-FOR-SOC-SEC-NUM
+       END-IF
+    ELSE
+       PERFORM 3300-BREAK-FOR-OPER-LOC-CODE
+    END-IF
+
+    EVALUATE TRUE
+    WHEN MASTER-TRAILER
+         CONTINUE
+    WHEN WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+         CONTINUE
+    WHEN OTHER
+         ADD WS-M01R-1099-AMT-OUT   TO WS-CALC-TOT-AMOUNT
+         MOVE WS-M01R-MASTER-FILE   TO WS-PREV-MASTER-FILE
+    END-EVALUATE
+
+    PERFORM 7500-READ-MASTER-FILE
+
+
+    .
+    EJECT
+
+054000************************************************************      05400001
+054100* 3100-BREAK-FOR-BRANCH.                                          05410001
+054200*                                                                 05420001
+054300* CHECK FOR MANUAL CHECK WHEN THE BRANCH CHANGES.                 05430001
+054400*                                                                 05440001
+054500* PERFORMED FROM 3000-PROCESS-MASTER-FILE.                        05450001
+054600************************************************************      05460001
+3100-BREAK-FOR-BRANCH.
+
+    IF WS-PREV-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+       ELSE
+          CONTINUE
+       END-IF
+    ELSE
+       PERFORM 4000-CREATE-SUMM-OUT-RECORD
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+       ELSE
+          CONTINUE
+       END-IF
+    END-IF
+    .
+    EJECT
+
+056600************************************************************      05660001
+056700* 3200-BREAK-FOR-SOC-SEC-NUM.                                     05670001
+056800*                                                                 05680001
+056900* CHECK FOR MANUAL CHECK WHEN THE SOCIAL SECURITY NUMBER          05690001
+057000* CHANGES.                                                        05700001
+057100*                                                                 05710001
+057200* PERFORMED FROM 3000-PROCESS-MASTER-FILE.                        05720001
+057300************************************************************      05730001
+3200-BREAK-FOR-SOC-SEC-NUM.
+
+    IF WS-PREV-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+       ELSE
+          CONTINUE
+       END-IF
+    ELSE
+       PERFORM 4000-CREATE-SUMM-OUT-RECORD
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+          MOVE WS-M01R-MASTER-FILE TO WS-PREV-MASTER-FILE
+       ELSE
+          CONTINUE
+       END-IF
+    END-IF
+    .
+    EJECT
+
+059400************************************************************      05940001
+059500* 3300-BREAK-FOR-OPER-LOC-CODE.                                   05950001
+059600*                                                                 05960001
+059700* CHECK FOR MANUAL CHECK WHEN THE OPERATION LOCATION CODE         05970001
+059800* CHANGES.                                                        05980001
+059900*                                                                 05990001
+060000* PERFORMED FROM 3000-PROCESS-MASTER-FILE.                        06000001
+060100************************************************************      06010001
+3300-BREAK-FOR-OPER-LOC-CODE.
+
+    IF WS-PREV-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+       PERFORM 5000-PROCESS-TRAILER
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+       ELSE
+          CONTINUE
+       END-IF
+    ELSE
+       PERFORM 4000-CREATE-SUMM-OUT-RECORD
+       PERFORM 5000-PROCESS-TRAILER
+       IF WS-M01R-CHECK-TYPE = WS-MANUAL-CHECK-LIT
+          PERFORM 4100-CREATE-MANUAL-OUT-RECORD
+          MOVE WS-M01R-MASTER-FILE TO WS-PREV-MASTER-FILE
+       ELSE
+          CONTINUE
+       END-IF
+    END-IF
+    .
+3900-SET-RECORD-KEY.
+    MOVE WS-M01R-SOC-SEC-NUM       TO WS-CURR-TAXID
+    MOVE WS-M01R-TAX-TYPE          TO WS-CURR-TAX-TYPE
+    MOVE WS-M01R-TIN-IND           TO WS-CURR-TAX-IND
+    MOVE WS-PREV-SOC-SEC-NUM       TO WS-PREV-TAXID
+    MOVE WS-PREV-MSTR-TAX-TYPE     TO WS-PREV-TAX-TYPE
+    MOVE WS-PREV-MSTR-TIN-IND      TO WS-PREV-TIN-IND
+    .
+062400************************************************************      06240001
+062500* 4000-CREATE-NEW-OUTPUT-RECORD.                                  06250001
+062600*                                                                 06260001
+062700* CREATE SUMMARIZED 1099 RECORD FROM MASTER FILE.                 06270001
+062800*                                                                 06280001
+062900* PERFORMED FROM 3000-PROCESS-MASTER-FILE.                        06290001
+063000************************************************************      06300001
+4000-CREATE-SUMM-OUT-RECORD.
+
+    MOVE WS-PREV-OPER-LOC-CODE TO WS-C01W-OPER-LOC-CODE
+    MOVE WS-PREV-SOC-SEC-NUM   TO WS-C01W-SOC-SEC-NUM
+    MOVE WS-R01R-CC-YY         TO WS-C01W-PAY-YEAR
+    MOVE WS-PREV-EMP-NAME      TO WS-C01W-EMP-NAME
+    MOVE WS-PREV-ADDRESS-1     TO WS-C01W-ADDRESS-1
+    MOVE WS-PREV-ADDR2-OUT     TO WS-C01W-ADDRESS-2
+    MOVE WS-PREV-CITY          TO WS-C01W-CITY-MASTER
+    MOVE WS-PREV-STATE         TO WS-C01W-STATE
+    MOVE WS-PREV-BR-DEPT       TO WS-C01W-DESC-BR-DEPT
+    MOVE WS-PREV-CHECK-NUMBER  TO WS-C01W-DESC-CHECK-NUM
+    MOVE WS-PREV-MSTR-TAX-TYPE TO WS-C01W-AMOUNT-IND
+    IF (WS-PREV-MSTR-TIN-IND = WS-1X-LIT) OR
+       (WS-PREV-MSTR-TIN-IND = WS-2-LIT)
+         MOVE WS-PREV-MSTR-TIN-IND TO WS-C01W-SSN-IND
+    ELSE MOVE WS-1X-LIT            TO WS-C01W-SSN-IND
+    END-IF
+    MOVE WS-A-LIT              TO WS-C01W-TYPE
+    MOVE WS-A-LIT              TO WS-C01W-TRANS-CODE
+
+    IF WS-CALC-TOT-AMT-OVFL > ZEROES
+       MOVE WS-MONEY-ERROR-LIT  TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT           TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    ELSE
+       MOVE WS-CALC-TOT-AMT-OUT TO WS-C01W-TOT-AMOUNT
+    END-IF
+
+    INITIALIZE WS-ZIP-CHECK
+    MOVE WS-PREV-ZIP            TO WS-ZIP-CHECK
+    PERFORM 4200-CHECK-ZIP-CODE
+    MOVE WS-ZIP-OK-NUM          TO WS-C01W-ZIP
+
+    ADD WS-CALC-TOT-AMT-OUT     TO WS-1099-TRLR-AMOUNT
+    ADD WS-1-LIT                TO WS-1099-TRLR-CNT
+
+    PERFORM 8700-WRITE-OUTPUT-RECORD
+    INITIALIZE WS-CALC-TOT-AMOUNT
+    .
+    EJECT
+066900************************************************************      06690001
+067000* 4100-CREATE-MANUAL-OUT-RECORD.                                  06700001
+067100*                                                                 06710001
+067200* CREATE MANUAL CHECK 1099 RECORD FROM MASTER FILE.               06720001
+067300*                                                                 06730001
+067400* PERFORMED FROM 3000-PROCESS-MASTER-FILE.                        06740001
+067500************************************************************      06750001
+4100-CREATE-MANUAL-OUT-RECORD.
+
+    MOVE WS-M01R-OPER-LOC-CODE TO WS-C01W-OPER-LOC-CODE
+    MOVE WS-M01R-SOC-SEC-NUM   TO WS-C01W-SOC-SEC-NUM
+    MOVE WS-R01R-CC-YY         TO WS-C01W-PAY-YEAR
+    MOVE WS-M01R-EMP-NAME      TO WS-C01W-EMP-NAME
+    MOVE WS-M01R-ADDRESS-1     TO WS-C01W-ADDRESS-1
+    MOVE WS-M01R-ADDR2-OUT     TO WS-C01W-ADDRESS-2
+    MOVE WS-M01R-CITY          TO WS-C01W-CITY-MASTER
+    MOVE WS-M01R-STATE         TO WS-C01W-STATE
+    MOVE WS-M01R-BR-DEPT       TO WS-C01W-DESC-BR-DEPT
+    MOVE WS-M01R-COMMENTS      TO WS-C01W-COMMENTS
+    MOVE WS-20071-LIT          TO WS-C01W-FORM-NUM
+    MOVE WS-M01R-TAX-TYPE      TO WS-C01W-AMOUNT-IND
+    IF (WS-M01R-TIN-IND = WS-1X-LIT) OR
+       (WS-M01R-TIN-IND = WS-2-LIT)
+         MOVE WS-M01R-TIN-IND    TO WS-C01W-SSN-IND
+    ELSE MOVE WS-1X-LIT           TO WS-C01W-SSN-IND
+    END-IF
+    MOVE WS-A-LIT              TO WS-C01W-TYPE
+    MOVE WS-A-LIT              TO WS-C01W-TRANS-CODE
+
+    IF WS-M01R-1099-AMT-OVFL > ZEROES
+       MOVE WS-MONEY-ERROR-LIT   TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT            TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    ELSE
+       MOVE WS-M01R-1099-AMT-OUT TO WS-C01W-TOT-AMOUNT
+    END-IF
+
+    INITIALIZE WS-ZIP-CHECK
+    MOVE WS-M01R-ZIP             TO WS-ZIP-CHECK
+    PERFORM 4200-CHECK-ZIP-CODE
+    MOVE WS-ZIP-OK-NUM           TO WS-C01W-ZIP
+
+    ADD WS-M01R-1099-AMT-OUT     TO WS-1099-TRLR-AMOUNT
+    ADD WS-1-LIT                 TO WS-1099-TRLR-CNT
+
+    PERFORM 8700-WRITE-OUTPUT-RECORD
+    .
+    EJECT
+071400************************************************************      07140001
+071500* 4200-CHECK-ZIP-CODE.                                            07150001
+071600*                                                                 07160001
+071700* CHECK THE ZIP CODE.  THE ZIP CODE SHOULD BE LEFT JUSTIFIED      07170001
+071800* AND HAVE SPACES IN THE FOUR RIGHT CHARACTERS IF THE ZIP IS      07180001
+071900* ONLY FIVE CHARACTERS LONG.                                      07190001
+072000*                                                                 07200001
+072100* PERFORMED FROM 4000-CREATE-NEW-OUTPUT-RECORD.                   07210001
+072200*                4100-CREATE-MANUAL-OUT-RECORD.                   07220001
+072300************************************************************      07230001
+4200-CHECK-ZIP-CODE.
+
+    INITIALIZE WS-EVAL-NUM-ZIP
+               WS-EVAL-ALPHA-ZIP
+               WS-ZIP-OK
+
+    EVALUATE TRUE
+    WHEN WS-ZIP-CHECK-NUM IS NUMERIC
+         MOVE WS-ZIP-CHECK-NUM TO WS-EVAL-NUM-ZIP
+         PERFORM 4250-CHECK-NUMERIC-ZIP
+    WHEN OTHER
+         MOVE WS-ZIP-CHECK TO WS-EVAL-ALPHA-ZIP
+         PERFORM 4260-CHECK-ALPHA-ZIP
+    END-EVALUATE
+    .
+    EJECT
+074000************************************************************      07400001
+074100* 4250-CHECK-NUMERIC-ZIP.                                         07410001
+074200*                                                                 07420001
+074300* CHECK NUMERIC ZIP FOR CORRECT POSITION.                         07430001
+074400*                                                                 07440001
+074500*                                                                 07450001
+074600* PERFORMED FROM 4200-CHECK-ZIP-CODE.                             07460001
+074700************************************************************      07470001
+4250-CHECK-NUMERIC-ZIP.
+
+    IF WS-EVAL-NUM-ZIP-5 > WS-ZEROES-5-LIT
+       IF WS-EVAL-NUM-ZIP-4 > WS-ZEROES-4-LIT
+          MOVE WS-EVAL-NUM-ZIP TO WS-ZIP-OK-NUM
+       ELSE MOVE WS-SPACES-4-LIT TO WS-ZIP-OK-4
+            MOVE WS-EVAL-NUM-ZIP-5 TO WS-ZIP-OK-NUM-5
+       END-IF
+    ELSE IF WS-EVAL-NUM2-ZIP-5 > WS-ZEROES-5-LIT
+            MOVE WS-EVAL-NUM2-ZIP-5 TO WS-ZIP-OK-5
+         ELSE MOVE WS-ZIP-ZEROES-LIT TO CC-E01W-DISPLAY-RCD
+              MOVE WS-99-LIT         TO RETURN-CODE
+              PERFORM 8999-WRITE-SYSOUT
+         END-IF
+    END-IF
+
+    IF WS-ZIP-OK-NUM-4 = WS-ZEROES-4-LIT
+       MOVE WS-SPACES-4-LIT TO WS-ZIP-OK-4
+    END-IF
+    .
+    EJECT
+076900************************************************************      07690001
+077000* 4260-CHECK-ALPHA-ZIP.                                           07700001
+077100*                                                                 07710001
+077200* CHECK ALPHANUM ZIP FOR CORRECT POSITION.                        07720001
+077300*                                                                 07730001
+077400*                                                                 07740001
+077500* PERFORMED FROM 4200-CHECK-ZIP-CODE.                             07750001
+077600************************************************************      07760001
+4260-CHECK-ALPHA-ZIP.
+
+    IF WS-EVAL-ALPHA-ZIP-4 = WS-SPACES-4-LIT
+       IF WS-EVAL-ALPHA-ZIP-5 > WS-SPACES-5-LIT
+          MOVE WS-EVAL-ALPHA-ZIP-5 TO WS-ZIP-OK-5
+          MOVE WS-SPACES-4-LIT     TO WS-ZIP-OK-4
+       ELSE MOVE WS-SPACES-4-LIT TO WS-ZIP-OK-4
+            MOVE WS-EVAL-NUM-ZIP-5 TO WS-ZIP-OK-5
+       END-IF
+    ELSE IF WS-EVAL-ALPHA2-ZIP-5 > WS-SPACES-5-LIT
+            MOVE WS-EVAL-ALPHA-ZIP TO WS-ZIP-OK
+         ELSE MOVE WS-ZIP-SPACES-LIT TO CC-E01W-DISPLAY-RCD
+              MOVE WS-99-LIT        TO RETURN-CODE
+              PERFORM 8999-WRITE-SYSOUT
+         END-IF
+    END-IF
+    .
+    EJECT
+079500************************************************************      07950001
+079600* 5000-PROCESS-TRAILER.                                           07960001
+079700*                                                                 07970001
+079800* CREATE TRAILER RECORD WITH RECORD COUNT AND 1099 SUMMARIZED     07980001
+079900* MONRY AMOUNT.                                                   07990001
+080000*                                                                 08000001
+080100* PERFORMED FROM 0000-MAINLINE.                                   08010001
+080200************************************************************      08020001
+5000-PROCESS-TRAILER.
+
+    INITIALIZE WS-C01W-OUTPUT-TRAILER
+
+    MOVE WS-PREV-OPER-LOC-CODE  TO WS-C01W-TRLR-OPER-LOC-CODE
+    MOVE WS-1099-TRLR-CNT       TO WS-C01W-TRLR-TOT-RECORDS
+    MOVE WS-1099-TRLR-AMOUNT    TO WS-C01W-TRLR-TOT-AMOUNT
+    MOVE WS-T-LIT               TO WS-C01W-TRLR-TRANS-CODE
+
+    ADD WS-1-LIT                TO WS-TOT-BATCH-NUM
+    MOVE WS-TOT-BATCH-NUM       TO WS-C01W-TRLR-BATCH-NUM
+
+    PERFORM 8700-WRITE-OUTPUT-RECORD
+
+    INITIALIZE                     WS-1099-TRLR-CNT
+                                   WS-1099-TRLR-AMOUNT
+    .
+
+    EJECT
+082200***************************************************************** 08220001
+082300* 7000-READ-CONTROL-CARD.                                         08230001
+082400*                                                                 08240001
+082500* READ THE CONTROL CARD.                                          08250001
+082600*                                                                 08260001
+082700* PEFORMED FROM 1600-INITIALIZATION.                              08270001
+082800***************************************************************** 08280001
+7000-READ-CONTROL-CARD.
+
+    READ TEN99-R01R-CONTROL-CARD INTO WS-R01R-CONTROL-CARD
+    AT END
+       MOVE WS-EMPTY-CCRD-LIT        TO CC-E01W-DISPLAY-RCD
+       MOVE WS-99-LIT                TO RETURN-CODE
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    END-READ
+    .
+    EJECT
+084000************************************************************      08400001
+084100* 7500-READ-MASTER-FILE.                                          08410001
+084200*                                                                 08420001
+084300* READ A RECORD FROM THE MASTER FILE AND SET END OF FILE          08430001
+084400* INDICATOR WHEN DONE.                                            08440001
+084500*                                                                 08450001
+084600* PERFORMED FROM 1600-INITIALIZATION                              08460001
+084700*                3000-PROCESS-MASTER-FILE.                        08470001
+084800************************************************************      08480001
+7500-READ-MASTER-FILE.
+
+    READ TEN99-M01R-1099-MASTER-FILE INTO WS-M01R-MASTER-FILE
+        AT END
+            MOVE WS-YES-LIT TO WS-EOF-SW
+    END-READ
+    IF END-OF-INPUT
+         CONTINUE
+    ELSE
+         PERFORM 3900-SET-RECORD-KEY
+    END-IF
+    .
+    EJECT
+085700***************************************************************** 08570001
+085800* 8700-WRITE-OUTPUT-RECORD.                                       08580001
+085900*                                                                 08590001
+086000* WRITE OUT THE SUMMARIZED 1099 RECORD.                           08600001
+086100*                                                                 08610001
+086200* PERFORMED FROM 4000-CREATE-OUTPUT-RECORD.                       08620001
+086300*                4100-CREATE-MANUAL-RECORD.                       08630001
+086400***************************************************************** 08640001
+8700-WRITE-OUTPUT-RECORD.
+
+    MOVE WS-C01W-OUTPUT-FILE   TO WS-OUTPUT-RECORD-LINE
+
+    WRITE TEN99-C01W-1099-SUMMARY-RCD
+                    FROM WS-OUTPUT-RECORD-LINE
+    END-WRITE
+
+    ADD WS-1-LIT             TO WS-TOT-WRITTEN-CNT
+
+    INITIALIZE                  WS-OUTPUT-RECORD-LINE
+                                WS-C01W-OUTPUT-FILE
+    .
+    EJECT
+
+088000*++INCLUDE C2INZ002                                               08800001
+COPY C2INZ002.
+
+    EJECT
+088400***************************************************************** 08840001
+088500* 9000-CLOSING-ROUTINE.                                           08850001
+088600*                                                                 08860001
+088700* PERFORM END OF PROGRAM FUNCTIONS.                               08870001
+088800*                                                                 08880001
+088900* PEFORMED FROM 0000-MAINLINE.                                    08890001
+089000***************************************************************** 08900001
+9000-CLOSING-ROUTINE.
+
+
+    PERFORM 9100-WRITE-LAST-DISPLAY-RCD
+    PERFORM 9999-CLOSE-FILES
+    .
+    EJECT
+089800***************************************************************** 08980001
+089900* 9100-WRITE-LAST-DISPLAY-RCD.                                    08990001
+090000*                                                                 09000001
+090100* WRITE LAST RECORD TO DISPLAY FILE WITH END OF RUN  STATISTICS.  09010001
+090200*                                                                 09020001
+090300* PEFORMED FROM 9000-CLOSING-ROUTINE.                             09030001
+090400***************************************************************** 09040001
+9100-WRITE-LAST-DISPLAY-RCD.
+
+    MOVE WS-EOJ-MSG-1           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-RECDS-READ      TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+    MOVE WS-EOJ-MSG-2           TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-TOT-WRITTEN-CNT     TO SCR-COUNT
+    MOVE SYSOUT-COUNT-RCD       TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+
+
+
+092100*++INCLUDE C2INZ003                                               09210001
+COPY C2INZ003.
+
+  EJECT
+092500***************************************************************** 09250001
+092600* 9998-COREDUMP.                                                  09260001
+092700*                                                                 09270001
+092800* TO DUMP THE PROGRAM FOR FATAL ERRORS.                           09280001
+092900*                                                                 09290001
+093000* PEFORMED FROM 1000-GENERAL-HOUSEKEEPING.                        09300001
+093100*               7000-READ-CONTROL-CARD.                           09310001
+093200***************************************************************** 09320001
+
+093400*++INCLUDE C2INZ004                                               09340001
+COPY C2INZ004.
+    EJECT
+093700***************************************************************** 09370001
+093800* 9999-CLOSE-FILES.                                               09380001
+093900*                                                                 09390001
+094000* THIS WILL CLOSE ALL THE FILES.                                  09400001
+094100*                                                                 09410001
+094200* PEFORMED FROM 9000-CLOSING-ROUTINE.                             09420001
+094300***************************************************************** 09430001
+
+094500*++INCLUDE C2INZ005                                               09450001
+COPY C2INZ005.
+           TEN99-M01R-1099-MASTER-FILE
+           TEN99-C01W-1099-SUMMARY-FILE
+           TEN99-R01R-CONTROL-CARD
+    .
+    EJECT
+095200******************************************************************09520001
+095300*                PROGRAM CCAC6350 END OF SOURCE                  *09530001
+095400******************************************************************09540001
+END PROGRAM CCAC6350.
+

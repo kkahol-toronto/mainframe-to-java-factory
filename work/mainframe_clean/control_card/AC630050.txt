@@ -1,0 +1,13 @@
+    CC.SORT.DATA(AC630050) - 01.00                  Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+***************************** Top of Data ******************************
+* CHANGE LOG                                                            
+* 01/03/2011   R. FORTUNATE                                             
+*              EPM#2666 DISB RISK MITIGATION                            
+*              NEW SORT MEMBER.                                         
+*                                                                       
+ SORT  FIELDS=(13,8,CH,A,                 * CHECK NUMBER                
+               318,1,CH,A,                * TAX TYPE                    
+               319,1,CH,A,                * TIN                         
+               10,3,CH,A)                 * DEPARTMENT / BRANCH         
+**************************** Bottom of Data ****************************

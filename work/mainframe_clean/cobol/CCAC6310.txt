@@ -1,0 +1,1894 @@
+IDENTIFICATION DIVISION.
+
+PROGRAM-ID.     CCAC6310.
+000400*TRANSLATED BY MHTRAN-2  1/12/96                                  00040001
+
+AUTHOR.         J. ZYCH .
+DATE-WRITTEN.   OCTOBER, 1994
+DATE-COMPILED.
+000900***************************************************************** 00090001
+001000*REMARKS.                                                       * 00100001
+001100*                                                               * 00110001
+001200*   THIS PROGRAM READS DATA FROM THE FOLLOWING SOURCES:         * 00120001
+001300*       B&CCW ISSUES                                            * 00130001
+001400*       DEFT                                                    * 00140001
+001500*       1099 MISCELLANEOUS INPUT-FORM 20071                     * 00150001
+001600*       PREVIOUSLY REJECT TRANSACTIONS                          * 00180001
+001700*   AND DETERMINES THE TAX TYPE APPLICABLE FOR THE 1099         * 00190001
+001800*   ELIGIBLE RECORDS. THE TAX TYPE IS DETERMINED BY USING THE   * 00200001
+001900*   ENTRY CODE ON THE INPUT RECORDS TO SEARCH THE 1099          * 00210001
+002000*   REPORTABLE ENTRY CODE TABLE AND ASSIGNING THE ASSOCIATED    * 00220001
+002100*   TAX TYPE. THE OUTPUT RECORDS ARE WRITTEN IN THE SAME        * 00230001
+002200*   FORMAT AS THE INPUT RECORDS.                                * 00240001
+002300*                                                               * 00250001
+002400***************************************************************** 00310001
+002500****              PROGRAM MODIFICATION HISTORY                  * 00320001
+002600***************************************************************** 00330001
+002700**  DATE    *   MODIFIED BY *          DESCRIPTION              * 00340001
+002800***************************************************************** 00350001
+002900** 01/03/11 * R. FORTUNATE  * EPM 2666                          * 00360001
+003000**          *               * NEW PROGRAM                       * 00370001
+003100**          *               *                                   * 00370001
+003200**          *               *                                   * 00370001
+003300** 08/31/13 * ACHINTHA      * ETRACKER #12085764                * 00360001
+003400**          *               * ACCEPT BRANCH CODE 048 FOR CLOC   * 00370001
+003500**          *               * CHECKS. THIS WILL REPLACE BRANCH  * 00370001
+003600**          *               * CODE 095                          * 00370001
+003700**          *               * TEN99-ISSUING-BR-CODE-DATA        * 00370001
+003800**          *               *                                   * 00370001
+003900**04/13/2018* RFORTUN4 2018-ACC-043 ADD NEW CEC (ENTRY CODES)   * 00530000
+004000*                                   INCREASE 1099 TABLE FROM    * 00540000
+004100*                                   100 TO 150                  * 00540000
+004200*                                                               * 00540000
+004300***************************************************************** 01030001
+
+
+     EJECT
+ENVIRONMENT DIVISION.
+
+CONFIGURATION SECTION.
+
+SOURCE-COMPUTER. IBM-370.
+OBJECT-COMPUTER. IBM-370.
+
+INPUT-OUTPUT SECTION.
+
+FILE-CONTROL.
+    SELECT TEN99-T01R-MISC-TRANS-FILE
+        ASSIGN TO UT-S-CCACT01R.
+    SELECT TEN99-T03R-BCCW-FILE
+        ASSIGN TO UT-S-CCACT03R.
+    SELECT TEN99-T04R-DEFT-FILE
+        ASSIGN TO UT-S-CCACT04R.
+    SELECT TEN99-T05R-REJ-CYCLE-FILE
+        ASSIGN TO UT-S-CCACT05R.
+    SELECT WS-T07R-1099ENTRY-CD-FILE
+        ASSIGN TO UT-S-CCACT07R.
+    SELECT TEN99-T01W-MISC-TRANS-OUT-FILE
+        ASSIGN TO UT-S-CCACT01W.
+    SELECT TEN99-T03W-BCCW-OUT-FILE
+        ASSIGN TO UT-S-CCACT03W.
+    SELECT TEN99-T04W-DEFT-OUT-FILE
+        ASSIGN TO UT-S-CCACT04W.
+    SELECT TEN99-T05W-REJ-CYCLE-OUT-FILE
+        ASSIGN TO UT-S-CCACT05W.
+    SELECT CC-R01R-CONTROL-CARD
+        ASSIGN TO UT-S-CCACR01R.
+007700***************************************************************** 01390001
+007800*    ++INCLUDE C2INX01                                          * 01400001
+007900*      COMMON SYSOUT FILE CONTROL SECTION                       * 01410001
+008000***************************************************************** 01420001
+COPY C2INX001.
+    EJECT
+DATA DIVISION.
+
+FILE SECTION.
+
+008700***************************************************************** 01490001
+008800*      INPUT FILES                                              * 01500001
+008900***************************************************************** 01490001
+009000*      MISCELLANEOUS INPUT--FORM #20071                         * 01510001
+009100***************************************************************** 01520001
+
+FD  TEN99-T01R-MISC-TRANS-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T01R-MISC-FORM-RCD             PIC X(320).
+
+010100***************************************************************** 01620001
+010200*      NEW B&CCW ISSUES                                         * 01630001
+010300***************************************************************** 01640001
+
+FD  TEN99-T03R-BCCW-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T03R-BCCW-RCD                  PIC X(320).
+
+
+EJECT
+011500***************************************************************** 01760001
+011600*      DEFT ISSUES                                              * 01770001
+011700***************************************************************** 01780001
+
+FD  TEN99-T04R-DEFT-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD.
+
+01  TEN99-T04R-DEFT-RCD                  PIC X(320).
+
+
+EJECT
+012900***************************************************************** 01900001
+013000*      REJECT CYCLING ISSUES                                    * 01910001
+013100***************************************************************** 01920001
+
+FD  TEN99-T05R-REJ-CYCLE-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 526 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T05R-REJ-CYCLE-RCD             PIC X(526).
+
+014100***************************************************************** 02020001
+014200*      CONTROL CARD                                             * 02030001
+014300***************************************************************** 02040001
+
+FD  CC-R01R-CONTROL-CARD
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 80 CHARACTERS
+    LABEL RECORDS STANDARD       .
+
+01  CC-R01R-CONTROL-CARD-REC             PIC X(80).
+
+015300***************************************************************** 02140001
+015400*      1099 CODE TABLE                                          * 02150001
+015500***************************************************************** 02160001
+
+FD  WS-T07R-1099ENTRY-CD-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 80 CHARACTERS
+    LABEL RECORDS STANDARD       .
+
+01  WS-T07R-1099ENTRY-CD-RCD             PIC X(80).
+
+
+016600***************************************************************** 02270001
+016700*      TRANSACTION OUTPUT                                       * 02280001
+016800***************************************************************** 02290001
+016900*****************************************************************
+017000*      MISCELLANEOUS OUTPUT--FORM #20071                         *
+017100*****************************************************************
+
+FD  TEN99-T01W-MISC-TRANS-OUT-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T01W-MISC-TRANS-OUT-RCD           PIC X(320).
+018000*****************************************************************
+018100*      B&CCW OUTPUT                                             *
+018200*****************************************************************
+
+FD  TEN99-T03W-BCCW-OUT-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T03W-BCCW-OUT-RCD                 PIC X(320).
+
+019200*****************************************************************
+019300*      DEFT OUTPUT                                              *
+019400*****************************************************************
+FD  TEN99-T04W-DEFT-OUT-FILE
+    BLOCK CONTAINS 0 RECORDS
+    RECORDING MODE IS F
+    RECORD CONTAINS 320 CHARACTERS
+    LABEL RECORDS STANDARD.
+
+01  TEN99-T04W-DEFT-OUT-RCD                 PIC X(320).
+
+020300***************************************************************** 02400001
+020400*      REJECT RECYCLING OUTPUT FILE                             * 02410001
+020500***************************************************************** 02420001
+
+FD  TEN99-T05W-REJ-CYCLE-OUT-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 CHARACTERS
+    RECORD CONTAINS 526 CHARACTERS
+    LABEL RECORDS STANDARD        .
+
+01  TEN99-T05W-REJ-CYCLE-OUT-RCD            PIC X(526).
+
+
+
+
+021800***************************************************************** 02920001
+021900*    ++INCLUDE C2INX002                                         * 02930001
+022000*      COMMON SYSOUT FILE DEFINITION SECTION                    * 02940001
+022100***************************************************************** 02950001
+COPY C2INX002.
+
+
+EJECT
+WORKING-STORAGE SECTION.
+77  PAN-VALET PICTURE X(24) VALUE '024CCAC6310  05/19/05'.
+022800
+01  PUPS2000.
+023000*
+    05  FILLER                  PIC X(69)   VALUE
+        "PUPS2000 CHINTHALAPURI, A. (ARUNDHATI)  CR#35378 2013082
+023300-        "9083650121790".
+023400
+023500***************************************************************** 03020001
+023600*  WORKING STORAGE AREA FOR VARIABLES                           * 03020001
+023700***************************************************************** 03020001
+01  WS-VARIABLE-AREA.
+    05 WS-CEC                               PIC X(3).
+    05 WS-TAX-TYPE                          PIC X(1).
+024100***************************************************************** 03020001
+024200*  INPUT/OUTPUT FILE AND RECORD LAYOUTS (LENGTH = 320)          * 03030001
+024300*      READ / UPDATE AREA FOR MISC FORM INPUT                   * 03040001
+024400***************************************************************** 03050001
+01  WS-T01R-MISC-FORM-RCD.
+    05   WS-T01R-MISC-FORM-OPER-LOC         PIC X(4).
+    05   WS-T01R-MISC-FORM-1099-TYPE        PIC X.
+    05   WS-T01R-MISC-FORM-SSN              PIC X(9).
+    05   WS-T01R-MISC-FORM-REFERENCE        PIC X(11).
+    05   WS-T01R-MISC-FORM-AMT              PIC 9(8)V99.
+    05   WS-T01R-MISC-FORM-PAY-YY           PIC XX.
+    05   WS-T01R-MISC-FORM-NAME.
+         10   WS-T01R-MISC-FORM-NAME-LAST   PIC X(38).
+         10   WS-T01R-MISC-FORM-NAME-FI     PIC X.
+         10   WS-T01R-MISC-FORM-NAME-MI     PIC X.
+    05   FILLER                             PIC XXX.
+    05   WS-T01R-MISC-FORM-ADDR-1           PIC X(37).
+    05   WS-T01R-MISC-FORM-ADDR-2           PIC X(43).
+    05   WS-T01R-MISC-FORM-CITY             PIC X(27).
+    05   WS-T01R-MISC-FORM-STATE            PIC XX.
+    05   WS-T01R-MISC-FORM-POSTCODE         PIC X(9).
+    05   WS-T01R-MISC-FORM-BRANCH           PIC X(3).
+    05   WS-T01R-MISC-FORM-DESCRIPTION      PIC X(40).
+    05   WS-T01R-MISC-FORM-AMT-IND          PIC X.
+    05   WS-T01R-MISC-FORM-SSN-IND          PIC X.
+    05   FILLER                             PIC X(9).
+    05   WS-T01R-MISC-FORM-TRANS-CODE       PIC X.
+    05   FILLER                             PIC X(64).
+    05   WS-T01R-MISC-FORM-TAX-TYPE         PIC X(01).
+         88 WS-T01R-MISC-FORM-VALID-TAX      VALUE "3" "7".
+    05   WS-T01R-MISC-FORM-TIN-IND          PIC X(01).
+    05   FILLER                             PIC X(01).
+
+01  WS-T01R-MISC-FORM-HDR REDEFINES WS-T01R-MISC-FORM-RCD.
+    05   WS-T01R-MISC-FORM-HDR-VALUE        PIC X(10).
+    05   FILLER                             PIC XX.
+    05   WS-T01R-MISC-FORM-HDR-NAME         PIC X(20).
+    05   FILLER                             PIC XX.
+    05   WS-T01R-MISC-FORM-HDR-DATE.
+         10   WS-T01R-MISC-FORM-HDR-CC      PIC XX.
+         10   WS-T01R-MISC-FORM-HDR-YY      PIC XX.
+         10   WS-T01R-MISC-FORM-HDR-MM      PIC XX.
+    05   FILLER                             PIC X(280).
+
+01  WS-T01R-MISC-FORM-TRL REDEFINES WS-T01R-MISC-FORM-RCD.
+    05   WS-T01R-MISC-FORM-TRL-VALUE        PIC X(10).
+    05   FILLER                             PIC XX.
+    05   WS-T01R-MISC-FORM-TRL-COUNT        PIC 9(8).
+    05   FILLER                             PIC XX.
+    05   WS-T01R-MISC-FORM-TRL-AMOUNT       PIC S9(10)V99.
+    05   FILLER                             PIC X(286).
+EJECT
+029300***************************************************************** 03500001
+029400*        B&CCW ISSUES FILE                                      * 03510001
+029500*                                                               * 03520001
+029600* FILE LAYOUT - COPYCODE CLCWW013                               * 03530001
+029700***************************************************************** 03540001
+COPY CLCWW013.
+029900***************************************************************** 03970001
+030000*        DEFT  ISSUES FILE (LENGTH = 320)                       * 03980001
+030100*                                                               * 03990001
+030200***************************************************************** 04000001
+01  WS-T04R-DEFT-RCD.
+    05   WS-T04R-DEFT-BUS-CODE           PIC X(04).
+    05   WS-T04R-DEFT-LABEL-CODE         PIC 9(04).
+    05   WS-T04R-DEFT-BRANCH-CODE        PIC X(03).
+    05   WS-T04R-DEFT-FILLER1            PIC X(01).
+    05   WS-T04R-DEFT-BATCH-NUM          PIC X(08).
+    05   WS-T04R-DEFT-NAME               PIC X(40).
+    05   WS-T04R-DEFT-ADDRESS-1          PIC X(40).
+    05   WS-T04R-DEFT-ADDRESS-2          PIC X(40).
+    05   WS-T04R-DEFT-CITY               PIC X(28).
+    05   WS-T04R-DEFT-STATE              PIC X(05).
+    05   WS-T04R-DEFT-ZIPCODE            PIC X(11).
+    05   WS-T04R-DEFT-COMPASS-CODE       PIC X(03).
+    05   WS-T04R-DEFT-DESC               PIC X(60).
+    05   WS-T04R-DEFT-DISB-AMT           PIC S9(10)V99.
+    05   WS-T04R-DEFT-DISB-SEQ           PIC 9(09).
+    05   WS-T04R-DEFT-SSN                PIC X(16).
+    05   WS-T04R-DEFT-PROD-TYPE          PIC X(02).
+    05   WS-T04R-DEFT-BUS-UNIT           PIC X(05).
+    05   WS-T04R-DEFT-OP-LOC             PIC X(04).
+    05   WS-T04R-DEFT-LINE-NBR           PIC X(07).
+    05   WS-T04R-DEFT-BNK-STLMT-DT.
+         10 WS-T04R-DEFT-BNK-STLMT-CC    PIC X(02).
+         10 WS-T04R-DEFT-BNK-STLMT-YY    PIC X(02).
+         10 FILLER                       PIC X(01).
+         10 WS-T04R-DEFT-BNK-STLMT-MM    PIC X(02).
+         10 FILLER                       PIC X(01).
+         10 WS-T04R-DEFT-BNK-STLMT-DD    PIC X(02).
+    05   WS-T04R-DEFT-FILLER2            PIC X(05).
+    05   WS-T04R-DEFT-TAX-TYPE           PIC X(01).
+         88 WS-T04R-DEFT-VALID-TAX-TYPE  VALUE "3" "7".
+    05   WS-T04R-DEFT-TIN-IND            PIC X(01).
+    05   WS-T04R-DEFT-A-CONSTANT         PIC X(01)    VALUE "A".
+
+01  WS-T04R-DEFT-HDR REDEFINES WS-T04R-DEFT-RCD.
+    05   WS-T04R-DEFT-HDR-VALUE          PIC X(10).
+    05   WS-T04R-DEFT-HDR-FILLER1        PIC X(2).
+    05   WS-T04R-DEFT-HDR-ID             PIC X(17).
+    05   WS-T04R-DEFT-HDR-FILLER2        PIC X(10).
+    05   WS-T04R-DEFT-HDR-DATE.
+         10   WS-T04R-DEFT-HDR-CC        PIC XX.
+         10   WS-T04R-DEFT-HDR-YY        PIC XX.
+         10   WS-T04R-DEFT-HDR-MM        PIC XX.
+         10   WS-T04R-DEFT-HDR-DD        PIC XX.
+    05   WS-T04R-DEFT-HDR-FILLER3        PIC X(273).
+
+01  WS-T04R-DEFT-TRL REDEFINES WS-T04R-DEFT-RCD.
+    05   WS-T04R-DEFT-TRL-VALUE          PIC X(10).
+    05   WS-T04R-DEFT-TRL-FILLER1        PIC X(2).
+    05   WS-T04R-DEFT-TRL-CNT            PIC 9(8).
+    05   WS-T04R-DEFT-TRL-FILLER2        PIC X(10).
+    05   WS-T04R-DEFT-TRL-AMT            PIC S9(13)V99.
+    05   WS-T04R-DEFT-TRL-FILLER3        PIC X(275).
+EJECT
+035700***************************************************************** 04520001
+035800*    REJECT RECYCLING FILE INPUT/OUTPUT LAYOUT (LENGTH = 526)   * 04530001
+035900***************************************************************** 04540001
+01  WS-T05R-REJECT-RECYCLING-RCD.
+    05   WS-T05R-REJECT-KEY.
+         10   WS-T05R-REJECT-KEY-OP-LOC          PIC X(4).
+         10   WS-T05R-REJECT-KEY-BR-DEPT-CD      PIC X(3).
+         10   WS-T05R-REJECT-KEY-CHECK-NUM.
+036500***************************************************************** 04600001
+036600*   THE FOLLOWING (15 LEVEL) APPLY ONLY TO TRANSACTIONS *         04610001
+036700*   GENERATED FROM MISC FORM INPUT DATA WHERE A CHECK NUMBER IS * 04620001
+036800*   CREATED FOR THE 1099 PROCESS.                               * 04630001
+036900***************************************************************** 04640001
+              15   WS-T05R-CHECK-PREFIX          PIC X(1).
+              15   WS-T05R-CHECK-MONTH           PIC X(2).
+              15   WS-T05R-CHECK-SEQ             PIC X(5).
+         10   WS-T05R-REJECT-KEY-CHECK-DT        PIC X(8).
+         10   WS-T05R-REJECT-TAX-TYPE            PIC X(01).
+              88 WS-T05R-REJECT-VALID-TAX-TYPE VALUE "3" "7".
+         10   WS-T05R-REJECT-TIN-IND             PIC X(01).
+         10   WS-T05R-REJECT-SOURCE-CODE         PIC X(13).
+    05   WS-T05R-REJECT-DETAIL                   PIC X(488).
+
+    05   WS-T05R-REJECT-TRANS-DETAIL REDEFINES
+              WS-T05R-REJECT-DETAIL.
+         10   WS-T05R-OUTPUT-DETAIL.
+              15   WS-T05R-BRANCH                PIC X(03).
+              15   WS-T05R-NAME                  PIC X(40).
+              15   WS-T05R-ADDR-1                PIC X(37).
+              15   WS-T05R-ADDR-2                PIC X(43).
+              15   WS-T05R-CITY                  PIC X(26).
+              15   WS-T05R-STATE                 PIC X(2).
+              15   WS-T05R-POSTCODE              PIC X(9).
+              15   FILLER                        PIC X(2).
+              15   WS-T05R-SSN.
+                   20   WS-T05R-SSN-US           PIC X(9).
+                   20   WS-T05R-SSN-REMAINDER    PIC X(7).
+              15   WS-T05R-OPER-LOC              PIC X(4).
+              15   WS-T05R-CHECK-NUM             PIC X(8).
+              15   WS-T05R-CHECK-DATE.
+                   20   WS-T05R-CHECK-DATE-CC    PIC XX.
+                   20   WS-T05R-CHECK-DATE-YY    PIC XX.
+                   20   WS-T05R-CHECK-DATE-MM    PIC XX.
+                   20   WS-T05R-CHECK-DATE-DD    PIC XX.
+              15   WS-T05R-TOTAL-AMT             PIC S9(10)V99.
+              15   WS-T05R-1099-AMT              PIC S9(10)V99.
+              15   WS-T05R-COMMENT               PIC X(60).
+              15   WS-T05R-NBR-DIST-RCD          PIC 9(2).
+              15   WS-T05R-DIST-RCD       OCCURS 5 TIMES
+                                       INDEXED BY REJECT-INDEX.
+                   20   WS-T05R-DIST-COMPASS-CODE PIC X(3).
+                   20   WS-T05R-DIST-1099-INDIC   PIC X.
+                   20   WS-T05R-DIST-AMT          PIC S9(10)V99.
+         10   FILLER                             PIC X(124).
+EJECT
+    05   WS-T05R-REJECT-MISC-DETAIL REDEFINES
+            WS-T05R-REJECT-DETAIL.
+         10   WS-T05R-MISC-FORM-OPER-LOC         PIC X(4).
+         10   WS-T05R-MISC-FORM-1099-TYPE        PIC X.
+         10   WS-T05R-MISC-FORM-SSN              PIC X(9).
+         10   WS-T05R-MISC-FORM-REFERENCE        PIC X(11).
+         10   WS-T05R-MISC-FORM-AMT              PIC 9(8)V99.
+         10   WS-T05R-MISC-FORM-PAY-YY           PIC XX.
+         10   WS-T05R-MISC-FORM-NAME.
+              15   WS-T05R-MISC-FORM-NAME-LAST   PIC X(38).
+              15   WS-T05R-MISC-FORM-NAME-FI     PIC X.
+              15   WS-T05R-MISC-FORM-NAME-MI     PIC X.
+         10   FILLER                             PIC XXX.
+         10   WS-T05R-MISC-FORM-ADDR-1           PIC X(37).
+         10   WS-T05R-MISC-FORM-ADDR-2           PIC X(43).
+         10   WS-T05R-MISC-FORM-CITY             PIC X(27).
+         10   WS-T05R-MISC-FORM-STATE            PIC XX.
+         10   WS-T05R-MISC-FORM-POSTCODE         PIC X(9).
+         10   WS-T05R-MISC-FORM-BRANCH           PIC X(3).
+         10   WS-T05R-MISC-FORM-DESCRIPTION      PIC X(40).
+         10   WS-T05R-MISC-FORM-AMT-IND          PIC X.
+         10   WS-T05R-MISC-FORM-SSN-IND          PIC X.
+         10   FILLER                             PIC X(9).
+         10   WS-T05R-MISC-FORM-TRANS-CODE       PIC X.
+         10   FILLER                             PIC X(235).
+01  WS-T05R-REJECT-RECYCLING-HDR REDEFINES
+       WS-T05R-REJECT-RECYCLING-RCD.
+    05   WS-T05R-REJ-CYCLE-HDR-VALUE              PIC X(10).
+    05   FILLER                                   PIC XX.
+    05   WS-T05R-REJ-CYCLE-HDR-ID                 PIC X(20).
+    05   FILLER                                   PIC XX.
+    05   WS-T05R-REJ-CYCLE-HDR-DATE.
+         10  WS-T05R-REJ-CYCLE-HDR-CC             PIC XX.
+         10  WS-T05R-REJ-CYCLE-HDR-YY             PIC XX.
+         10  WS-T05R-REJ-CYCLE-HDR-MM             PIC XX.
+    05   FILLER                                   PIC X(486).
+
+01  WS-T05R-REJECT-RECYCLING-TRL REDEFINES
+       WS-T05R-REJECT-RECYCLING-RCD.
+    05   WS-T05R-REJ-CYCLE-TRL-VALUE              PIC X(10).
+    05   FILLER                                   PIC XX.
+    05   WS-T05R-REJ-CYCLE-TRL-COUNT              PIC 9(8).
+    05   FILLER                                   PIC XX.
+    05   WS-T05R-REJ-CYCLE-TRL-AMT                PIC S9(10)V99.
+    05   FILLER                                   PIC X(492).
+045700***************************************************************** 05520001
+045800*    1099 REPORTABLE ENTRY CODE TABLE                           * 05530001
+045900***************************************************************** 05540001
+01  WS-T07R-1099ENTRY-CODE-TBL.
+    05  WS-T07R-1099ENTRY-CODES      OCCURS  150   TIMES
+                                      INDEXED BY CODE-INDEX.
+        10  WS-T07R-1099ENTRY-CODE               PIC X(3).
+        10  FILLER                               PIC X(2).
+        10  WS-T07R-1099ENTRY-TAX-TYPE           PIC X(1).
+        10  FILLER                               PIC X(3).
+        10  WS-T07R-1099ENTRY-DESC               PIC X(63).
+        10  WS-T07R-1099ENTRY-EFF-DT             PIC X(8).
+046900***************************************************************** 05620001
+047000*      CONTROL CARD DEFINITION                                  * 05630001
+047100***************************************************************** 05640001
+01  CONTROL-CARD-IN1.
+    05  CC-TAX-YEAR-DATE1.
+        10  CC-TAX-CC1                           PIC XX.
+        10  CC-TAX-YY1                           PIC XX.
+        10  CC-TAX-MM1                           PIC XX.
+        10  CC-TAX-DD1                           PIC XX.
+    05  FILLER                                   PIC X(72).
+
+048000***************************************************************** 05730001
+048100*      OUTPUT AREA                                              * 05740001
+048200***************************************************************** 05750001
+048300*      OUTPUT RECORD FOR UPDATED RECORDS                        * 05760001
+048400***************************************************************** 05770001
+01  WS-OUTPUT-TRANS-RCD.
+    05   FILLER                           PIC X(320).
+01  WS-OUTPUT-TRANS-HDR REDEFINES WS-OUTPUT-TRANS-RCD.
+    05   WS-OUTPUT-HDR-VALUE              PIC X(10).
+    05   FILLER                           PIC XX.
+    05   WS-OUTPUT-HDR-ID                 PIC X(20).
+    05   FILLER                           PIC XX.
+    05   WS-OUTPUT-HDR-DATE.
+         10  WS-OUTPUT-HDR-CC             PIC XX.
+         10  WS-OUTPUT-HDR-YY             PIC XX.
+         10  WS-OUTPUT-HDR-MM             PIC XX.
+    05   FILLER                           PIC X(280).
+
+01  WS-OUTPUT-TRANS-TRL REDEFINES WS-OUTPUT-TRANS-RCD.
+    05   WS-OUTPUT-TRL-VALUE              PIC X(10).
+    05   FILLER                           PIC XX.
+    05   WS-OUTPUT-TRL-CNT                PIC 9(8).
+    05   FILLER                           PIC XX.
+    05   WS-OUTPUT-TRL-AMT                PIC S9(10)V99.
+    05   FILLER                           PIC X(286).
+
+
+050700***************************************************************** 07790001
+050800*      COUNTERS                                                 * 07800001
+050900***************************************************************** 07810001
+01  CNT-COUNTERS.
+    05  WS-MISC-FORM-TRANS-COUNTER      PIC 9(6)    VALUE  0.
+    05  WS-MISC-FORM-SEQ-CNT            PIC 9(5)    VALUE  0.
+    05  WS-BCCW-TRANS-COUNTER           PIC 9(6)    VALUE  0.
+    05  WS-FILE-REC-COUNTER             PIC 9(6)    VALUE  0.
+    05  WS-BCCW-TRL-COUNTER             PIC 9(6)    VALUE  0.
+    05  WS-DEFT-TRANS-COUNTER           PIC 9(6)    VALUE  0.
+    05  WS-DEFT-TRL-COUNTER             PIC 9(6)    VALUE  0.
+    05  WS-REJ-CYCLE-TRANS-COUNTER      PIC 9(6)    VALUE  0.
+    05  WS-OUTPUT-TRANS-CNT             PIC 9(6)    VALUE  0.
+    05  WS-REJ-TRANS-CNT                PIC 9(6)    VALUE  0.
+    05  WS-TOTAL-OUTPUT-TRANS-CNT       PIC 9(6)    VALUE  0.
+    05  WS-T03R-BCCW-TRL-CNT            PIC 9(8)    VALUE  0.
+
+052400***************************************************************** 08030001
+052500*      SWITCHES                                                 * 08040001
+052600***************************************************************** 08050001
+01  SW-SWITCHES.
+    05  FILLER                        PIC X(8) VALUE "SWITCHES".
+    05  SW-BCCW-BUILD-COMPLETE        PIC X       VALUE "N".
+        88   SW-BCCW-BUILD-COMPLETE-YES             VALUE "Y".
+    05  SW-DEFT-BUILD-COMPLETE        PIC X       VALUE "N".
+        88   SW-DEFT-BUILD-COMPLETE-YES             VALUE "Y".
+
+EJECT
+053500***************************************************************** 08130001
+053600*      INDICATORS                                               * 08140001
+053700***************************************************************** 08150001
+01  WS-INDICATORS.
+    05  FILLER                      PIC X(10) VALUE "INDICATORS".08170001
+    05  REJECT-INDICATORS.
+        10   REJECT-FLAG              PIC X      VALUE SPACE.
+    05  WS-US-IND                     PIC X      VALUE "N".
+        88 WS-US-IND-YES                         VALUE "Y".
+    05  WS-CDN-IND                    PIC X      VALUE "N".
+        88 WS-CDN-IND-YES                        VALUE "Y".
+    05  TEN99-T01R-MISC-FORM-EOF      PIC X      VALUE "N".
+        88   TEN99-T01R-MISC-FORM-EOF-YES        VALUE "Y".
+    05  TEN99-T03R-BCCW-EOF           PIC X      VALUE "N".
+        88   TEN99-T03R-BCCW-EOF-YES             VALUE "Y".
+    05  TEN99-T04R-DEFT-EOF           PIC X      VALUE "N".
+        88   TEN99-T04R-DEFT-EOF-YES             VALUE "Y".
+    05  TEN99-T05R-REJ-CYCLE-EOF      PIC X      VALUE "N".
+        88   TEN99-T05R-REJ-CYCLE-EOF-YES        VALUE "Y".
+    05  END-OF-BCCW-DETAIL            PIC X      VALUE "N".
+        88   END-OF-BCCW-DETAIL-YES              VALUE "Y".
+    05  END-OF-BCCW-HEADERS           PIC X      VALUE "N".
+        88   END-OF-BCCW-HEADERS-YES             VALUE "Y".
+    05  END-OF-DEFT-DETAIL            PIC X      VALUE "N".
+        88   END-OF-DEFT-DETAIL-YES              VALUE "Y".
+    05  END-OF-DEFT-HEADERS           PIC X      VALUE "N".
+        88   END-OF-DEFT-HEADERS-YES             VALUE "Y".
+    05  EOF-CONTROL-CARD              PIC X      VALUE "N".
+        88   EOF-CONTROL-CARD-YES                VALUE "Y".
+    05  EOF-1099ENTRY-TABLE           PIC X      VALUE "N".
+        88   EOF-1099ENTRY-TABLE-YES             VALUE "Y".
+    05  ERROR-FLAG                    PIC X      VALUE "N".
+    05  FOREIGN-IND                   PIC X.
+        88 FOREIGN-IND-NO                        VALUE "N".
+        88 FOREIGN-IND-YES                       VALUE "Y".
+    05  WS-BCCW-CHECK-NUM             PIC X(8).
+    05  WS-DEFT-BATCH-NUM             PIC X(8).
+    05  WS-BUS-UNIT                   PIC X(5).
+        88 WS-BUS-UNIT-CAN        VALUE "6572 " "3798 ".
+057400***************************************************************** 08660001
+057500*      LITERALS                                                 * 08670001
+057600***************************************************************** 08680001
+01  LIT-LITERALS.
+    05  LIT-GENERAL.
+        10  LIT-NO-CONTROL-CARD         PIC X(132)
+                     VALUE "NO CONTROL CARD--JOB TERMINATED".
+        10  LIT-TRANS-TLS-DO-NOT-AGREE  PIC X(132)
+               VALUE "TRANSACTION TOTALS DO NOT AGREE".
+        10  LIT-CDN                     PIC X       VALUE "C".
+        10  LIT-PR                      PIC X       VALUE "P".
+        10  LIT-CANADA                  PIC X(10)
+               VALUE "CANADA".
+        10  LIT-PUERTO-RICO             PIC X(10)
+               VALUE "PTO RICO ".
+        10  LIT-GEN-DEL                 PIC X(16)
+               VALUE "GENERAL DELIVERY".
+        10  LIT-ERROR-FLAG-EQUALS-YES   PIC X(132)
+               VALUE "ERROR FLAG EQUALS YES IN 0000-MAINLINE".
+        10  LIT-1                       PIC 9       VALUE 1.
+        10  LIT-3                       PIC 9       VALUE 3.
+        10  LIT-5                       PIC 9       VALUE 5.
+        10  LIT-7                       PIC 9       VALUE 7.
+        10  LIT-095                     PIC 9(3)    VALUE 095.
+        10  LIT-048                     PIC 9(3)    VALUE 048.
+        10  LIT-NUM-OF-1099-CODES       PIC 999     VALUE 150.
+        10  LIT-TW                      PIC X(2)    VALUE "TW".
+        10  LIT-PR-STATE-CODE           PIC X(2)    VALUE "PR".
+        10  LIT-ZERO                    PIC 9       VALUE 0.
+        10  LIT-ZERO-SSN                PIC X(9)
+               VALUE "000000000".
+        10  LIT-A                       PIC X       VALUE "A".
+        10  LIT-TAX-MONTH-JAN           PIC 99   VALUE  1.
+        10  LIT-TAX-MONTH-DEC           PIC 99   VALUE 12.
+        10  LIT-TAX-MONTH-YEAR-END      PIC 99   VALUE 13.
+        10  LIT-GRAND-TOTAL             PIC X(132)
+               VALUE "GRAND TOTAL FOR ALL RECORDS PROCESSED".
+
+
+    EJECT
+    05  LIT-MISC-FORM-LITERALS.
+        10  LIT-MISC-FORM                PIC X(15)
+               VALUE "MISC FORM     ".
+        10  LIT-MISC-FORM-HDR            PIC X(20)
+               VALUE "1099 VENDOR CYCLE TR".
+        10  LIT-MISC-INPUT-SUCCESS       PIC X(132)
+     VALUE "MISCELLANEOUS INPUT (T01R) SUCCESSFULLY PROCESSED".
+        10  LIT-FOR-MISCELLANEOUS-INPUT  PIC X(132)
+               VALUE "FOR MISCELLANEOUS INPUT FILE".
+        10  LIT-MISC-FORM-CONTROL-TOTALS PIC X(30)
+               VALUE "MISC FORM RECORDS WRITTEN ".
+        10  LIT-M                        PIC X      VALUE "M".
+062600***************************************************************** 09140001
+062700*   LIT-M IDENTIFIES THE SEQUENCE FOR MISC FORM INPUT BECAUSE   * 09150001
+062800*   THERE IS NO "CHECK NUMBER" PRESENT IN THIS DATA.  THE CHECK * 09160001
+062900*   NUMBER IS NEEDED FOR THE MASTER UPDATE PROGRAM.             * 09170001
+063000***************************************************************** 09180001
+    05  LIT-REJECT-RECYCLE-LITERALS.
+        10  LIT-REJ-CYCLE-SUCCESS        PIC X(132)
+     VALUE "REJECT CYCLE FILE (T05R) SUCCESSFULLY PROCESSED".
+        10  LIT-FOR-REJECT-CYCLE-INPUT   PIC X(132)
+               VALUE "FOR REJECT RECYCLE INPUT FILE".
+        10  LIT-REJ-CYCLE-CONTROL-TOTALS PIC X(30)
+               VALUE "REJ RECYCLED RECORDS WRITTEN".
+        10  LIT-UNKWN-SOURCE-CODE-TYPE   PIC X(30)
+               VALUE "UNKNOWN REJECT SOURCE CODE  ".
+EJECT
+    05  LIT-BCCW-LITERALS.
+        10  LIT-BCCW                     PIC X(22)
+               VALUE "B&CCW           ".
+        10  LIT-BCCW-SUCCESS             PIC X(132)
+     VALUE "B&CCW ISSUES (T03R) SUCCESSFULLY PROCESSED    ".
+        10  LIT-FOR-BCCW-INPUT           PIC X(132)
+               VALUE "FOR B&CCW ISSUES FILE (T03R)    ".
+        10  LIT-BCCW-CONTROL-TOTALS      PIC X(30)
+               VALUE "BCCW RECORDS WRITTEN     ".
+        10  LIT-BCCW-FILE                PIC X(22)
+               VALUE "B&CCW 1099 FILE".
+EJECT
+    05  LIT-DEFT-LITERALS.
+        10  LIT-DEFT                     PIC X(22)
+               VALUE "DEFT            ".
+        10  LIT-DEFT-SUCCESS             PIC X(132)
+     VALUE "DEFT ISSUES (T04R) SUCCESSFULLY PROCESSED     ".
+        10  LIT-FOR-DEFT-INPUT           PIC X(132)
+               VALUE "FOR DEFT ISSUES FILE (T04R)     ".
+        10  LIT-DEFT-CONTROL-TOTALS      PIC X(30)
+               VALUE "DEFT RECORDS WRITTEN     ".
+        10  LIT-DEFT-FILE                PIC X(22)
+               VALUE "DEFT 1099 FILE        ".
+EJECT
+    05  LIT-1099ENTRY-LITERALS.
+        10  LIT-ISS                      PIC X(22)
+               VALUE "CCW ISSUES       ".
+        10  LIT-INCORRECT-1099ENT-RCD-TYPE PIC X(132)
+               VALUE "INCORRECT 1099 ENTRY CODE TYPE".
+        10  LIT-NO-1099ENTRY-TABLE       PIC X(22)
+               VALUE "NO 1099 ENTRY CODE TBL".
+        10  LIT-DIST-AMOUNT-ERR-2        PIC X(132)
+               VALUE "FOR THE FOLLOWING 1099 ENTRY".
+EJECT
+    05  LIT-OUTPUT-FILE-LITERALS.
+        10  LIT-TRANS-FILE               PIC X(15)
+               VALUE "TOTAL FILES    ".
+        10  LIT-REJECT-FILE              PIC X(15)
+               VALUE "REJECT FILE    ".
+        10  LIT-TEN99-REJECT-TRANS       PIC X(20)
+               VALUE "1099 REJECT CYCLE TR".
+068200***************************************************************** 09830001
+068300*      MESSAGE AREA                                             * 09840001
+068400***************************************************************** 09850001
+01  MSG-NO-DATA.
+    05  MSG-LITERAL                      PIC X(11)
+           VALUE "NO DATA ON ".
+    05  MSG-NO-DATA-FILE-NAME            PIC X(22).
+
+01  MSG-INCORRECT-DATE.
+    05  MSG-LITERAL                      PIC X(19)
+           VALUE "INCORRECT DATE FOR ".
+    05  MSG-FILE-NAME                    PIC X(22).
+
+01  MSG-TRAILER-COUNT-DISPLAY.
+    05  MSG-LIT-FILE-COUNT               PIC X(18)
+           VALUE "FILE COUNT TOTAL".
+    05  MSG-FILE-COUNT                   PIC ZZZ,ZZZ,ZZ9.
+    05  FILLER                           PIC X(6)   VALUE SPACE.
+    05  MSG-LIT-TRAILER-COUNT            PIC X(22)
+           VALUE "TRAILER COUNT TOTAL".
+    05  MSG-TRAILER-COUNT                PIC ZZZ,ZZZ,ZZ9.
+
+01  MSG-MISC-FORM-SUMMARY.
+    05  MSG-LIT-MISC-FILE-COUNT          PIC X(18)
+           VALUE "FILE COUNT TOTAL".
+    05  MSG-MISC-FILE-COUNT              PIC ZZZ,ZZZ,ZZ9.
+    05  FILLER                           PIC X(6)   VALUE SPACE.
+    05  MSG-LIT-MISC-FILE-AMT            PIC X(22)
+           VALUE "FILE AMOUNT TOTAL".
+    05  MSG-MISC-FILE-AMOUNT             PIC $$$,$$$,$$$,$$9.99.
+
+01  MSG-TRAILER-DOLLAR-DISPLAY.
+    05  MSG-LIT-FILE-AMOUNT              PIC X(19)
+           VALUE "FILE AMOUNT TOTAL".
+    05  MSG-FILE-AMOUNT                  PIC $$$,$$$,$$$,$$9.99.
+    05  FILLER                           PIC X(6)   VALUE SPACE.
+    05  MSG-LIT-TRAILER-AMOUNT           PIC X(23)
+           VALUE "TRAILER AMOUNT TOTAL".
+    05  MSG-TRAILER-AMOUNT               PIC $$$,$$$,$$$,$$9.99.
+
+01  MSG-CONTROL-TOTALS.
+    05  MSG-NUM-RCDS                     PIC ZZZ,ZZ9.
+    05  FILLER                           PIC XX     VALUE SPACE.
+    05  MSG-LIT-WRITTEN-TO               PIC X(20)
+           VALUE "RECORDS WRITTEN TO ".
+    05  MSG-OUTPUT-FILE-NAME             PIC X(15)  VALUE SPACE.
+    05  FILLER                           PIC XX     VALUE SPACE.
+    05  MSG-LIT-AMT-OF-RCD               PIC X(9)
+           VALUE "AMOUNT ".
+    05  MSG-AMOUNT                       PIC $$$,$$$,$$$,$$9.99.
+
+01  MSG-BAD-FILE.
+    05  MSG-BAD-FILE-MSG                 PIC X(20)
+           VALUE "INCORRECT FILE FOR  ".
+    05  MSG-FILE-ID                      PIC X(22)  VALUE SPACE.
+EJECT
+073800***************************************************************** 10390001
+073900*      ACCUMULATORS                                             * 10400001
+074000***************************************************************** 10410001
+01  ACC-ACCUMULATORS.
+    05  WS-MISC-FORM-TRANS-AMT-ACCUM     PIC 9(12)V99 VALUE 0.
+    05  WS-BCCW-TRANS-AMT-ACCUM          PIC 9(12)V99 VALUE 0.
+    05  WS-FILE-AMT-ACCUM                PIC 9(12)V99 VALUE 0.
+    05  WS-BCCW-TRL-AMT-ACCUM            PIC 9(12)V99 VALUE 0.
+    05  WS-DEFT-TRANS-AMT-ACCUM          PIC 9(12)V99 VALUE 0.
+    05  WS-DEFT-TRL-AMT-ACCUM            PIC 9(12)V99 VALUE 0.
+    05  WS-REJ-CYCLE-TRANS-AMT-ACCUM     PIC 9(12)V99 VALUE 0.
+    05  WS-OUTPUT-TRANS-AMT              PIC 9(12)V99 VALUE 0.
+    05  WS-REJ-TRANS-AMT                 PIC 9(12)V99 VALUE 0.
+    05  WS-TOTAL-OUTPUT-TRANS-AMT        PIC 9(12)V99 VALUE 0.
+075200***************************************************************** 12520001
+075300*    ++INCLUDE C2INX003                                         * 12530001
+075400*      COMMON SYSOUT DISPLAY LINES                              * 12540001
+075500***************************************************************** 12550001
+COPY C2INX003.
+
+EJECT
+075900***************************************************************** 12590001
+PROCEDURE DIVISION.
+076100***************************************************************** 12610001
+0000-MAINLINE.
+076300***************************************************************** 12630001
+    PERFORM 1000-INITIALIZATION
+    PERFORM 3000-MAIN-PROCESS
+    PERFORM 9000-TERMINATION-ROUTINE
+    GOBACK
+    .
+EJECT
+077000***************************************************************** 12700001
+1000-INITIALIZATION.
+077200***************************************************************** 12720001
+    OPEN INPUT
+       TEN99-T01R-MISC-TRANS-FILE
+       TEN99-T03R-BCCW-FILE
+       TEN99-T04R-DEFT-FILE
+       TEN99-T05R-REJ-CYCLE-FILE
+       WS-T07R-1099ENTRY-CD-FILE
+       CC-R01R-CONTROL-CARD
+    OUTPUT
+       TEN99-T01W-MISC-TRANS-OUT-FILE
+       TEN99-T03W-BCCW-OUT-FILE
+       TEN99-T04W-DEFT-OUT-FILE
+       TEN99-T05W-REJ-CYCLE-OUT-FILE
+
+       CC-E01W-DISPLAY-FILE
+
+    PERFORM 1130-INCLUDE-SYSOUT-DISPLAY
+    PERFORM 7900-READ-CONTROL-CARD-IN
+
+    INITIALIZE             WS-OUTPUT-TRANS-RCD
+    .
+079300***************************************************************** 13310001
+1130-INCLUDE-SYSOUT-DISPLAY.
+079500***************************************************************** 13330001
+079600*    ++INCLUDE C2INZ001                                         * 13340001
+079700*      COMMON INITIAL SYSOUT DISPLAYS                           * 13350001
+079800***************************************************************** 13360001
+
+COPY C2INZ001.
+EJECT
+080200***************************************************************** 13400001
+3000-MAIN-PROCESS.
+080400***************************************************************** 13420001
+080500*      MAIN PROCESSING ROUTINE                                  * 13430001
+080600***************************************************************** 13440001
+    PERFORM 7910-READ-1099ENTRY-TABLE
+       VARYING CODE-INDEX FROM 1 BY 1
+       UNTIL CODE-INDEX GREATER THAN LIT-NUM-OF-1099-CODES
+081000***************************************************************** 13480001
+081100*      DETERMINE THE PROCESSING SCHEDULE BASED ON TAX MONTH     * 13490001
+081200*      VERIFY EACH INPUT HEADER RECORD TO ENSURE CORRECT FILES  * 13500001
+081300*      PROCESS THE DETAIL AND TRAILER FOR EACH FILE             * 13510001
+081400***************************************************************** 13520001
+    EVALUATE TRUE
+    WHEN CC-TAX-MM1 = LIT-TAX-MONTH-JAN
+       PERFORM 3002-JAN-MONTH-PROCESSING
+
+    WHEN CC-TAX-MM1 > LIT-TAX-MONTH-JAN AND
+                    < LIT-TAX-MONTH-YEAR-END
+       PERFORM 3004-FEB-DEC-MONTH-PROCESSING
+
+    WHEN CC-TAX-MM1 > LIT-TAX-MONTH-DEC
+       PERFORM 3006-YEAR-END-PROCESSING
+    END-EVALUATE
+    .
+    EJECT
+082800***************************************************************** 13660001
+3002-JAN-MONTH-PROCESSING.
+083000***************************************************************** 13680001
+083100*   PROCESSING SCHEDULE FOR JANUARY                             * 13690001
+083200***************************************************************** 13700001
+       PERFORM 4000-MISC-FORM-VERIFY-PROCESS
+       PERFORM 4200-BCCW-VERIFY-PROCESS
+       PERFORM 4300-DEFT-VERIFY-PROCESS
+       IF ERROR-FLAG = "Y"
+          MOVE LIT-ERROR-FLAG-EQUALS-YES TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          PERFORM 9998-COREDUMP
+       END-IF
+       PERFORM 5000-MISC-FORM-PROCESS
+       PERFORM 5200-BCCW-PROCESS
+       PERFORM 5400-DEFT-PROCESS
+       .
+EJECT
+084600***************************************************************** 13840001
+3004-FEB-DEC-MONTH-PROCESSING.
+084800***************************************************************** 13860001
+084900*   PROCESSING SCHEDULE FOR FEBRUARY THROUGH DECEMBER           * 13870001
+085000***************************************************************** 13880001
+       PERFORM 4000-MISC-FORM-VERIFY-PROCESS
+       PERFORM 4200-BCCW-VERIFY-PROCESS
+       PERFORM 4300-DEFT-VERIFY-PROCESS
+       PERFORM 4500-REJ-CYCLE-VERIFY-PROCESS
+
+       IF ERROR-FLAG = "Y"
+          MOVE LIT-ERROR-FLAG-EQUALS-YES TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          PERFORM 9998-COREDUMP
+       END-IF
+       PERFORM 5000-MISC-FORM-PROCESS
+       PERFORM 5200-BCCW-PROCESS
+       PERFORM 5400-DEFT-PROCESS
+       PERFORM 5500-REJ-CYCLE-PROCESS
+       .
+EJECT
+086700***************************************************************** 14050001
+3006-YEAR-END-PROCESSING.
+086900***************************************************************** 14070001
+087000*   PROCESSING SCHEDULE FOR YEAR-END                            * 14080001
+087100***************************************************************** 14090001
+       PERFORM 4000-MISC-FORM-VERIFY-PROCESS
+       PERFORM 4500-REJ-CYCLE-VERIFY-PROCESS
+       IF ERROR-FLAG = "Y"
+          MOVE LIT-ERROR-FLAG-EQUALS-YES TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          PERFORM 9998-COREDUMP
+       END-IF
+       PERFORM 5000-MISC-FORM-PROCESS
+       PERFORM 5500-REJ-CYCLE-PROCESS
+       .
+EJECT
+088300***************************************************************** 14210001
+4000-MISC-FORM-VERIFY-PROCESS.
+088500***************************************************************** 14230001
+088600*   TEST MISCELLANEOUS FORM 20071 INPUT HEADER FOR BAD HEADER   * 14240001
+088700*   OR BAD CONTROL DATE.                                        * 14250001
+088800***************************************************************** 14260001
+    PERFORM 7000-MISC-FORM-READ-RCD
+    IF TEN99-T01R-MISC-FORM-EOF-YES
+       MOVE LIT-MISC-FORM TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA   TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE "Y" TO ERROR-FLAG
+    ELSE
+       IF WS-T01R-MISC-FORM-HDR-VALUE = LOW-VALUES AND
+          WS-T01R-MISC-FORM-HDR-NAME  = LIT-MISC-FORM-HDR
+          IF WS-T01R-MISC-FORM-HDR-YY = CC-TAX-YY1 AND
+             WS-T01R-MISC-FORM-HDR-MM = CC-TAX-MM1
+             MOVE WS-T01R-MISC-FORM-RCD TO WS-OUTPUT-TRANS-RCD
+             PERFORM 8010-WRITE-MISC-TRANS-RCD
+          ELSE
+             MOVE LIT-MISC-FORM      TO MSG-FILE-NAME
+             MOVE MSG-INCORRECT-DATE TO CC-E01W-DISPLAY-RCD
+             PERFORM 8999-WRITE-SYSOUT
+             MOVE "Y" TO ERROR-FLAG
+          END-IF
+       ELSE
+          MOVE LIT-MISC-FORM TO MSG-FILE-ID
+          MOVE MSG-BAD-FILE  TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE "Y" TO ERROR-FLAG
+       END-IF
+    END-IF
+    .
+    EJECT
+091700***************************************************************** 14540001
+091800***************************************************************** 14550001
+4200-BCCW-VERIFY-PROCESS.
+092000***************************************************************** 14570001
+092100*   TEST B&CCW FILE FOR NO DATA OR NO HEADER                    * 14580001
+092200***************************************************************** 14590001
+    PERFORM 7200-BCCW-READ-RCD
+    IF TEN99-T03R-BCCW-EOF-YES
+       MOVE LIT-BCCW    TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+       MOVE "Y"         TO ERROR-FLAG
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       PERFORM 4210-BCCW-VERIFY
+       PERFORM 7200-BCCW-READ-RCD
+    END-IF
+    .
+093400***************************************************************** 14730001
+4210-BCCW-VERIFY.
+093600***************************************************************** 14750001
+093700*   TEST THE HEADERS FOR NO DATA OR BAD CONTROL DATE            * 14760001
+093800*   NOTE:THERE ARE MULTIPLE HEADERS & TRAILERS ON B&CCW INPUT   * 14760001
+093900*        FILE. THE HEADERS & TRAILERS ARE DISPERSED THROUGHOUT  * 14760001
+094000*        THE FILE.                                              * 14760001
+094100***************************************************************** 14780001
+    IF TEN99-FILE-ID-HDR      = LIT-BCCW-FILE
+       IF TEN99-YY-HDR        = CC-TAX-YY1 AND
+          TEN99-CC-HDR        = CC-TAX-CC1 AND
+          TEN99-MM-HDR        = CC-TAX-MM1
+          MOVE TEN99-RECORD-HDR TO WS-OUTPUT-TRANS-RCD
+          INITIALIZE TEN99-RECORD-HDR
+       ELSE
+          MOVE LIT-BCCW           TO MSG-FILE-NAME
+          MOVE MSG-INCORRECT-DATE TO CC-E01W-DISPLAY-RCD
+          MOVE "Y"                TO ERROR-FLAG
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE TEN99-RECORD-HDR TO WS-OUTPUT-TRANS-RCD
+       END-IF
+    ELSE
+       MOVE LIT-BCCW     TO MSG-FILE-ID
+       MOVE MSG-BAD-FILE TO CC-E01W-DISPLAY-RCD
+       MOVE "Y"          TO ERROR-FLAG
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE TEN99-RECORD-HDR TO WS-OUTPUT-TRANS-RCD
+    END-IF
+    PERFORM 8020-WRITE-BCCW-TRANS-RCD
+    .
+096400***************************************************************** 14990001
+4300-DEFT-VERIFY-PROCESS.
+096600***************************************************************** 15010001
+096700*   TEST DEFT  FILE FOR NO DATA OR NO HEADER                    * 15020001
+096800***************************************************************** 15030001
+    PERFORM 7300-DEFT-READ-RCD
+    IF TEN99-T04R-DEFT-EOF-YES
+       MOVE LIT-DEFT    TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+       MOVE "Y"         TO ERROR-FLAG
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       PERFORM 4310-DEFT-VERIFY
+       PERFORM 7300-DEFT-READ-RCD
+    END-IF
+    .
+098000***************************************************************** 15170001
+4310-DEFT-VERIFY.
+098200***************************************************************** 15190001
+098300*   TEST THE HEADER FOR NO DATA OR BAD CONTROL DATE             * 15200001
+098400***************************************************************** 15210001
+    IF WS-T04R-DEFT-HDR-ID    = LIT-DEFT-FILE
+       IF WS-T04R-DEFT-HDR-YY = CC-TAX-YY1 AND
+          WS-T04R-DEFT-HDR-CC = CC-TAX-CC1 AND
+          WS-T04R-DEFT-HDR-MM = CC-TAX-MM1
+          MOVE WS-T04R-DEFT-HDR TO WS-OUTPUT-TRANS-RCD
+          PERFORM 8040-WRITE-DEFT-TRANS-RCD
+       ELSE
+          MOVE LIT-DEFT           TO MSG-FILE-NAME
+          MOVE MSG-INCORRECT-DATE TO CC-E01W-DISPLAY-RCD
+          MOVE "Y"                TO ERROR-FLAG
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+    ELSE
+       MOVE LIT-DEFT              TO MSG-FILE-ID
+       MOVE MSG-BAD-FILE          TO CC-E01W-DISPLAY-RCD
+       MOVE "Y"                   TO ERROR-FLAG
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    .
+    EJECT
+100500***************************************************************** 15420001
+4500-REJ-CYCLE-VERIFY-PROCESS.
+100700***************************************************************** 15440001
+100800*   TEST FOR EMPTY FILE OR BAD CONTROL DATE                     * 15450001
+100900***************************************************************** 15460001
+    PERFORM 7500-REJ-CYCLE-READ-RCD
+    IF TEN99-T05R-REJ-CYCLE-EOF-YES
+       MOVE LIT-REJECT-FILE TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+       MOVE "Y"         TO ERROR-FLAG
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       IF WS-T05R-REJ-CYCLE-HDR-VALUE = LOW-VALUES AND
+          WS-T05R-REJ-CYCLE-HDR-ID = LIT-TEN99-REJECT-TRANS
+          IF WS-T05R-REJ-CYCLE-HDR-YY = CC-TAX-YY1 AND
+             WS-T05R-REJ-CYCLE-HDR-CC = CC-TAX-CC1 AND
+             WS-T05R-REJ-CYCLE-HDR-MM = CC-TAX-MM1
+             MOVE WS-T05R-REJECT-RECYCLING-RCD TO
+                  TEN99-T05W-REJ-CYCLE-OUT-RCD
+             PERFORM 8030-WRITE-REJECT-RCD
+          ELSE
+             MOVE LIT-REJECT-FILE    TO MSG-FILE-NAME
+             MOVE MSG-INCORRECT-DATE TO CC-E01W-DISPLAY-RCD
+             MOVE "Y"                TO ERROR-FLAG
+             PERFORM 8999-WRITE-SYSOUT
+          END-IF
+       ELSE
+          MOVE LIT-REJECT-FILE TO MSG-FILE-ID
+          MOVE MSG-BAD-FILE    TO CC-E01W-DISPLAY-RCD
+          MOVE "Y"             TO ERROR-FLAG
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+    END-IF
+    .
+    EJECT
+104000***************************************************************** 15750001
+5000-MISC-FORM-PROCESS.
+104200***************************************************************** 15770001
+104300*      PRIMING READ AND EOF TEST FOR MISC FORM INPUT            * 15780001
+104400*      EMPTY FILE SINCE 5/2009                                  * 15780001
+104500*      WRITE TRAILER RECORD                                     * 15780001
+104600***************************************************************** 15790001
+    INITIALIZE WS-MISC-FORM-SEQ-CNT
+    PERFORM 6500-INITIAL-OUTPUT-COUNT
+    PERFORM 7000-MISC-FORM-READ-RCD
+105000***************************************************************** 15830001
+105100*   TEST FOR NO DATA ON FILE                                    * 15840001
+105200***************************************************************** 15850001
+    IF TEN99-T01R-MISC-FORM-EOF-YES OR
+       WS-T01R-MISC-FORM-TRL-VALUE = HIGH-VALUES
+      MOVE LIT-MISC-FORM TO MSG-NO-DATA-FILE-NAME
+      MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+      PERFORM 8999-WRITE-SYSOUT
+      PERFORM 5040-MISC-FORM-RESULTS-PROCESS
+      IF WS-T01R-MISC-FORM-TRL-VALUE = HIGH-VALUES
+         MOVE WS-T01R-MISC-FORM-RCD      TO WS-OUTPUT-TRANS-RCD
+         PERFORM 8010-WRITE-MISC-TRANS-RCD
+      END-IF
+    ELSE
+      PERFORM 5010-MISC-FORM-PROCESS-RCD UNTIL
+              TEN99-T01R-MISC-FORM-EOF-YES  OR
+              WS-T01R-MISC-FORM-TRL-VALUE = HIGH-VALUES
+      PERFORM 5040-MISC-FORM-RESULTS-PROCESS
+    END-IF
+    .
+
+    EJECT
+107200***************************************************************** 16010001
+5010-MISC-FORM-PROCESS-RCD.
+107400***************************************************************** 16030001
+107500*   PROCESS THE DETAIL RECORDS FOR THE MISC FORM INPUT            16040001
+107600*   INCREMENT COUNTERS FOR TRAILER TESTING                        16050001
+107700***************************************************************** 16060001
+    ADD LIT-1                 TO WS-MISC-FORM-TRANS-COUNTER
+    ADD WS-T01R-MISC-FORM-AMT TO WS-MISC-FORM-TRANS-AMT-ACCUM
+    PERFORM 5020-MISC-FORM-SET-TAX-TYPE
+    PERFORM 7000-MISC-FORM-READ-RCD
+    .
+
+EJECT
+108500***************************************************************** 16150001
+5020-MISC-FORM-SET-TAX-TYPE.
+108700***************************************************************** 16170001
+108800*      UPDATE THE TAX TYPE FOR DETAIL RECORDS                   * 16180001
+108900***************************************************************** 16190001
+    EVALUATE TRUE
+      WHEN WS-T01R-MISC-FORM-HDR-VALUE = LOW-VALUES
+           CONTINUE
+      WHEN WS-T01R-MISC-FORM-TRL-VALUE = HIGH-VALUES
+           CONTINUE
+      WHEN WS-T01R-MISC-FORM-VALID-TAX
+           CONTINUE
+      WHEN OTHER
+           MOVE LIT-3 TO WS-T01R-MISC-FORM-TAX-TYPE
+    END-EVALUATE
+
+    MOVE WS-T01R-MISC-FORM-RCD      TO WS-OUTPUT-TRANS-RCD
+    PERFORM 8010-WRITE-MISC-TRANS-RCD
+    .
+110400***************************************************************** 17020001
+5040-MISC-FORM-RESULTS-PROCESS.
+110600***************************************************************** 17040001
+110700*      DISPLAY TRAILER AND ACCUM RESULTS                        * 17050001
+110800***************************************************************** 17060001
+    MOVE LIT-MISC-FORM TO MSG-OUTPUT-FILE-NAME
+    IF WS-MISC-FORM-TRANS-COUNTER   =
+       WS-T01R-MISC-FORM-TRL-COUNT      AND
+       WS-MISC-FORM-TRANS-AMT-ACCUM =
+       WS-T01R-MISC-FORM-TRL-AMOUNT
+        MOVE LIT-MISC-INPUT-SUCCESS   TO CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE WS-MISC-FORM-TRANS-COUNTER TO MSG-MISC-FILE-COUNT
+        MOVE WS-MISC-FORM-TRANS-AMT-ACCUM TO MSG-MISC-FILE-AMOUNT17150001
+        MOVE MSG-MISC-FORM-SUMMARY TO CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE LIT-MISC-FORM-CONTROL-TOTALS TO CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    IF WS-MISC-FORM-TRANS-COUNTER   =
+       WS-T01R-MISC-FORM-TRL-COUNT
+        CONTINUE
+    ELSE
+        MOVE LIT-TRANS-TLS-DO-NOT-AGREE  TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE LIT-FOR-MISCELLANEOUS-INPUT TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE WS-MISC-FORM-TRANS-COUNTER  TO MSG-FILE-COUNT
+        MOVE WS-T01R-MISC-FORM-TRL-COUNT TO MSG-TRAILER-COUNT
+        MOVE MSG-TRAILER-COUNT-DISPLAY TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    IF WS-MISC-FORM-TRANS-AMT-ACCUM =
+       WS-T01R-MISC-FORM-TRL-AMOUNT
+        CONTINUE
+    ELSE
+        MOVE LIT-TRANS-TLS-DO-NOT-AGREE   TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE LIT-FOR-MISCELLANEOUS-INPUT  TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+        MOVE WS-MISC-FORM-TRANS-AMT-ACCUM TO MSG-FILE-COUNT
+        MOVE WS-T01R-MISC-FORM-TRL-AMOUNT TO MSG-TRAILER-COUNT
+        MOVE MSG-TRAILER-COUNT-DISPLAY    TO
+             CC-E01W-DISPLAY-RCD
+        PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-MISC-FORM-TRANS-COUNTER    TO  WS-OUTPUT-TRANS-CNT
+    MOVE WS-MISC-FORM-TRANS-AMT-ACCUM  TO  WS-OUTPUT-TRANS-AMT
+    PERFORM 6600-OUTPUT-BALANCING-PROCESS
+    .
+EJECT
+116300***************************************************************** 17580001
+5200-BCCW-PROCESS.
+116500***************************************************************** 17600001
+116600*      PRIMING READ AND EOF TEST FOR B&CCW INPUT                * 17610001
+116700***************************************************************** 17620001
+    PERFORM 6500-INITIAL-OUTPUT-COUNT
+116900***************************************************************** 17640001
+117000*   TEST FOR NO DATA ON FILE                                    * 17650001
+117100***************************************************************** 17660001
+    IF TEN99-T03R-BCCW-EOF-YES
+       MOVE LIT-BCCW    TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 5240-BCCW-END-PROCESS
+       MOVE "Y"         TO ERROR-FLAG
+    ELSE
+       PERFORM 5210-BCCW-PROCESS-RCD UNTIL
+               TEN99-T03R-BCCW-EOF-YES
+    END-IF
+    IF TEN99-T03R-BCCW-EOF-YES
+        PERFORM 5240-BCCW-END-PROCESS
+    END-IF
+    .
+118600***************************************************************** 17850001
+5210-BCCW-PROCESS-RCD.
+118800***************************************************************** 17870001
+118900*      PROCESS THE B&CCW RECORDS                                * 17880001
+119000*        HEADERS - VERIFY DATE                                  * 17880001
+119100*        DETAIL  - SET TAX TYPE                                 * 17880001
+119200*        TRAILER - ACCUM COUNT AND AMOUNTS FOR VERIFICATION     * 17880001
+119300*      ALL RECORDS ARE WRITTEN TO THE OUTPUT FILE               * 17900001
+119400*                                                               * 17920001
+119500***************************************************************** 17950001
+    IF TEN99-LOW-VALUE-HDR = LOW-VALUES
+          PERFORM 4210-BCCW-VERIFY
+          MOVE SPACES TO TEN99-LOW-VALUE-HDR
+    ELSE
+       IF TEN99-HIGH-VALUE-TLR = HIGH-VALUES
+          MOVE TEN99-RECORD-TLR TO WS-OUTPUT-TRANS-RCD
+          PERFORM 8020-WRITE-BCCW-TRANS-RCD
+          PERFORM 5250-BCCW-TRAILER-ACCUM
+          MOVE SPACES TO TEN99-HIGH-VALUE-TLR
+       ELSE
+          PERFORM 5220-BCCW-SET-TAX-TYPE
+       END-IF
+    END-IF
+    PERFORM 7200-BCCW-READ-RCD
+    .
+EJECT
+
+121300***************************************************************** 18940001
+5220-BCCW-SET-TAX-TYPE.
+121500***************************************************************** 18960001
+121600*      SET UP AND SEARCH 1099 TABLE                             * 18970001
+121700*      RECORDS WITH BRANCH = 048 ARE SPECIAL OT CLOC CHECKS     * 18970001
+121800*                               CLOC TAX TYPE SET TO 3          * 18970001
+121900*      DEFAULT TAX TYPE IS 3 - SHOULD BE INVESTIGATED           * 18970001
+122000*      RECORDS WHERE THE CEC IS SPACES ARE WRITTEN TO THE SYSOUT* 18970001
+122100*      THE TAX TYPE IS NOT SET FOR FOREIGN RECORDS (1/2011)     * 18970001
+122200*          FOREIGN RECS - CANADA AND PUERTO RICO                * 18970001
+122300***************************************************************** 18980001
+    ADD LIT-1                       TO WS-BCCW-TRANS-COUNTER
+    ADD TEN99-RPT-DISB-AMT-DATA     TO WS-BCCW-TRANS-AMT-ACCUM
+    SET FOREIGN-IND-NO              TO TRUE
+    MOVE TEN99-COMPASS-ENT-CDE-DATA TO WS-CEC
+    MOVE TEN99-PS-BUS-UNIT          TO WS-BUS-UNIT
+    INITIALIZE WS-TAX-TYPE
+    IF (WS-BUS-UNIT-CAN)
+      OR (TEN99-ISSUING-BR-CODE-DATA = LIT-TW)
+      OR (TEN99-STATE-DATA = LIT-PR-STATE-CODE)
+         SET FOREIGN-IND-YES        TO TRUE
+    ELSE
+      IF TEN99-COMPASS-ENT-CDE-DATA = SPACES
+         IF TEN99-ISSUING-BR-CODE-DATA = LIT-048
+              MOVE LIT-3 TO WS-TAX-TYPE
+         ELSE
+              MOVE TEN99-RCD TO CC-E01W-DISPLAY-RCD
+              PERFORM 8999-WRITE-SYSOUT
+         END-IF
+      ELSE
+        PERFORM 6000-SEARCH-1099-TABLE
+      END-IF
+    END-IF
+    MOVE WS-TAX-TYPE  TO TEN99-TAX-TYPE
+    MOVE TEN99-RCD    TO WS-OUTPUT-TRANS-RCD
+    PERFORM 8020-WRITE-BCCW-TRANS-RCD
+
+    .
+
+EJECT
+125300***************************************************************** 19820001
+5240-BCCW-END-PROCESS.
+125500***************************************************************** 19840001
+125600*      TEST TRAILER TOTALS AND DISPLAY RESULTS                  * 19850001
+125700***************************************************************** 19860001
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE LIT-BCCW TO MSG-OUTPUT-FILE-NAME
+    IF WS-BCCW-TRANS-COUNTER = WS-BCCW-TRL-COUNTER AND
+       WS-BCCW-TRANS-AMT-ACCUM = WS-BCCW-TRL-AMT-ACCUM
+       MOVE LIT-BCCW-SUCCESS TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-BCCW-TRANS-COUNTER TO MSG-FILE-COUNT
+       MOVE WS-BCCW-TRL-COUNTER TO MSG-TRAILER-COUNT
+       MOVE MSG-TRAILER-COUNT-DISPLAY TO
+            CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-BCCW-TRANS-AMT-ACCUM TO MSG-FILE-AMOUNT
+       MOVE WS-BCCW-TRL-AMT-ACCUM TO MSG-TRAILER-AMOUNT
+       MOVE MSG-TRAILER-DOLLAR-DISPLAY TO
+            CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       IF WS-BCCW-TRANS-COUNTER = WS-BCCW-TRL-COUNTER
+          CONTINUE
+       ELSE
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-BCCW-INPUT TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-BCCW-TRANS-COUNTER TO MSG-FILE-COUNT
+          MOVE WS-BCCW-TRL-COUNTER TO MSG-TRAILER-COUNT
+          MOVE MSG-TRAILER-COUNT-DISPLAY TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+       IF WS-BCCW-TRANS-AMT-ACCUM =
+          WS-BCCW-TRL-AMT-ACCUM
+          CONTINUE
+       ELSE
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-BCCW-INPUT TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-BCCW-TRANS-AMT-ACCUM TO MSG-FILE-AMOUNT
+          MOVE WS-BCCW-TRL-AMT-ACCUM TO MSG-TRAILER-AMOUNT
+          MOVE MSG-TRAILER-DOLLAR-DISPLAY TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    MOVE LIT-BCCW-CONTROL-TOTALS TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-BCCW-TRANS-COUNTER    TO WS-OUTPUT-TRANS-CNT
+    MOVE WS-BCCW-TRANS-AMT-ACCUM  TO WS-OUTPUT-TRANS-AMT
+    PERFORM 6600-OUTPUT-BALANCING-PROCESS
+    PERFORM 8999-WRITE-SYSOUT
+    .
+EJECT
+131700***************************************************************** 20460001
+5250-BCCW-TRAILER-ACCUM.
+131900***************************************************************** 20480001
+132000*      ACCUMULATE BCCW TRAILER TOTALS                           * 20490001
+132100*      NOTE: THERE ARE MULTIPLE TRAILER RECORDS ON THE BCCW     * 20500001
+132200*      FILE. THE TRAILERS ARE ACCUMULATED TO BALANCE THE DATA.  * 20510001
+132300*                                                               * 20520001
+132400***************************************************************** 20530001
+    IF TEN99-WRITTEN-CNT-TLR NUMERIC
+         MOVE TEN99-WRITTEN-CNT-TLR TO WS-T03R-BCCW-TRL-CNT
+    ELSE MOVE ZEROES                TO WS-T03R-BCCW-TRL-CNT
+    END-IF
+    ADD WS-T03R-BCCW-TRL-CNT        TO WS-BCCW-TRL-COUNTER
+    ADD TEN99-TOTAL-DOLLAR-AMT-TLR  TO WS-BCCW-TRL-AMT-ACCUM
+    .
+
+133300***************************************************************** 20590001
+
+EJECT
+133600***************************************************************** 20620001
+5400-DEFT-PROCESS.
+133800***************************************************************** 20640001
+133900*      PRIMING READ AND EOF TEST FOR DEFT  INPUT                * 20650001
+134000***************************************************************** 20660001
+    PERFORM 6500-INITIAL-OUTPUT-COUNT
+134200***************************************************************** 20680001
+134300*   TEST FOR NO DATA ON FILE                                    * 20690001
+134400***************************************************************** 20700001
+    IF TEN99-T04R-DEFT-EOF-YES OR
+       END-OF-DEFT-DETAIL-YES
+       MOVE LIT-DEFT               TO MSG-NO-DATA-FILE-NAME
+       MOVE MSG-NO-DATA            TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+      IF WS-T04R-DEFT-TRL-VALUE = HIGH-VALUES
+         MOVE WS-T04R-DEFT-TRL TO WS-OUTPUT-TRANS-RCD
+         PERFORM 8040-WRITE-DEFT-TRANS-RCD
+         PERFORM 5450-DEFT-TRAILER-ACCUM
+      END-IF
+       PERFORM 5440-DEFT-TRAILER-PROCESS
+    ELSE
+       PERFORM 5410-DEFT-PROCESS-RCD
+         UNTIL TEN99-T04R-DEFT-EOF-YES
+       PERFORM 5440-DEFT-TRAILER-PROCESS
+    END-IF
+    .
+136200***************************************************************** 20880001
+5410-DEFT-PROCESS-RCD.
+136400***************************************************************** 20900001
+136500*      PROCESS THE DETAIL AND TRAILER FOR THE DEFT  ISSUES      * 20910001
+136600*      INCREMENT COUNTERS FOR PRIMING READ                      * 20920001
+136700*      ONE HEADER & ONE TRAILER FOR THE DEFT FILE               * 20940001
+136800***************************************************************** 20970001
+    IF WS-T04R-DEFT-TRL-VALUE = HIGH-VALUES
+       MOVE WS-T04R-DEFT-TRL TO WS-OUTPUT-TRANS-RCD
+       PERFORM 8040-WRITE-DEFT-TRANS-RCD
+       PERFORM 5450-DEFT-TRAILER-ACCUM
+    ELSE
+       PERFORM 5420-DEFT-SET-TAX-TYPE
+    END-IF
+    PERFORM 7300-DEFT-READ-RCD
+    .
+
+137900***************************************************************** 21810001
+5420-DEFT-SET-TAX-TYPE.
+138100***************************************************************** 21830001
+138200*      SET UP AND SEARCH 1099 TABLE                             * 21840001
+138300*      DEFAULT TAX TYPE IS SET TO 3 - S/B INVESTIGATED          * 21840001
+138400***************************************************************** 21850001
+    ADD LIT-1                       TO WS-DEFT-TRANS-COUNTER
+    ADD WS-T04R-DEFT-DISB-AMT       TO WS-DEFT-TRANS-AMT-ACCUM
+    MOVE WS-T04R-DEFT-COMPASS-CODE  TO WS-CEC
+    INITIALIZE WS-TAX-TYPE
+    IF WS-T04R-DEFT-COMPASS-CODE = SPACES
+         CONTINUE
+    ELSE
+         PERFORM 6000-SEARCH-1099-TABLE
+    END-IF
+    IF WS-TAX-TYPE = SPACES
+         MOVE WS-T04R-DEFT-RCD TO CC-E01W-DISPLAY-RCD
+         PERFORM 8999-WRITE-SYSOUT
+         MOVE LIT-3            TO WS-TAX-TYPE
+    END-IF
+    MOVE WS-TAX-TYPE           TO WS-T04R-DEFT-TAX-TYPE
+    MOVE WS-T04R-DEFT-RCD      TO WS-OUTPUT-TRANS-RCD
+    PERFORM 8040-WRITE-DEFT-TRANS-RCD
+    .
+
+140400***************************************************************** 22200001
+140500***************************************************************** 22720001
+5440-DEFT-TRAILER-PROCESS.
+140700***************************************************************** 22740001
+140800*      TEST TRAILER TOTALS AND DISPLAY RESULTS                  * 22750001
+140900***************************************************************** 22760001
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE LIT-DEFT TO MSG-OUTPUT-FILE-NAME
+    IF WS-DEFT-TRANS-COUNTER   = WS-DEFT-TRL-COUNTER AND
+       WS-DEFT-TRANS-AMT-ACCUM = WS-DEFT-TRL-AMT-ACCUM
+       MOVE LIT-DEFT-SUCCESS           TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-DEFT-TRANS-COUNTER      TO MSG-FILE-COUNT
+       MOVE WS-DEFT-TRL-COUNTER        TO MSG-TRAILER-COUNT
+       MOVE MSG-TRAILER-COUNT-DISPLAY  TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-DEFT-TRANS-AMT-ACCUM    TO MSG-FILE-AMOUNT
+       MOVE WS-DEFT-TRL-AMT-ACCUM      TO MSG-TRAILER-AMOUNT
+       MOVE MSG-TRAILER-DOLLAR-DISPLAY TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       IF WS-DEFT-TRANS-COUNTER = WS-DEFT-TRL-COUNTER
+          CONTINUE
+       ELSE
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-DEFT-INPUT         TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-DEFT-TRANS-COUNTER      TO MSG-FILE-COUNT
+          MOVE WS-DEFT-TRL-COUNTER        TO MSG-TRAILER-COUNT
+          MOVE MSG-TRAILER-COUNT-DISPLAY  TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+
+       IF WS-DEFT-TRANS-AMT-ACCUM = WS-DEFT-TRL-AMT-ACCUM
+          CONTINUE
+       ELSE
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-DEFT-INPUT         TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-DEFT-TRANS-AMT-ACCUM    TO MSG-FILE-AMOUNT
+          MOVE WS-DEFT-TRL-AMT-ACCUM      TO MSG-TRAILER-AMOUNT
+          MOVE MSG-TRAILER-DOLLAR-DISPLAY TO CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+       END-IF
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+
+    MOVE LIT-DEFT-CONTROL-TOTALS          TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-DEFT-TRANS-COUNTER    TO WS-OUTPUT-TRANS-CNT
+    MOVE WS-DEFT-TRANS-AMT-ACCUM  TO WS-OUTPUT-TRANS-AMT
+    PERFORM 6600-OUTPUT-BALANCING-PROCESS
+    PERFORM 8999-WRITE-SYSOUT
+
+    .
+EJECT
+146200***************************************************************** 23320001
+5450-DEFT-TRAILER-ACCUM.
+146400***************************************************************** 23340001
+146500*      ACCUMULATE DEFT TRAILER TOTALS                           * 23350001
+146600***************************************************************** 23360001
+    ADD WS-T04R-DEFT-TRL-CNT TO WS-DEFT-TRL-COUNTER
+    ADD WS-T04R-DEFT-TRL-AMT TO WS-DEFT-TRL-AMT-ACCUM
+    .
+EJECT
+147100***************************************************************** 23420001
+5500-REJ-CYCLE-PROCESS.
+147300***************************************************************** 23440001
+147400*      PRIMING READ AND EOF TEST FOR REJECT RECYCLED INPUT      * 23450001
+147500***************************************************************** 23460001
+    PERFORM 6500-INITIAL-OUTPUT-COUNT
+    PERFORM 7500-REJ-CYCLE-READ-RCD
+    IF TEN99-T05R-REJ-CYCLE-EOF-YES OR
+       WS-T05R-REJ-CYCLE-TRL-VALUE = HIGH-VALUES
+148000***************************************************************** 23510001
+148100*   TEST FOR NO DATA ON FILE                                    * 23520001
+148200***************************************************************** 23530001
+      MOVE LIT-REJECT-FILE TO MSG-NO-DATA-FILE-NAME
+      MOVE MSG-NO-DATA TO CC-E01W-DISPLAY-RCD
+      PERFORM 8999-WRITE-SYSOUT
+      MOVE WS-T05R-REJECT-RECYCLING-RCD TO
+           TEN99-T05W-REJ-CYCLE-OUT-RCD
+      PERFORM 8030-WRITE-REJECT-RCD
+      PERFORM 5540-REJ-CYCLE-TRAILER-PROCESS
+    ELSE
+      PERFORM 5510-REJ-CYCLE-PROCESS-RCD UNTIL
+               TEN99-T05R-REJ-CYCLE-EOF-YES
+    END-IF
+    .
+    EJECT
+149600***************************************************************** 23640001
+5510-REJ-CYCLE-PROCESS-RCD.
+149800***************************************************************** 23660001
+149900*      PROCESS THE DETAIL AND TRAILER FOR REJECT RECYCLED INPUT * 23670001
+150000***************************************************************** 23680001
+    IF WS-T05R-REJ-CYCLE-TRL-VALUE = HIGH-VALUES
+       MOVE WS-T05R-REJECT-RECYCLING-RCD TO
+            TEN99-T05W-REJ-CYCLE-OUT-RCD
+       PERFORM 8030-WRITE-REJECT-RCD
+    ELSE
+150600***************************************************************** 23730001
+150700*   INCREMENT COUNTERS FOR TRAILER TESTING                      * 23740001
+150800***************************************************************** 23750001
+       ADD 1 TO WS-REJ-CYCLE-TRANS-COUNTER
+       PERFORM 5520-REJ-CYCLE-SET-TAX-TYPE
+    END-IF
+    PERFORM 7500-REJ-CYCLE-READ-RCD
+    .
+151400***************************************************************** 23810001
+5520-REJ-CYCLE-SET-TAX-TYPE.
+151600***************************************************************** 23830001
+151700*      STRIP OFF THE REJECT KEY AND PROCESS ACCORDING TO        * 23840001
+151800*      THE SOURCE CODE.                                         * 23850001
+151900***************************************************************** 23860001
+    INITIALIZE REJECT-INDICATORS
+               WS-OUTPUT-TRANS-RCD
+
+    EVALUATE TRUE
+      WHEN WS-T05R-REJ-CYCLE-HDR-VALUE = LOW-VALUES
+           CONTINUE
+      WHEN WS-T05R-REJ-CYCLE-TRL-VALUE = HIGH-VALUES
+           CONTINUE
+      WHEN OTHER
+           IF WS-T05R-REJECT-VALID-TAX-TYPE
+                CONTINUE
+           ELSE MOVE LIT-3         TO WS-T05R-REJECT-TAX-TYPE
+                MOVE WS-T05R-REJECT-RECYCLING-RCD TO
+                                      CC-E01W-DISPLAY-RCD
+                PERFORM 8999-WRITE-SYSOUT
+           END-IF
+    END-EVALUATE
+    MOVE WS-T05R-REJECT-RECYCLING-RCD  TO
+                                   TEN99-T05W-REJ-CYCLE-OUT-RCD
+    PERFORM 8030-WRITE-REJECT-RCD
+    .
+154100***************************************************************** 24830001
+5540-REJ-CYCLE-TRAILER-PROCESS.
+154300***************************************************************** 24850001
+154400*      TEST TRAILER TOTALS AND DISPLAY RESULTS                  * 24860001
+154500***************************************************************** 24870001
+    PERFORM 8999-WRITE-SYSOUT
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE LIT-REJECT-FILE TO MSG-OUTPUT-FILE-NAME
+    IF WS-REJ-CYCLE-TRANS-COUNTER =
+       WS-T05R-REJ-CYCLE-TRL-COUNT AND
+       WS-REJ-CYCLE-TRANS-AMT-ACCUM =
+       WS-T05R-REJ-CYCLE-TRL-AMT
+       MOVE LIT-REJ-CYCLE-SUCCESS  TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-REJ-CYCLE-TRANS-COUNTER TO MSG-FILE-COUNT
+       MOVE WS-T05R-REJ-CYCLE-TRL-COUNT TO MSG-TRAILER-COUNT
+       MOVE MSG-TRAILER-COUNT-DISPLAY TO
+            CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE WS-REJ-CYCLE-TRANS-AMT-ACCUM TO MSG-FILE-AMOUNT
+       MOVE WS-T05R-REJ-CYCLE-TRL-AMT TO MSG-TRAILER-AMOUNT
+       MOVE MSG-TRAILER-DOLLAR-DISPLAY TO
+            CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 8999-WRITE-SYSOUT
+    ELSE
+       IF WS-REJ-CYCLE-TRANS-COUNTER NOT EQUAL
+          WS-T05R-REJ-CYCLE-TRL-COUNT
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-REJECT-CYCLE-INPUT TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-REJ-CYCLE-TRANS-COUNTER TO MSG-FILE-COUNT
+          MOVE WS-T05R-REJ-CYCLE-TRL-COUNT TO MSG-TRAILER-COUNT
+          MOVE MSG-TRAILER-COUNT-DISPLAY TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE "Y" TO ERROR-FLAG
+       END-IF
+       IF WS-REJ-CYCLE-TRANS-AMT-ACCUM NOT EQUAL
+          WS-T05R-REJ-CYCLE-TRL-AMT
+          MOVE LIT-TRANS-TLS-DO-NOT-AGREE TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE LIT-FOR-REJECT-CYCLE-INPUT TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE WS-REJ-CYCLE-TRANS-AMT-ACCUM TO MSG-FILE-AMOUNT
+          MOVE WS-T05R-REJ-CYCLE-TRL-AMT TO MSG-TRAILER-AMOUNT
+          MOVE MSG-TRAILER-DOLLAR-DISPLAY TO
+               CC-E01W-DISPLAY-RCD
+          PERFORM 8999-WRITE-SYSOUT
+          MOVE "Y" TO ERROR-FLAG
+       END-IF
+       PERFORM 8999-WRITE-SYSOUT
+    END-IF
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE LIT-REJ-CYCLE-CONTROL-TOTALS TO CC-E01W-DISPLAY-RCD
+    PERFORM 8999-WRITE-SYSOUT
+    MOVE WS-REJ-CYCLE-TRANS-COUNTER    TO WS-OUTPUT-TRANS-CNT
+    MOVE WS-REJ-CYCLE-TRANS-AMT-ACCUM TO WS-OUTPUT-TRANS-AMT
+    PERFORM 6600-OUTPUT-BALANCING-PROCESS
+    MOVE "Y" TO TEN99-T05R-REJ-CYCLE-EOF
+    .
+
+160800***************************************************************** 25470001
+6000-SEARCH-1099-TABLE.
+161000***************************************************************** 25490001
+161100*   SET WS-CEC PRIOR TO PERFORM                                 * 25500001
+161200***************************************************************** 25510001
+    SET CODE-INDEX TO 1
+    SEARCH WS-T07R-1099ENTRY-CODES AT END
+                                   CONTINUE
+    WHEN WS-CEC = WS-T07R-1099ENTRY-CODE (CODE-INDEX)
+         MOVE WS-T07R-1099ENTRY-TAX-TYPE (CODE-INDEX) TO
+                                                WS-TAX-TYPE
+    .
+162000***************************************************************** 25870001
+162100***************************************************************** 27810001
+6500-INITIAL-OUTPUT-COUNT.
+162300***************************************************************** 27830001
+162400*    INITIALIZE OUTPUT COUNTERS                                 * 27840001
+162500***************************************************************** 27850001
+     INITIALIZE WS-OUTPUT-TRANS-CNT
+                WS-OUTPUT-TRANS-AMT
+                WS-FILE-REC-COUNTER
+                WS-FILE-AMT-ACCUM
+                WS-REJ-TRANS-CNT
+                WS-REJ-TRANS-AMT
+     .
+EJECT
+163400***************************************************************** 27960001
+6600-OUTPUT-BALANCING-PROCESS.
+163600***************************************************************** 27980001
+163700*    DISPLAY CONTROL TOTALS FOR ALL OUTPUTS                     * 27990001
+163800***************************************************************** 28000001
+     MOVE WS-OUTPUT-TRANS-CNT TO MSG-NUM-RCDS
+     MOVE WS-OUTPUT-TRANS-AMT TO MSG-AMOUNT
+     MOVE MSG-CONTROL-TOTALS  TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+
+     .
+164500***************************************************************** 28260001
+7000-MISC-FORM-READ-RCD.
+164700***************************************************************** 28280001
+164800*      READ ROUTINE FOR ALL MISC FORM FILE READS                * 28290001
+164900***************************************************************** 28300001
+    INITIALIZE WS-T01R-MISC-FORM-RCD
+    READ TEN99-T01R-MISC-TRANS-FILE INTO
+         WS-T01R-MISC-FORM-RCD
+       AT END
+       MOVE "Y" TO TEN99-T01R-MISC-FORM-EOF
+    END-READ
+    .
+EJECT
+165800***************************************************************** 28390001
+7200-BCCW-READ-RCD.
+166000***************************************************************** 28410001
+166100*      READ ROUTINE FOR B&CCW ISSUES                            * 28420001
+166200*      NOTE: THERE ARE MULTIPLE HEADERS & TRAILERS              * 28420001
+166300***************************************************************** 28430001
+    READ TEN99-T03R-BCCW-FILE         INTO TEN99-RCD
+       AT END
+       MOVE "Y" TO TEN99-T03R-BCCW-EOF
+    END-READ
+    MOVE TEN99-RCD TO TEN99-RECORD-HDR TEN99-RECORD-TLR
+    EVALUATE TRUE
+      WHEN TEN99-T03R-BCCW-EOF-YES
+         CONTINUE
+      WHEN TEN99-LOW-VALUE-HDR    = LOW-VALUES
+           MOVE TEN99-RECORD-HDR TO WS-OUTPUT-TRANS-RCD
+           INITIALIZE TEN99-RCD
+      WHEN TEN99-HIGH-VALUE-TLR   = HIGH-VALUES
+           MOVE TEN99-RECORD-TLR TO WS-OUTPUT-TRANS-RCD
+           INITIALIZE TEN99-RCD
+      WHEN OTHER
+          CONTINUE
+    END-EVALUATE
+    .
+EJECT
+168300***************************************************************** 28590001
+7300-DEFT-READ-RCD.
+168500***************************************************************** 28610001
+168600*      READ ROUTINE FOR DEFT  ISSUES                            * 28620001
+168700***************************************************************** 28630001
+    INITIALIZE WS-T04R-DEFT-RCD
+
+    READ TEN99-T04R-DEFT-FILE         INTO WS-T04R-DEFT-RCD
+       AT END
+       MOVE "Y" TO TEN99-T04R-DEFT-EOF
+    END-READ
+    MOVE WS-T04R-DEFT-RCD TO WS-OUTPUT-TRANS-RCD
+    EVALUATE TRUE
+      WHEN WS-T04R-DEFT-HDR-VALUE = LOW-VALUES
+           CONTINUE
+      WHEN TEN99-T04R-DEFT-EOF-YES
+           CONTINUE
+      WHEN WS-T04R-DEFT-HDR-VALUE = HIGH-VALUES
+           MOVE "Y" TO END-OF-DEFT-DETAIL
+      WHEN OTHER
+           MOVE "Y" TO END-OF-DEFT-HEADERS
+    END-EVALUATE
+    .
+EJECT
+170700***************************************************************** 28810001
+7500-REJ-CYCLE-READ-RCD.
+170900***************************************************************** 28830001
+171000*      READ ROUTINE FOR ALL MISC FORM FILE READS                * 28840001
+171100***************************************************************** 28850001
+    INITIALIZE WS-T05R-REJECT-RECYCLING-RCD
+    READ TEN99-T05R-REJ-CYCLE-FILE INTO
+            WS-T05R-REJECT-RECYCLING-RCD
+       AT END
+       MOVE "Y" TO TEN99-T05R-REJ-CYCLE-EOF
+    END-READ
+    .
+EJECT
+172000***************************************************************** 28940001
+7900-READ-CONTROL-CARD-IN.
+172200***************************************************************** 28960001
+172300*      READ ROUTINE FOR CONTROL CARD                            * 28970001
+172400***************************************************************** 28980001
+    READ CC-R01R-CONTROL-CARD INTO CONTROL-CARD-IN1
+        AT END
+           MOVE "Y" TO EOF-CONTROL-CARD
+    END-READ
+    IF EOF-CONTROL-CARD-YES
+       MOVE LIT-NO-CONTROL-CARD TO SAR-PARAGRAPH
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    END-IF
+    .
+EJECT
+173600***************************************************************** 29100001
+7910-READ-1099ENTRY-TABLE.
+173800***************************************************************** 29120001
+173900*      READ ROUTINE FOR 1099 REPORTABLE ENTRY CODE TABLE        * 29130001
+174000***************************************************************** 29140001
+    READ WS-T07R-1099ENTRY-CD-FILE INTO
+         WS-T07R-1099ENTRY-CODES(CODE-INDEX)
+        AT END
+           MOVE "Y" TO EOF-1099ENTRY-TABLE
+    END-READ
+    IF WS-T07R-1099ENTRY-CODE (CODE-INDEX) = HIGH-VALUES
+       SET CODE-INDEX TO LIT-NUM-OF-1099-CODES
+    END-IF
+    IF EOF-1099ENTRY-TABLE-YES
+       MOVE LIT-NO-1099ENTRY-TABLE TO SAR-PARAGRAPH
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    END-IF
+    .
+EJECT
+175600***************************************************************** 29440001
+8010-WRITE-MISC-TRANS-RCD.
+175800***************************************************************** 29460001
+175900*      WRITE MISC TRANS RECORD                                  * 29470001
+176000***************************************************************** 29480001
+    ADD LIT-1  TO WS-FILE-REC-COUNTER
+    IF (WS-OUTPUT-HDR-VALUE = LOW-VALUES)
+    OR (WS-OUTPUT-TRL-VALUE = HIGH-VALUES)
+         CONTINUE
+    ELSE
+         ADD LIT-1                  TO WS-TOTAL-OUTPUT-TRANS-CNT
+         ADD WS-T01R-MISC-FORM-AMT  TO WS-TOTAL-OUTPUT-TRANS-AMT
+                                       WS-FILE-AMT-ACCUM
+    END-IF
+    WRITE TEN99-T01W-MISC-TRANS-OUT-RCD
+          FROM WS-OUTPUT-TRANS-RCD
+    MOVE SPACES TO WS-OUTPUT-TRANS-RCD
+    INITIALIZE REJECT-INDICATORS
+    .
+EJECT
+177600***************************************************************** 29600001
+8020-WRITE-BCCW-TRANS-RCD.
+177800***************************************************************** 29620001
+177900*      WRITE MISC TRANS RECORD                                  * 29630001
+178000***************************************************************** 29640001
+    ADD LIT-1  TO WS-FILE-REC-COUNTER
+    IF   (WS-OUTPUT-HDR-VALUE = LOW-VALUES)
+      OR (WS-OUTPUT-TRL-VALUE = HIGH-VALUES)
+             CONTINUE
+    ELSE
+         ADD LIT-1                   TO WS-TOTAL-OUTPUT-TRANS-CNT29670001
+         ADD TEN99-RPT-DISB-AMT-DATA TO WS-TOTAL-OUTPUT-TRANS-AMT29680001
+                                        WS-FILE-AMT-ACCUM
+    END-IF
+    WRITE TEN99-T03W-BCCW-OUT-RCD
+          FROM WS-OUTPUT-TRANS-RCD
+    MOVE SPACES TO WS-OUTPUT-TRANS-RCD
+    .
+179400***************************************************************** 29750001
+8030-WRITE-REJECT-RCD.
+179600***************************************************************** 29770001
+179700*      WRITE REJECT FILE                                        * 29780001
+179800***************************************************************** 29790001
+179900
+    WRITE TEN99-T05W-REJ-CYCLE-OUT-RCD
+    .
+180200***************************************************************** 29870001
+8040-WRITE-DEFT-TRANS-RCD.
+180400***************************************************************** 29890001
+180500*      WRITE FOREIGN TRANSACTION RECORD                         * 29900001
+180600***************************************************************** 29910001
+    ADD LIT-1  TO WS-FILE-REC-COUNTER
+    IF   (WS-OUTPUT-HDR-VALUE = LOW-VALUES)
+      OR (WS-OUTPUT-TRL-VALUE = HIGH-VALUES)
+             CONTINUE
+    ELSE
+        ADD LIT-1                   TO WS-TOTAL-OUTPUT-TRANS-CNT
+        ADD WS-T04R-DEFT-DISB-AMT   TO WS-TOTAL-OUTPUT-TRANS-AMT
+                                       WS-FILE-AMT-ACCUM
+    END-IF
+    WRITE TEN99-T04W-DEFT-OUT-RCD FROM WS-OUTPUT-TRANS-RCD
+    MOVE SPACES TO WS-OUTPUT-TRANS-RCD
+    INITIALIZE REJECT-INDICATORS
+    .
+
+182100***************************************************************** 30020001
+182200*8999-WRITE-SYSOUT.                                               30190001
+182300***************************************************************** 30200001
+182400*    ++INCLUDE C2INZ002                                         * 30210001
+182500*      COMMON PARAGRAPH TO WRITE A SYSOUT RECORD                * 30220001
+182600*  8999-WRITE-SYSOUT.                                           * 30230001
+182700***************************************************************** 30240001
+COPY C2INZ002.
+EJECT
+9000-TERMINATION-ROUTINE.
+183100***************************************************************** 30280001
+183200*      CHECK FOR PROCESSING ERROR FLAG SET TO "Y".              * 30290001
+183300*      PREPARE GRAND TOTALS.                                    * 30310001
+183400***************************************************************** 30320001
+    IF ERROR-FLAG = "Y"
+       PERFORM 9998-COREDUMP
+    ELSE
+183800***************************************************************** 30730001
+183900*  MOVE TOTALS FOR GRAND TOTAL DISPLAY                          * 30740001
+184000***************************************************************** 30750001
+       MOVE WS-TOTAL-OUTPUT-TRANS-CNT TO WS-OUTPUT-TRANS-CNT
+       MOVE WS-TOTAL-OUTPUT-TRANS-AMT TO WS-OUTPUT-TRANS-AMT
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE LIT-GRAND-TOTAL TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       MOVE LIT-TRANS-FILE TO MSG-OUTPUT-FILE-NAME
+       PERFORM 6600-OUTPUT-BALANCING-PROCESS
+    END-IF
+    PERFORM 9010-ENDING-SYSOUT-MESSAGES
+    PERFORM 9999-CLOSE-FILES
+    .
+EJECT
+9010-ENDING-SYSOUT-MESSAGES.
+185500***************************************************************** 30970001
+185600*    ++INCLUDE C2INZ003                                         * 30980001
+185700*      COMMON ENDING SYSOUT MESSAGES                            * 30990001
+185800***************************************************************** 31000001
+
+COPY C2INZ003.
+
+EJECT
+186300*9998-COREDUMP.                                                   31050001
+186400***************************************************************** 31060001
+186500*    ++INCLUDE C2INZ004                                         * 31070001
+186600*      COMMON ABEND INFORMATION PARAGRAPH                       * 31080001
+186700*      9998-COREDUMP                                            * 31090001
+186800***************************************************************** 31100001
+COPY C2INZ004.
+
+EJECT
+187200*9999-CLOSE-FILES.                                                31140001
+187300***************************************************************** 31150001
+187400*    ++INCLUDE C2INZ005                                         * 31160001
+187500*      COMMON CLOSE FILES PARAGRAPH                             * 31170001
+187600*      PERFORM 9999-CLOSE-FILES                                 * 31180001
+187700***************************************************************** 31190001
+COPY C2INZ005.
+    CLOSE
+          TEN99-T01R-MISC-TRANS-FILE
+          TEN99-T03R-BCCW-FILE
+          TEN99-T04R-DEFT-FILE
+          TEN99-T05R-REJ-CYCLE-FILE
+          WS-T07R-1099ENTRY-CD-FILE
+          CC-R01R-CONTROL-CARD
+          TEN99-T01W-MISC-TRANS-OUT-FILE
+          TEN99-T03W-BCCW-OUT-FILE
+          TEN99-T04W-DEFT-OUT-FILE
+          TEN99-T05W-REJ-CYCLE-OUT-FILE
+          .
+189100***************************************************************** 31340001
+189200*   END PROGRAM CCAC6310                                        * 31350001
+189300***************************************************************** 31360001
+

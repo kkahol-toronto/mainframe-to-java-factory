@@ -1,0 +1,7 @@
+    FC.TSOA.PROD.PARMLIB(AC640011) - 01.00          Columns 00001 0007
+ ===>                                                  Scroll ===> CSR
+***************************** Top of Data ****************************
+VIP12 EXTERNAL AAGENT    FCACC     FMCC MISC 1099 DATA                
+VIP2                                                                  
+TO: FC_MISC1099@BULKMAIL.FORD.COM                                     
+**************************** Bottom of Data **************************

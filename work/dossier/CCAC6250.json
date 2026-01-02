@@ -1,0 +1,56 @@
+{
+  "source_file": "CCAC6250.txt",
+  "program_id": "CCAC6250",
+  "copies": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ005"
+  ],
+  "copybooks_available": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ005"
+  ],
+  "copybooks_missing": [],
+  "calls": [
+    "COREDUMP"
+  ],
+  "selects": [
+    {
+      "file": "CCAC-T01R-EDITED-1099-REJECT",
+      "assign": "UT-S-CCACT01R."
+    },
+    {
+      "file": "CCAC-T02R-1099-VENDOR-FILE",
+      "assign": "UT-S-CCACT02R."
+    },
+    {
+      "file": "CCAC-M01R-EDITED-1099-MASTER",
+      "assign": "UT-S-CCACM01R."
+    },
+    {
+      "file": "CCAC-T01W-FORMAT-1099-REJECT",
+      "assign": "UT-S-CCACT01W."
+    },
+    {
+      "file": "CCAC-T02W-FORMAT-1099-VENDOR",
+      "assign": "UT-S-CCACT02W."
+    },
+    {
+      "file": "CCAC-M01W-FORMAT-1099-MASTER",
+      "assign": "UT-S-CCACM01W."
+    },
+    {
+      "file": "CCAC-R01R-CONTROL-CARD",
+      "assign": "UT-S-CCACR01R."
+    },
+    {
+      "file": "CC-E01W-DISPLAY-FILE",
+      "assign": "UT-S-CCACE01W."
+    }
+  ]
+}

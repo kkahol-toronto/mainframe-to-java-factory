@@ -1,0 +1,648 @@
+000100****TESTING PANVALET CHECKOUT                                     00010001
+IDENTIFICATION DIVISION.
+PROGRAM-ID.  CCAC6340.
+000400*TRANSLATED BY MHTRAN-2  5/08/96                                  00040001
+000500*AUTHOR. MICHAEL E. FERGUSON.                                     00050001
+000600*DATE-WRITTEN. NOVEMBER 1995.                                     00060001
+000700*DATE-COMPILED.                                                   00070001
+000800*REMARKS.                                                         00080001
+000900*  THE PURPOSE OF THIS PROGRAM IS TO MECHANICALLY FLAG 1099 MASTER00090001
+001000*  FILE RECORDS THAT HAVE MATCHING SSNS ON THE CORPORATE EXTRACT  00100001
+001100*  FILE.                                                          00110001
+001200*                                                                 00120001
+001300*  THE MASTER FILE AND CORPORATE FILE MUST BE SORTED BY SSN IN    00130001
+001400*  ASCENDING ORDER.                                               00140001
+001500*                                                                 00150001
+001600*  A MASTER FILE IS REQUIRED TO BE INPUT EVERY MONTH.             00160001
+001700*  THE CORPORATE FILE WILL BE EMPTY ON THE INTIAL RUN OF          00170001
+001800*  THIS PROGRAM.                                                  00180001
+    EJECT
+002000*                                                                 00200001
+002100***************************************************************** 00210001
+002200****              PROGRAM MODIFICATION HISTORY                  * 00220001
+002300***************************************************************** 00230001
+002400**  LEVEL *   DATE    *   MODIFIED BY *          DESCRIPTION    * 00240001
+002500***************************************************************** 00250001
+002600**   1    * 01/08/04  * D. OPPERMANN  * RENAMED PROGRAM FROM    * 00260001
+002700**        *           *               * CCMR6340.               * 00270001
+002710**   5    * 01/03/11  *  R. FORTUNATE * EPM 2666                * 00271001
+002720**        *           *               * ADD TAX TYPE & TIN IND  * 00272001
+002730**        *           *               * TO THE INPUT & OUTPUT   * 00273001
+002740**        *           *               * FILE. INPUT - TMMID.    * 00274001
+002750**        *           *               * OUTPUT - TMMOD.         * 00275001
+002760**        *           *               *                         * 00276001
+002800***************************************************************** 00280001
+002900*                                                                 00290001
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER.  IBM-370.
+OBJECT-COMPUTER.  IBM-370.
+INPUT-OUTPUT SECTION.
+FILE-CONTROL.
+    SELECT TEN99-T01R-CORPORATE-FILE
+         ASSIGN TO UT-S-CCACT01R.
+    SELECT TEN99-M01R-MASTER-IN-FILE
+         ASSIGN TO UT-S-CCACM01R.
+    SELECT TEN99-R01R-CONTROL-FILE
+         ASSIGN TO UT-S-CCACR01R.
+    SELECT TEN99-M01W-MASTER-OUT-FILE
+         ASSIGN TO UT-S-CCACM01W.
+004400*++INCLUDE C2INX001                                               00440001
+COPY C2INX001.
+     EJECT
+DATA DIVISION.
+FILE SECTION.
+FD  TEN99-T01R-CORPORATE-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 RECORDS
+    LABEL RECORDS STANDARD  .
+01  TEN99-T01R-CORPORATE-RCD                      PIC X(80).
+
+FD  TEN99-M01R-MASTER-IN-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 RECORDS
+    LABEL RECORDS STANDARD  .
+01  TEN99-M01R-MASTER-IN-RCD                      PIC X(400).
+
+FD  TEN99-R01R-CONTROL-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 RECORDS
+    LABEL RECORDS STANDARD  .
+01  TEN99-R01R-CONTROL-RCD                        PIC X(80).
+
+FD  TEN99-M01W-MASTER-OUT-FILE
+    RECORDING MODE IS F
+    BLOCK CONTAINS 0 RECORDS
+    LABEL RECORDS STANDARD  .
+01  TEN99-M01W-MASTER-OUT-RCD                     PIC X(400).
+
+007300*++INCLUDE C2INX002                                               00730001
+COPY C2INX002.
+    EJECT
+WORKING-STORAGE SECTION.
+77  PAN-VALET PICTURE X(24) VALUE '006CCAC6340  05/20/96'.
+
+       01  PUPS2000.
+      *
+           05  FILLER                  PIC X(69)   VALUE
+               "PUPS2000 FORTUNATE, R. J. (RICHARD)     EPM 2666 2011010
+      -        "3074721837885".
+
+01  FILLER                                        PIC X(32)
+          VALUE "PROGRAM CCAC6340 W-S STARTS HERE".
+    EJECT
+008100*-----------------------------------------------------------------00810001
+008200*  INPUT FILE - 1099 MASTER FILE                                  00820001
+008300*-----------------------------------------------------------------00830001
+01  TEN99-M01R-MASTER-IN-DTL.
+    05  TMMID-CHECK-NUMBER                         PIC X(8).
+    05  TMMID-DEPARTMENT-CODE                      PIC X(3).
+    05  FILLER                                     PIC X.
+    05  TMMID-SOCIAL-SEC-NUMBER                    PIC 9(9).
+    05  TMMID-SOCIAL-SEC-REMAINDER                 PIC X(7).
+    05  TMMID-OPERATION-LOC                        PIC X(4).
+    05  TMMID-SOURCE                               PIC X(15).
+    05  TMMID-NAME                                 PIC X(40).
+    05  TMMID-ADDRESS-1                            PIC X(37).
+    05  TMMID-ADDRESS-2                            PIC X(43).
+    05  TMMID-CITY                                 PIC X(26).
+    05  TMMID-STATE                                PIC XX.
+    05  TMMID-ZIP-CODE                             PIC 9(9).
+    05  TMMID-DELETE-INDICATOR                     PIC X.
+        88  NON-DELETE-INPUT               VALUE " ".
+        88  BUSINESS-INPUT                 VALUE "B".
+        88  DELETE-INPUT                   VALUE "D".
+        88  MECHANIZED-INPUT               VALUE "M".
+    05  FILLER                                     PIC X.
+    05  TMMID-TOTAL-AMOUNT                         PIC S9(10)V99.01040001
+    05  TMMID-1099-AMOUNT                          PIC S9(10)V99.01050001
+    05  TMMID-CHECK-DATE                           PIC X(8).
+    05  TMMID-PROCESS-DATE                         PIC X(6).
+    05  TMMID-NUM-DISB-RECORDS                     PIC 99.
+    05  TMMID-DISB-RECORD                       OCCURS 5 TIMES.
+        10  TMMID-DISB-ENTRY-CODE                  PIC X(3).
+        10  TMMID-DISB-1099-INDICATOR              PIC X.
+        10  TMMID-DISB-AMOUNT                      PIC S9(10)V99.01120001
+    05  TMMID-COMMENTS                             PIC X(29).
+    05  TMMID-LINE-NUMBER                          PIC X(7).
+    05  TMMID-TAX-TYPE                             PIC X(1).
+    05  TMMID-TIN-IND                              PIC X(1).
+    05  FILLER                                     PIC X(36).
+01  TEN99-M01R-MAST-IN-HDR REDEFINES TEN99-M01R-MASTER-IN-DTL.
+    05  TMMIH-HEAD-SOURCE                         PIC X(33).
+        88  MAST-HEADER            VALUE LOW-VALUES.
+    05  FILLER                                    PIC XX.
+    05  TMMIH-HEAD-ID                             PIC X(10).
+    05  FILLER                                    PIC XX.
+    05  TMMIH-HEAD-DATE.
+        10  TMMIH-HEAD-CENTURY                    PIC 99.
+        10  TMMIH-HEAD-YEAR                       PIC 99.
+        10  TMMIH-HEAD-MONTH                      PIC 99.
+    05  FILLER                                    PIC X(347).
+01  TEN99-M01R-MAST-IN-TLR REDEFINES TEN99-M01R-MASTER-IN-DTL.
+    05  TMMIT-TRAIL-SOURCE                        PIC X(33).
+        88  MAST-TRAILER              VALUE HIGH-VALUES.
+    05  FILLER                                    PIC XX.
+    05  TMMIT-NON-DELETE-TRAIL-CNT                PIC 9(8).
+    05  FILLER                                    PIC XX.
+    05  TMMIT-NON-DELETE-TRAIL-AMT                PIC S9(10)V99.
+    05  FILLER                                    PIC XX.
+    05  TMMIT-DELETE-TRAIL-CNT                    PIC 9(8).
+    05  FILLER                                    PIC XX.
+    05  TMMIT-DELETE-TRAIL-AMT                    PIC S9(10)V99.
+    05  FILLER                                    PIC X(319).
+    EJECT
+013900*-----------------------------------------------------------------01390001
+014000*  INPUT FILE - 1099 CORPORATE FILE IN                            01400001
+014100*-----------------------------------------------------------------01410001
+01  TEN99-T01R-CORPORATE-DTL.
+    05  TTCD-SOCIAL-SEC-NUMBER                    PIC 9(9).
+    05  FILLER                                    PIC X(10).
+    05  TTCD-NAME                                 PIC X(40).
+    05  FILLER                                    PIC X(21).
+    EJECT
+014800*-----------------------------------------------------------------01480001
+014900*  INPUT FILE - CONTROL CARD FILE                                 01490001
+015000*-----------------------------------------------------------------01500001
+01  TEN99-R01R-CONTROL-CARD-DTL.
+    05  TRCCD-CONTROL-DATE.
+        10  TRCCD-CONTROL-CENTURY                 PIC 99.
+        10  TRCCD-CONTROL-YEAR                    PIC 99.
+        10  TRCCD-CONTROL-MONTH                   PIC 99.
+    05  FILLER                                    PIC X(74).
+
+015800*-----------------------------------------------------------------01580001
+015900*  OUTPUT FILE - 1099 MASTER OUT FILE                             01590001
+016000*-----------------------------------------------------------------01600001
+01  TEN99-M01W-MASTER-OUT-DTL.
+    05  TMMOD-CHECK-NUMBER                         PIC X(8).
+    05  TMMOD-DEPARTMENT-CODE                      PIC X(3).
+    05  FILLER                                     PIC X
+                                       VALUE SPACES.
+    05  TMMOD-SOCIAL-SEC-NUMBER                    PIC 9(9).
+    05  TMMOD-SOCIAL-SEC-REMAINDER                 PIC X(7).
+    05  TMMOD-OPERATION-LOC                        PIC X(4).
+    05  TMMOD-SOURCE                               PIC X(15).
+    05  TMMOD-NAME                                 PIC X(40).
+    05  TMMOD-ADDRESS-1                            PIC X(37).
+    05  TMMOD-ADDRESS-2                            PIC X(43).
+    05  TMMOD-CITY                                 PIC X(26).
+    05  TMMOD-STATE                                PIC XX.
+    05  TMMOD-ZIP-CODE                             PIC X(9).
+    05  TMMOD-DELETE-INDICATOR                     PIC X.
+        88  NON-DELETE-OUTPUT              VALUE " ".
+        88  BUSINESS-OUTPUT                VALUE "B".
+        88  DELETE-OUTPUT                  VALUE "D".
+        88  MECHANIZED-OUTPUT              VALUE "M".
+    05  FILLER                                     PIC X
+                                       VALUE SPACES.
+    05  TMMOD-TOTAL-AMOUNT                         PIC S9(10)V99.01830001
+    05  TMMOD-1099-AMOUNT                          PIC S9(10)V99.01840001
+    05  TMMOD-CHECK-DATE                           PIC X(8).
+    05  TMMOD-PROCESS-DATE                         PIC X(6).
+    05  TMMOD-NUM-DISB-RECORDS                     PIC 99.
+    05  TMMOD-DISB-RECORDS                      OCCURS 5 TIMES.
+        10  TMMOD-DISB-ENTRY-CODE                  PIC X(3).
+        10  TMMOD-DISB-1099-INDICATOR              PIC X.
+        10  TMMOD-DISB-AMOUNT                      PIC S9(10)V99.01910001
+    05  TMMOD-COMMENTS                             PIC X(29).
+    05  TMMOD-LINE-NUMBER                          PIC X(7).
+    05  TMMOD-TAX-TYPE                             PIC X(1).
+    05  TMMOD-TIN-IND                              PIC X(1).
+    05  FILLER                                     PIC X(36)
+                                                 VALUE SPACES.
+01  TEN99-M01W-MAST-OUT-HDR REDEFINES TEN99-M01W-MASTER-OUT-DTL.
+    05  TMMOH-HEAD-SOURCE                         PIC X(33).
+        88 MAST-OUT-HEAD                  VALUE LOW-VALUES.
+    05  FILLER                                    PIC XX.
+    05  TMMOH-HEAD-ID                             PIC X(10).
+    05  FILLER                                    PIC XX.
+    05  TMMOH-HEAD-DATE.
+        10  TMMOH-HEAD-CENTURY                    PIC 99.
+        10  TMMOH-HEAD-YEAR                       PIC 99.
+        10  TMMOH-HEAD-MONTH                      PIC 99.
+    05  FILLER                                    PIC X(347).
+01  TEN99-M01W-MAST-OUT-TLR REDEFINES TEN99-M01W-MASTER-OUT-DTL.
+    05  TMMOT-TRAIL-SOURCE                        PIC X(33).
+        88 MAST-OUT-TRAILER               VALUE HIGH-VALUES.
+    05  FILLER                                    PIC XX.
+    05  TMMOT-TRAIL-CNT                           PIC 9(8).
+    05  FILLER                                    PIC XX.
+    05  TMMOT-TRAIL-AMT                           PIC S9(10)V99.
+    05  FILLER                                    PIC X(343).
+    EJECT
+021500*-----------------------------------------------------------------02150001
+021600*  COUNTERS & ACCUMULATORS                                        02160001
+021700*-----------------------------------------------------------------02170001
+01  WS-COUNTERS.
+    05  WS-MAST-IN-CNT                               PIC 9(13).
+    05  WS-MAST-OUT-CNT                              PIC 9(13).
+    05  WS-ORIGINAL-IN-CNT-TOTAL                     PIC 9(13).
+01  WS-ACCUMULATORS.
+    05  WS-MAST-IN-AMT                            PIC S9(10)V99.
+    05  WS-MAST-OUT-AMT                           PIC S9(10)V99.
+    05  WS-ORIGINAL-IN-AMT-TOTAL                  PIC S9(10)V99.
+022600*-----------------------------------------------------------------02260001
+022700*  SWITCHES AND INDEXES                                           02270001
+022800*-----------------------------------------------------------------02280001
+01  WS-FLAGS.
+    05  WS-CONTROL-CARD-FLG                      PIC X VALUE "N".02300001
+        88  CC-EOF                               VALUE "Y".
+    05  WS-CORPORATE-FLG                         PIC X VALUE "N".02320001
+        88  CORP-EOF                             VALUE "Y".
+    05  WS-MASTER-FLG                            PIC X VALUE "N".02340001
+        88  MASTER-EOF                           VALUE "Y".
+    05  WS-TRAILER-REACHED                       PIC X VALUE "N".02360001
+        88  TRAILER-REACHED                      VALUE "Y".
+    EJECT
+023900*-----------------------------------------------------------------02390001
+024000*  LITERALS                                                       02400001
+024100*-----------------------------------------------------------------02410001
+01  WS-SYSOUT-MESSAGES.
+    05  WS-MSG-1                                    PIC X(50)
+          VALUE " NO CORPORATE RECORDS TO PROCESS THIS RUN    ".
+01  WS-ERROR-MESSAGES.
+    05  WS-ERROR-MSG-1                              PIC X(50)
+         VALUE " CONTROL CARD MISSING - CCACR01R ".
+    05  WS-ERROR-MSG-2                              PIC X(50)
+         VALUE " NO RECORDS ON MASTER FILE - CCACT01R ".
+    05  WS-ERROR-MSG-3                              PIC X(50)
+        VALUE " CONTROL AND MASTER DATE NO MATCH - CCACM01R ".
+    05  WS-ERROR-MSG-4                              PIC X(50)
+         VALUE " NO HEADER RECORD ON MASTER - CCACM01R ".
+    05  WS-ERROR-MSG-5                              PIC X(50)
+         VALUE " NO TRAILER RECORD ON MASTER - CCACM01R ".
+    05  WS-ERROR-MSG-6                              PIC X(50)
+         VALUE " DUPLICATE HEADER ON MASTER - CCACM01R ".
+    05  WS-ERROR-MSG-7                              PIC X(50)
+         VALUE " COUNTS OR AMOUNTS DO NOT BALANCE - CCACT01R ".
+    05  WS-ERROR-MSG-8                              PIC X(50)
+         VALUE " NO TRAILER RECORD ON MASTER - CCACT01R ".
+01  WS-EOJ-SYSOUT-MESSAGES.
+    05  WS-EOJ-MSG-1                                PIC X(50)
+          VALUE " TOTAL CNT IN FROM TRAILER : ".
+    05  WS-EOJ-MSG-2.
+        10  FILLER                                  PIC X(35)
+          VALUE " TOTAL AMT IN FROM TRAILER : ".
+        10 WS-MSG-2-CNT                           PIC S9(10)V99.
+    05  WS-EOJ-MSG-3                                PIC X(50)
+          VALUE " TOTAL CNT READ IN TO CCAC6340 : ".
+    05  WS-EOJ-MSG-4.
+        10  FILLER                                  PIC X(35)
+          VALUE " TOTAL AMT READ IN TO CCAC6340 : ".
+        10 WS-MSG-4-CNT                           PIC S9(10)V99.
+    05  WS-EOJ-MSG-5                                PIC X(50)
+          VALUE " TOTAL CNT WRITTEN FROM CCAC6340 : ".
+    05  WS-EOJ-MSG-6.
+        10  FILLER                                  PIC X(35)
+          VALUE " TOTAL AMT WRITTEN FROM CCAC6340 : ".
+        10 WS-MSG-6-CNT                           PIC S9(10)V99.
+01  WS-PARAGRAPH-LITS.
+    05  WS-1000-INIT                                PIC X(31)
+         VALUE " 1000-INITIALIZE         ".
+    05  WS-2000-MAIN                                PIC X(31)
+         VALUE " 2000-MAIN-PROCESS       ".
+    05  WS-2200-PROC                                PIC X(31)
+         VALUE " 2200-PROCESS-ENTIRE-MASTER ".
+    05  WS-9000-EOJ                                 PIC X(31)
+         VALUE " 9000-END-OF-JOB ".
+01  WS-MISC-LITS.
+    05  WS-HIGH-KEY-LIT                             PIC X(11)
+                                        VALUE HIGH-VALUES.
+    05  WS-LOW-KEY-LIT                              PIC X(11)
+                                        VALUE LOW-VALUES.
+    05  WS-HEADER-LIT                               PIC X(10)
+                                        VALUE "HEADER    ".
+    05  WS-ONE-LIT                                  PIC 9
+                                        VALUE 1.
+    05  WS-MECH-LIT                                 PIC X
+                                        VALUE "M".
+    EJECT
+030200*-----------------------------------------------------------------03020001
+030300*++INCLUDE C2INX003                                               03030001
+COPY C2INX003.
+   EJECT
+PROCEDURE DIVISION.
+
+0000-MAINLINE.
+030900*=================================================================03090001
+031000*   PROGRAM CCAC6340 MAINLINE                                     03100001
+031100*   MAIN PROCESSING PARAGRAPH                                     03110001
+031200*=================================================================03120001
+    PERFORM 1000-INITIALIZATION
+    PERFORM 2000-MAIN-PROCESS UNTIL MASTER-EOF
+    PERFORM 9000-END-OF-JOB
+031600*OQ01 - "GOBACK" FLAGGED PER STOP-RUN OPTION                      03160001
+    GOBACK
+    .
+    EJECT
+
+1000-INITIALIZATION.
+032200*=================================================================03220001
+032300*   THIS PARAGRAPH INITIALIZES THE READ AND COUNTERS AND CHECKS   03230001
+032400*   ALL HEADERS.                                                  03240001
+032500*=================================================================03250001
+    PERFORM 1010-OPEN-FILES
+    PERFORM 1020-INITIALIZE-SYSOUT
+    INITIALIZE WS-COUNTERS WS-ACCUMULATORS
+    INITIALIZE TEN99-M01W-MASTER-OUT-DTL
+033000*--------------------------------------------------------------   03300001
+033100*  READ OF THE CONTROL CARD                                       03310001
+033200*--------------------------------------------------------------   03320001
+    PERFORM 7000-READ-CONTROL-CARD
+    IF CC-EOF
+       MOVE WS-ERROR-MSG-1 TO CC-E01W-DISPLAY-RCD
+       MOVE WS-1000-INIT TO SAR-PARAGRAPH
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    END-IF
+034000*--------------------------------------------------------------   03400001
+034100* INITIAL READS OF MASTER FILE FOR HEADER                         03410001
+034200*--------------------------------------------------------------   03420001
+    PERFORM 7200-READ-MASTER-FILE
+    IF MASTER-EOF
+       MOVE WS-ERROR-MSG-2 TO CC-E01W-DISPLAY-RCD
+       MOVE WS-1000-INIT TO SAR-PARAGRAPH
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 9998-COREDUMP
+    ELSE
+       IF MAST-HEADER
+          IF TRCCD-CONTROL-DATE = TMMIH-HEAD-DATE
+             PERFORM 8000-WRITE-MASTER-OUT
+             PERFORM 7200-READ-MASTER-FILE
+             IF MASTER-EOF
+                MOVE WS-ERROR-MSG-5 TO CC-E01W-DISPLAY-RCD
+                MOVE WS-1000-INIT TO SAR-PARAGRAPH
+                PERFORM 8999-WRITE-SYSOUT
+                PERFORM 9998-COREDUMP
+             ELSE
+                CONTINUE
+             END-IF
+          ELSE
+             MOVE WS-ERROR-MSG-3 TO CC-E01W-DISPLAY-RCD
+             MOVE WS-1000-INIT TO SAR-PARAGRAPH
+             PERFORM 8999-WRITE-SYSOUT
+             PERFORM 9998-COREDUMP
+          END-IF
+       ELSE
+          MOVE WS-ERROR-MSG-4 TO CC-E01W-DISPLAY-RCD
+          MOVE WS-1000-INIT TO SAR-PARAGRAPH
+          PERFORM 8999-WRITE-SYSOUT
+          PERFORM 9998-COREDUMP
+       END-IF
+    END-IF
+037500*--------------------------------------------------------------   03750001
+037600*  INITIAL READ OF CORPORATE FILE FOR FIRST RECORD                03760001
+037700*--------------------------------------------------------------   03770001
+    PERFORM 7100-READ-CORPORATE-FILE
+    IF CORP-EOF
+       MOVE WS-MSG-1 TO CC-E01W-DISPLAY-RCD
+       PERFORM 8999-WRITE-SYSOUT
+       PERFORM 2200-PROCESS-ENTIRE-MASTER UNTIL MASTER-EOF
+    ELSE
+       CONTINUE
+    END-IF
+    .
+    EJECT
+
+1010-OPEN-FILES.
+039000*==============================================================*  03900001
+039100*    THIS PARAGRAPH OPENS ALL OF THE INPUT AND OUTPUT FILES.   *  03910001
+039200*==============================================================*  03920001
+    OPEN INPUT TEN99-M01R-MASTER-IN-FILE
+               TEN99-T01R-CORPORATE-FILE
+               TEN99-R01R-CONTROL-FILE
+    OPEN OUTPUT TEN99-M01W-MASTER-OUT-FILE
+                CC-E01W-DISPLAY-FILE
+    .
+    EJECT
+
+1020-INITIALIZE-SYSOUT.
+040200*=================================================================04020001
+040300*  THIS PARAGRAPH INITIALIZES THE SYSOUT DISPLAY AREA.            04030001
+040400*  THE CODE CAN BE FOUND IN COPYLIB C2INP001.                     04040001
+040500*=================================================================04050001
+040600*++INCLUDE C2INZ001                                               04060001
+COPY C2INZ001.
+    EJECT
+
+2000-MAIN-PROCESS.
+041100*=================================================================04110001
+041200*  THIS PARAGRAPH IS THE MAIN CONTROL OF THE PROGRAM PROCESSING.  04120001
+041300*  IT WILL BE EXECUTED UNTIL EOF OF THE MASTER FILE IS REACHED    04130001
+041400*=================================================================04140001
+    IF MAST-TRAILER
+       COMPUTE WS-ORIGINAL-IN-CNT-TOTAL =
+          (TMMIT-NON-DELETE-TRAIL-CNT + TMMIT-DELETE-TRAIL-CNT)
+       COMPUTE WS-ORIGINAL-IN-AMT-TOTAL =
+          (TMMIT-NON-DELETE-TRAIL-AMT + TMMIT-DELETE-TRAIL-AMT)
+       PERFORM 7200-READ-MASTER-FILE
+    ELSE
+       IF BUSINESS-OUTPUT
+          OR DELETE-OUTPUT
+          OR MECHANIZED-OUTPUT
+             ADD WS-ONE-LIT TO WS-MAST-IN-CNT
+             ADD TMMID-1099-AMOUNT TO WS-MAST-IN-AMT
+             PERFORM 8000-WRITE-MASTER-OUT
+             PERFORM 7200-READ-MASTER-FILE
+       ELSE
+          IF TMMID-SOCIAL-SEC-NUMBER = TTCD-SOCIAL-SEC-NUMBER
+             MOVE WS-MECH-LIT TO TMMID-DELETE-INDICATOR
+             ADD WS-ONE-LIT TO WS-MAST-IN-CNT
+             ADD TMMID-1099-AMOUNT TO WS-MAST-IN-AMT
+             PERFORM 8000-WRITE-MASTER-OUT
+             PERFORM 7200-READ-MASTER-FILE
+          ELSE
+             IF TMMID-SOCIAL-SEC-NUMBER < TTCD-SOCIAL-SEC-NUMBER
+                ADD WS-ONE-LIT TO WS-MAST-IN-CNT
+                ADD TMMID-1099-AMOUNT TO WS-MAST-IN-AMT
+                PERFORM 8000-WRITE-MASTER-OUT
+                PERFORM 7200-READ-MASTER-FILE
+             ELSE
+                PERFORM 7100-READ-CORPORATE-FILE
+                IF CORP-EOF
+                   PERFORM 2200-PROCESS-ENTIRE-MASTER
+                      UNTIL MASTER-EOF
+                ELSE
+                   CONTINUE
+                END-IF
+             END-IF
+          END-IF
+       END-IF
+    END-IF
+    .
+   EJECT
+
+2200-PROCESS-ENTIRE-MASTER.
+045800*=================================================================04580001
+045900*  THIS PARAGRAPH READS AND WRITES THE UNCHANGED MASTER RECORDS   04590001
+046000*  WHEN THE END OF THE CORPORATE FILE RECORDS ARE REACHED.        04600001
+046100*=================================================================04610001
+    IF MAST-TRAILER
+       COMPUTE WS-ORIGINAL-IN-CNT-TOTAL =
+          (TMMIT-NON-DELETE-TRAIL-CNT + TMMIT-DELETE-TRAIL-CNT)
+       COMPUTE WS-ORIGINAL-IN-AMT-TOTAL =
+          (TMMIT-NON-DELETE-TRAIL-AMT + TMMIT-DELETE-TRAIL-AMT)
+    ELSE
+       ADD WS-ONE-LIT TO WS-MAST-IN-CNT
+       ADD TMMID-1099-AMOUNT TO WS-MAST-IN-AMT
+       PERFORM 8000-WRITE-MASTER-OUT
+    END-IF
+    PERFORM 7200-READ-MASTER-FILE
+    .
+    EJECT
+
+7000-READ-CONTROL-CARD.
+047700*=================================================================04770001
+047800*  THIS PARAGRAPH READS THE CONTROL CARD.                         04780001
+047900*=================================================================04790001
+     READ TEN99-R01R-CONTROL-FILE
+       INTO TEN99-R01R-CONTROL-CARD-DTL
+         AT END
+             SET CC-EOF TO TRUE
+     END-READ
+     .
+     EJECT
+
+7100-READ-CORPORATE-FILE.
+048900*=================================================================04890001
+049000*  THIS PARAGRAPH READS THE CORPORATE FILE                        04900001
+049100*=================================================================04910001
+    READ TEN99-T01R-CORPORATE-FILE
+       INTO TEN99-T01R-CORPORATE-DTL
+          AT END
+             SET CORP-EOF TO TRUE
+    END-READ
+    .
+    EJECT
+
+7200-READ-MASTER-FILE.
+050100*=================================================================05010001
+050200*  THIS PARAGRAPH READS THE MASTER FILE                           05020001
+050300*=================================================================05030001
+    READ TEN99-M01R-MASTER-IN-FILE
+       INTO TEN99-M01R-MASTER-IN-DTL
+          AT END
+             SET MASTER-EOF TO TRUE
+    END-READ
+    .
+    EJECT
+
+8000-WRITE-MASTER-OUT.
+051300*=================================================================05130001
+051400*  THIS PARAGRAPH WRITES THE MASTER FILE RECORD                   05140001
+051500*=================================================================05150001
+     MOVE TEN99-M01R-MASTER-IN-DTL
+                      TO TEN99-M01W-MASTER-OUT-DTL
+     WRITE TEN99-M01W-MASTER-OUT-RCD
+                      FROM TEN99-M01W-MASTER-OUT-DTL
+     IF MAST-OUT-HEAD OR MAST-OUT-TRAILER
+        CONTINUE
+     ELSE
+        ADD WS-ONE-LIT TO WS-MAST-OUT-CNT
+        ADD TMMOD-1099-AMOUNT TO WS-MAST-OUT-AMT
+     END-IF
+     INITIALIZE TEN99-M01W-MASTER-OUT-DTL
+     .
+
+8500-WRITE-NEW-TRAILER-OUT.
+053100*=================================================================05310001
+053200*  THIS PARAGRAPH WRITES THE NEW MASTER TRAILER RECORD            05320001
+053300*=================================================================05330001
+     WRITE TEN99-M01W-MASTER-OUT-RCD
+                      FROM TEN99-M01W-MASTER-OUT-DTL
+     INITIALIZE TEN99-M01W-MASTER-OUT-DTL
+     .
+
+053900*8999-WRITE-SYSOUT.                                               05390001
+054000*=================================================================05400001
+054100*  THIS PARAGRAPH WRITE THE SYSOUT MESSAGES                       05410001
+054200*=================================================================05420001
+054300*++INCLUDE C2INZ002                                               05430001
+COPY C2INZ002.
+    EJECT
+054600*    .                                                            05460001
+9000-END-OF-JOB.
+054800*=================================================================05480001
+054900*  THIS PARAGRAPH COMPARES TOTAL COUNTS AND AMOUNTS FROM MASTER   05490001
+055000*  TRAILER RECORD WITH CCAC6340INPUT/OUTPUT COUNTS AND AMOUNTS    05500001
+055100*=================================================================05510001
+     IF WS-MAST-IN-CNT = WS-ORIGINAL-IN-CNT-TOTAL
+        AND WS-MAST-IN-AMT = WS-ORIGINAL-IN-AMT-TOTAL
+        AND WS-MAST-IN-CNT = WS-MAST-OUT-CNT
+        AND WS-MAST-IN-AMT = WS-MAST-OUT-AMT
+           MOVE HIGH-VALUES TO TMMOT-TRAIL-SOURCE
+           MOVE WS-MAST-OUT-CNT TO TMMOT-TRAIL-CNT
+           MOVE WS-MAST-OUT-AMT TO TMMOT-TRAIL-AMT
+           PERFORM 8500-WRITE-NEW-TRAILER-OUT
+           PERFORM 9010-WRAP-UP
+           PERFORM 9999-CLOSE-FILES
+     ELSE
+        MOVE WS-ERROR-MSG-7 TO CC-E01W-DISPLAY-RCD
+        MOVE WS-9000-EOJ TO SAR-PARAGRAPH
+        PERFORM 8999-WRITE-SYSOUT
+        PERFORM 9010-WRAP-UP
+        PERFORM 9998-COREDUMP
+     END-IF
+     .
+     EJECT
+
+9010-WRAP-UP.
+057300*=================================================================05730001
+057400*  THIS PARAGRAPH WRITE FINAL MESSAGES TO THE SYSOUT              05740001
+057500*=================================================================05750001
+057600*  THE FIRST SIX MESSAGES DISPLAY THE RECORD COUNTS ON THE SYSOUT 05760001
+057700*-----------------------------------------------------------------05770001
+     MOVE WS-EOJ-MSG-1 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-ORIGINAL-IN-CNT-TOTAL TO SCR-COUNT
+     MOVE SYSOUT-COUNT-RCD TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-EOJ-MSG-3 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-MAST-IN-CNT TO SCR-COUNT
+     MOVE SYSOUT-COUNT-RCD TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-EOJ-MSG-5 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-MAST-OUT-CNT TO SCR-COUNT
+     MOVE SYSOUT-COUNT-RCD TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+059300*=================================================================05930001
+059400*  THE NEXT SIX MESSAGES DISPLAY THE TOTAL AMOUNTS ON THE SYSOUT  05940001
+059500*-----------------------------------------------------------------05950001
+     MOVE WS-ORIGINAL-IN-AMT-TOTAL TO WS-MSG-2-CNT
+     MOVE WS-EOJ-MSG-2 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-MAST-IN-AMT TO WS-MSG-4-CNT
+     MOVE WS-EOJ-MSG-4 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+     MOVE WS-MAST-OUT-AMT TO WS-MSG-6-CNT
+     MOVE WS-EOJ-MSG-6 TO CC-E01W-DISPLAY-RCD
+     PERFORM 8999-WRITE-SYSOUT
+060500*++INCLUDE C2INZ003                                               06050001
+COPY C2INZ003.
+    EJECT
+
+061000*9998-COREDUMP.                                                   06100001
+061100*=================================================================06110001
+061200*  THIS PARAGRAPH CALLS COREDUMP TO STOP PROCESSING               06120001
+061300*=================================================================06130001
+061400*++INCLUDE C2INZ004                                               06140001
+COPY C2INZ004.
+
+061700*9999-CLOSE-FILES.                                                06170001
+061800*=================================================================06180001
+061900*  THIS PARAGRAPH CLOSES ALL FILES                                06190001
+062000*=================================================================06200001
+062100*++INCLUDE C2INZ005                                               06210001
+COPY C2INZ005.
+    CLOSE TEN99-M01R-MASTER-IN-FILE
+    CLOSE TEN99-M01W-MASTER-OUT-FILE
+    CLOSE TEN99-R01R-CONTROL-FILE
+    CLOSE TEN99-T01R-CORPORATE-FILE
+    .
+
+END PROGRAM CCAC6340.
+
+

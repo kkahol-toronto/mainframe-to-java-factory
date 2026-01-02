@@ -1,0 +1,6 @@
+    FC.TSOA.PROD.PARMLIB(AC640SUB) - 01.00          Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+***************************** Top of Data ******************************
+VIP12 EXTERNAL AAGENT    CCAC     CCAC@640 JOB HAS BEEN ABENDED IN FACILITY A.
+**************************** Bottom of Data ****************************
+

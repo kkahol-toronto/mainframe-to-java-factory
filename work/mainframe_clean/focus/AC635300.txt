@@ -1,0 +1,98 @@
+-***********************************************************************
+-*  FOCEXEC: AC635300                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  SUMMARIZED 1099-MISC YEAR-END REPORT   # 4613      *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |   NEW FOCEXEC - SUMMARIZED 1099-MISC
+-*           |              |                 YEAR-END REPORT
+-* D.OPPERMANN     01/2004  |     RENAMED FROM MR635300 TO AC635300
+-*           |              |     MR PREFIX ON FILE,DD NAMES TO AC
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-*           |              |
+-* R FORTUNATE     01/2011  |   EPM 2666
+-*           |              |   -RENAMED DESCRIPTION FROM AC635300 TO
+-*           |              |   AC6353M0
+-*           |              |   -ADD TAX TYPE AND TIN TO REPORT
+-*           |              |   -CHANGE COLUMN HEADING FROM SSN TO
+-*           |              |    SSN/EIN
+-*           |              |
+-*-----------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC635300 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC6353M0
+N_1099_AMT/P12.2M = 1099_AMT;
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*  TIN INDICATOR VALUE 1 => TAX FIELD IS AN EIN - FORMAT 99-9999999
+-*  TIN INDICATOR VALUE 2 => TAX FIELD IS AN SSN - FORMAT 999-99-9999
+-*----------------------------------------------------------------------
+-*SSN1/A11 = IF TIN_IND = '1'  THEN   EDIT(SOC_NUM,'99-9999999 ')
+-*           ELSE                     EDIT(SOC_NUM,'999-99-9999');
+-*SSN1/A11 = EDIT(SOC_NUM,'999-99-9999');
+-*----------------------------------------------------------------------
+SSN_KEY/A11 = SOC_NUM | TAX_TYP | TIN;
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+END
+
+TABLE FILE AC6353M0
+HEADING
+" "
+" "
+"PROGRAM:  AC635300
+       <57 SUMMARIZED 1099-MISC YEAR-END REPORT <115 REPORT:  4613 "
+"&DATE <11 &TOD      <69 FOR  <RPT_YY <115   PAGE:<TABPAGENO   "
+"                                                                      "
+"                                                                      "
+"         <25 TOTAL                                                    "
+"         <25 1099    <34 TAX    <41 TIN                               "
+"<4 SSN/EIN  <25 AMOUNT  <34 TYPE   <40 FORMAT <47 NAME   <92  ADDRESS "
+"<4 -------  <25 ------  <34 ----   <40 ------ <47 ----   <92  ------- "
+" "
+PRINT SOC_NUM       AS ' '
+      1099_AMT      AS ' ' IN 17
+      TAX_TYPE      AS ' ' IN 32
+      TIN_IND       AS ' ' IN 38
+      NAME          AS ' ' IN 44
+      ADDRESS       AS ' ' IN 89
+OVER CITY AS 'CITY:' IN 4  STATE AS 'STATE:' IN 47 ZIP AS 'ZIP:' IN 69
+OVER BLANK_LINE AS ''
+OVER BLANK_LINE AS ''
+BY SSN_KEY    NOPRINT
+IF TYPE EQ A
+ON TABLE SUBFOOT
+"  TOTAL 1099 AMOUNT: <TOT.N_1099_AMT>"
+END
+

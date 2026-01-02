@@ -1,0 +1,9 @@
+    CC.SORT.DATA(AC630090) - 01.05                  Columns 00001 00072 
+ ===>                                                  Scroll ===> CSR  
+*********************************************************************** 
+ OPTION  COPY                                                           
+  INCLUDE COND=(1,2,CH,NE,X'0000',                                      
+                &,1,2,CH,NE,X'FFFF')                                    
+  OUTFIL FNAMES=DD01O                                                   
+*+* FMC2DFS: End of DFSORT statement output *+*                         
+**************************** Bottom of Data ****************************

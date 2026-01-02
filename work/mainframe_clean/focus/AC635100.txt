@@ -1,0 +1,97 @@
+-***********************************************************************
+-*  FOCEXEC: AC635100                                                  *
+-*                                                                     *
+-*                  FINANCE AND STAFF SYSTEMS                          *
+-*                  1099-MISC. REPORTING SYSTEM                        *
+-*                                                                     *
+-*                  1099-MISC REPORTABLE MASTER DELETES  # 4610        *
+-*                  (ANNUAL)                                           *
+-*                                                                     *
+-*          ANALYST:  VERONICA A FIELDS  DATE:  12/94                  *
+-*                                                                     *
+-***********************************************************************
+-*
+-*-----------------------------------------------------------------
+-*                          MODIFICATION HISTORY
+-*-----------------------------------------------------------------
+-* ANALYST   |     DATE     |      PURPOSE
+-*-----------------------------------------------------------------
+-*           |              |
+-* V.FIELDS  |     12/94    |   NEW FOCEXEC - 1099 MISC REPORTABLE
+-*           |              |                 MASTER DELETES
+-* D.OPPERMANN     01/2004  |     RENAMED FROM MR635100 TO AC635100
+-*           |              |     MR PREFIX ON FILE,DD NAMES TO AC
+-*           |              |
+-* A.DOBRYNSKI     06/2008  |   2007-ACC-086 - ACCEPT DEFT FILE
+-*           |              |     CHANGE HEADING
+-*           |              |
+-* D OPPERMANN     02/2009  |   CHANGED &FILL2.X72 TO &FILL2.A72 ON
+-*           |              |   READ STATEMENT FOR FOCUS UPGRADE TO
+-*           |              |   VERSION 7.6.7.
+-*           |              |   2009-ACC-005 - 'MISC1099 - FOCUS 7.6.7
+-*           |              |   UPGRADES'
+-* R FORTUNATE     01/2011  |   EPM 2666
+-*           |              |   RENAMED DESCRIPTION FROM AC635100 TO
+-*           |              |   AC6351M0
+-*           |              |   ADD TAX TYPE & TIN TO REPORT
+-*           |              |
+-*------------------------------------------------------------------
+-*
+-TYPE
+-TYPE            <<<  BEGINNING OF PROGRAM AC635100 >>>
+-TYPE
+-*
+-*----------------------------------------------------------------------
+-*        READ CONTROL CARD FOR CURRENT MONTH-END PROCESSING
+-*----------------------------------------------------------------------
+-READ CCACR01R  &ME_DATE.A8. &FILL2.A72.
+-*
+-SET &CNTL_MM = EDIT(&ME_DATE,'$$$$99$$');
+-SET &CNTL_YY = EDIT(&ME_DATE,'9999$$$$');
+-*
+DEFINE FILE AC6351M0
+BLANK_LINE/A133 = '';
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE HEADER AND TRAILER RECORD OF THE INPUT FILE
+-*----------------------------------------------------------------------
+HDR_REC/A38 = OPLOC| DEPT | CHECK_NUM | CK_DT | SOURCE;
+TRL_REC/A38 = OPLOC| DEPT | CHECK_NUM | CK_DT | SOURCE;
+-*
+-*----------------------------------------------------------------------
+-*   DEFINE REPORT DATE BASED ON CONTROL CARD DATE
+-*----------------------------------------------------------------------
+RPT_YY/YY = &CNTL_YY;
+CK_DT_MO/A2 = EDIT(CK_DT,'$$$$99$');
+CK_DT_DA/A2 = EDIT(CK_DT,'$$$$$$99');
+CK_DT_YR/A4 = EDIT(CK_DT,'9999$');
+PRT_CK_DT/A10 = CK_DT_MO | '/' | CK_DT_DA | '/' | CK_DT_YR;
+SSN/A11 = EDIT(SOC_NUM,'999-99-9999');
+END
+
+TABLE FILE AC6351M0
+HEADING
+" "
+"PROGRAM:  AC635100
+      <57 1099-MISC REPORTABLE MASTER DELETES <115 REPORT:  4610  "
+"&DATE  <11 &TOD     <60     FOR  <RPT_YY     <115   PAGE:<TABPAGENO   "
+"                                                                      "
+PRINT
+      C_CODE              AS 'ENTRY,CODE'
+      D_AMT               AS '1099,AMOUNT'
+      TAX_TYPE            AS 'TAX,TYPE'
+      TIN_IND             AS 'TIN'
+BY SSN        AS 'SSN'
+BY NAME       AS 'NAME'
+BY DEPT       AS 'BRANCH/,DEPT CD'
+BY OPLOC      AS 'OPERATION,LOCATION'
+BY PRT_CK_DT  AS 'CHECK/STLMT,DATE'
+BY CHECK_NUM  AS 'CHECK/BATCH,NUMBER'
+BY TOTAL_AMOUNT AS 'DISB,AMOUNT'
+IF HDR_REC GT 'AAAAAAAAA'
+IF TRL_REC LT '999999999'
+IF DEL_IND   EQ 'D'
+ON TABLE COLUMN-TOTAL
+END
+END
+
