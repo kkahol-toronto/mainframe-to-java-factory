@@ -1,0 +1,145 @@
+{
+  "programId": "CCAC6250",
+  "purpose": "Enhanced 1099 Systems - Reformats 1099 reject, vendor, and master files, adding headers and trailers, and produces summary output for each file.",
+  "files": [
+    {
+      "name": "CCAC-T01R-EDITED-1099-REJECT",
+      "type": "input",
+      "record": "CCAC-T01R-EDITED-REJECT-RCD",
+      "assignTo": "UT-S-CCACT01R"
+    },
+    {
+      "name": "CCAC-T02R-1099-VENDOR-FILE",
+      "type": "input",
+      "record": "CCAC-T02R-1099-VENDOR-RCD",
+      "assignTo": "UT-S-CCACT02R"
+    },
+    {
+      "name": "CCAC-M01R-EDITED-1099-MASTER",
+      "type": "input",
+      "record": "CCAC-M01R-EDITED-MASTER-RCD",
+      "assignTo": "UT-S-CCACM01R"
+    },
+    {
+      "name": "CCAC-T01W-FORMAT-1099-REJECT",
+      "type": "output",
+      "record": "CCAC-T01W-FORMAT-REJECT-RCD",
+      "assignTo": "UT-S-CCACT01W"
+    },
+    {
+      "name": "CCAC-T02W-FORMAT-1099-VENDOR",
+      "type": "output",
+      "record": "CCAC-T02W-FORMAT-VENDOR-RCD",
+      "assignTo": "UT-S-CCACT02W"
+    },
+    {
+      "name": "CCAC-M01W-FORMAT-1099-MASTER",
+      "type": "output",
+      "record": "CCAC-M01W-FORMAT-MASTER-RCD",
+      "assignTo": "UT-S-CCACM01W"
+    },
+    {
+      "name": "CCAC-R01R-CONTROL-CARD",
+      "type": "input",
+      "record": "CCAC-R01R-CONTROL-CARD-RCD",
+      "assignTo": "UT-S-CCACR01R"
+    },
+    {
+      "name": "CC-E01W-DISPLAY-FILE",
+      "type": "output",
+      "record": "CC-E01W-DISPLAY-RCD",
+      "assignTo": "UT-S-CCACE01W"
+    }
+  ],
+  "copybooks": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ005"
+  ],
+  "workingStorage": {
+    "flags": [
+      "WS-REJ-EOF-SW",
+      "WS-VEND-EOF-SW",
+      "WS-MSTR-EOF-SW",
+      "END-OF-REJECTS",
+      "END-OF-VENDOR",
+      "END-OF-MASTER"
+    ],
+    "counters": [
+      "WS-TOT-REJ-RECDS-READ",
+      "WS-TOT-VEND-RECDS-READ",
+      "WS-TOT-MSTR-RECDS-READ",
+      "WS-TOT-REJ-WRITTEN-CNT",
+      "WS-TOT-VEND-WRITTEN-CNT",
+      "WS-TOT-MSTR-NDEL-CNT",
+      "WS-TOT-MSTR-DEL-CNT"
+    ],
+    "accumulators": [
+      "WS-TOT-REJ-1099-AMT",
+      "WS-TOT-VEND-1099-AMT",
+      "WS-TOT-MSTR-NDEL-AMT",
+      "WS-TOT-MSTR-DEL-AMT"
+    ],
+    "keyFields": [
+      "WS-T01R-KEY-OP-LOC",
+      "WS-T01R-KEY-BR-DEPT-CD",
+      "WS-T01R-KEY-CHECK-NUM",
+      "WS-T01R-KEY-CHECK-DT",
+      "WS-T01R-KEY-TAX-TYPE",
+      "WS-T01R-KEY-TIN-IND",
+      "WS-T01R-KEY-SOURCE-CODE"
+    ]
+  },
+  "controlFlow": {
+    "mainEntry": "0000-MAINLINE",
+    "termination": "GOBACK",
+    "paragraphs": [
+      "0000-MAINLINE",
+      "1000-GENERAL-HOUSEKEEPING",
+      "1200-HEADER-REC-HOUSEKEEPING",
+      "1250-CREATE-REJ-HEADER",
+      "1300-CREATE-MSTR-HEADER",
+      "1350-CREATE-VEND-HEADER",
+      "1400-OPEN-FILES",
+      "1600-INITIALIZATION",
+      "3000-PROCESS-REJECT-FILE",
+      "3500-PROCESS-MASTER-FILE",
+      "3600-PROCESS-VENDOR-FILE",
+      "5000-PROCESS-TRAILERS",
+      "5100-CREATE-REJ-TRAILER",
+      "5200-CREATE-MSTR-TRAILER",
+      "5300-CREATE-VEND-TRAILER",
+      "7100-READ-CONTROL-CARD",
+      "7500-READ-REJECT-FILE",
+      "7600-READ-MASTER-FILE",
+      "7700-READ-VENDOR-FILE",
+      "8700-WRITE-REJECT-RECORD",
+      "8750-WRITE-MASTER-RECORD",
+      "8760-WRITE-VENDOR-RECORD",
+      "8999-WRITE-SYSOUT",
+      "9000-CLOSING-ROUTINE",
+      "9100-DISPLAY-CLOSING-RECORD",
+      "9998-COREDUMP",
+      "9999-CLOSE-FILES"
+    ],
+    "errorExits": [
+      "9998-COREDUMP"
+    ]
+  },
+  "patterns": {
+    "isTwoWayMerge": false,
+    "isGroupSummarize": true,
+    "isMasterUpdateMerge": false,
+    "isFormatterHeadersTrailers": true,
+    "isLookupEnrichment": false,
+    "notes": [
+      "Program reads three input files (reject, vendor, master), processes each to accumulate counts and amounts, and writes reformatted output files with headers and trailers.",
+      "Group summarization is performed for each file type, with totals written in trailer records.",
+      "No evidence of two-way merge or master/update logic.",
+      "Formatter pattern is present: output files have headers and trailers.",
+      "No lookup/enrichment pattern detected."
+    ]
+  }
+}

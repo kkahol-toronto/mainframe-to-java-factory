@@ -1,0 +1,114 @@
+{
+  "programId": "CCAC6350",
+  "purpose": "Summarizes 1099 reportable items by location code, SSN/EIN, tax type, TIN indicator, and branch for year-end reporting. Outputs a summary file with trailer records for each location code, including record counts and summarized amounts. Manual checks are reported as individual records.",
+  "files": [
+    {
+      "name": "TEN99-M01R-1099-MASTER-FILE",
+      "type": "input",
+      "record": "TEN99-M01R-1099-MASTER-RCD",
+      "length": 400
+    },
+    {
+      "name": "TEN99-R01R-CONTROL-CARD",
+      "type": "input",
+      "record": "TEN99-R01R-CONTROL-CARD-RCD",
+      "length": 80
+    },
+    {
+      "name": "TEN99-C01W-1099-SUMMARY-FILE",
+      "type": "output",
+      "record": "TEN99-C01W-1099-SUMMARY-RCD",
+      "length": 250
+    },
+    {
+      "name": "CC-E01W-DISPLAY-FILE",
+      "type": "output",
+      "record": "CC-E01W-DISPLAY-RCD",
+      "length": 133
+    }
+  ],
+  "copybooks": [
+    "C2INX003",
+    "C2INZ001",
+    "C2INZ002",
+    "C2INZ003",
+    "C2INZ004",
+    "C2INZ005"
+  ],
+  "workingStorage": {
+    "flags": [
+      "WS-EOF-SW",
+      "END-OF-INPUT",
+      "MASTER-HEADER",
+      "MASTER-TRAILER"
+    ],
+    "counters": [
+      "WS-TOT-RECDS-READ",
+      "WS-TOT-WRITTEN-CNT",
+      "WS-1099-TRLR-CNT",
+      "WS-TOT-1099-AMT",
+      "WS-1099-TRLR-AMOUNT",
+      "WS-TOT-BATCH-NUM"
+    ],
+    "accumulators": [
+      "WS-CALC-TOT-AMOUNT",
+      "WS-MANUAL-TOT-AMOUNT",
+      "WS-1099-TRLR-AMOUNT"
+    ],
+    "keyFields": [
+      "WS-CURR-REC-KEY",
+      "WS-PREV-REC-KEY",
+      "WS-M01R-OPER-LOC-CODE",
+      "WS-M01R-SOC-SEC-NUM",
+      "WS-M01R-TAX-TYPE",
+      "WS-M01R-TIN-IND",
+      "WS-M01R-BR-DEPT"
+    ]
+  },
+  "controlFlow": {
+    "mainEntry": "0000-MAINLINE",
+    "termination": "GOBACK",
+    "paragraphs": [
+      "0000-MAINLINE",
+      "1000-GENERAL-HOUSEKEEPING",
+      "1400-OPEN-FILES",
+      "1600-INITIALIZATION",
+      "1700-INIT-FIRST-DISPLAY-RCD",
+      "3000-PROCESS-MASTER-FILE",
+      "3100-BREAK-FOR-BRANCH",
+      "3200-BREAK-FOR-SOC-SEC-NUM",
+      "3300-BREAK-FOR-OPER-LOC-CODE",
+      "3900-SET-RECORD-KEY",
+      "4000-CREATE-SUMM-OUT-RECORD",
+      "4100-CREATE-MANUAL-OUT-RECORD",
+      "4200-CHECK-ZIP-CODE",
+      "4250-CHECK-NUMERIC-ZIP",
+      "4260-CHECK-ALPHA-ZIP",
+      "5000-PROCESS-TRAILER",
+      "7000-READ-CONTROL-CARD",
+      "7500-READ-MASTER-FILE",
+      "8700-WRITE-OUTPUT-RECORD",
+      "9000-CLOSING-ROUTINE",
+      "9100-WRITE-LAST-DISPLAY-RCD",
+      "9998-COREDUMP",
+      "9999-CLOSE-FILES",
+      "8999-WRITE-SYSOUT"
+    ],
+    "errorExits": [
+      "9998-COREDUMP"
+    ]
+  },
+  "patterns": {
+    "isTwoWayMerge": false,
+    "isGroupSummarize": true,
+    "isMasterUpdateMerge": false,
+    "isFormatterHeadersTrailers": true,
+    "isLookupEnrichment": false,
+    "notes": [
+      "Program summarizes 1099 records by key fields and outputs trailer records per group.",
+      "Manual checks are handled as individual records.",
+      "Trailer records contain record counts and summarized amounts for each location code.",
+      "Error handling and abnormal termination via 9998-COREDUMP."
+    ]
+  }
+}
