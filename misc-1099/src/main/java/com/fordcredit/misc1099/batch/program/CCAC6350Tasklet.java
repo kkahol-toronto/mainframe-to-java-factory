@@ -9,7 +9,7 @@ import org.springframework.batch.repeat.RepeatStatus;
  * Auto-generated Tasklet skeleton for COBOL program CCAC6350.
  *
  * Patterns detected:
- *   Program summarizes 1099 records by key fields and outputs trailer records per group., Manual checks are handled as individual records., Trailer records contain record counts and summarized amounts for each location code., Error handling and abnormal termination via 9998-COREDUMP., Uses copybooks for initialization, display, and file closing routines.
+ *   Program summarizes 1099 records by key fields and outputs a trailer record per group., Manual checks are handled as individual records., Trailer records contain record counts and summarized amounts., Error handling includes core dump and writing error messages to display file.
  */
 public class CCAC6350Tasklet implements Tasklet {
 
@@ -18,26 +18,10 @@ public class CCAC6350Tasklet implements Tasklet {
      * Expanded in Layer 3E/3F.
      */
     static class MergeState {
-        
+        // TODO: flags, counters, cursors, and records added later
+
         // BEGIN DOMAIN STATE (Layer 3F)
-
-        /**
-         * Raw lines / raw records (filled by readers in Layer 3E.1).
-         * Keep as String for maximum portability until record formats are finalized.
-         */
-        String masterRawLine;
-        String corporateRawLine;
-
-        /**
-         * Parsed domain objects (typed later when we lock record classes and parsers).
-         * Layer 3F.1 will replace Object with specific POJO types.
-         */
-        Object masterRecord;
-        Object corporateRecord;
-
         // END DOMAIN STATE (Layer 3F)
-
-// TODO: flags, counters, cursors, and records added later
     }
 
     @Override
@@ -67,34 +51,7 @@ public class CCAC6350Tasklet implements Tasklet {
     // ======================================================
 
     // ======================================================
-        // BEGIN DOMAIN BINDING (Layer 3F)
-
-    /**
-     * Convert the current raw master line into a domain object.
-     * Layer 3F.1 will implement this using FieldSpecs + the runtime parser.
-     */
-    private void bindMasterRecord(MergeState state) {
-        // TODO (Layer 3F.1):
-        // 1) Use the correct FieldSpecs for master input record
-        // 2) Parse state.masterRawLine into a POJO
-        // 3) Assign into state.masterRecord (typed later)
-    }
-
-    /**
-     * Convert the current raw corporate line into a domain object.
-     * Layer 3F.1 will implement this using FieldSpecs + the runtime parser.
-     */
-    private void bindCorporateRecord(MergeState state) {
-        // TODO (Layer 3F.1):
-        // 1) Use the correct FieldSpecs for corporate input record
-        // 2) Parse state.corporateRawLine into a POJO
-        // 3) Assign into state.corporateRecord (typed later)
-    }
-
-    // END DOMAIN BINDING (Layer 3F)
-
-
-// BEGIN IO PLUMBING (Layer 3E)
+    // BEGIN IO PLUMBING (Layer 3E)
 
     private void openFiles(MergeState state) {
         if (state.masterReader != null) {
@@ -145,4 +102,7 @@ public class CCAC6350Tasklet implements Tasklet {
 
 // END IO PLUMBING (Layer 3E)
     // ======================================================
+
+    // BEGIN DOMAIN BINDING (Layer 3F)
+    // END DOMAIN BINDING (Layer 3F)
 }

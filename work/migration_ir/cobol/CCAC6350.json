@@ -37,31 +37,10 @@
   ],
   "workingStorage": {
     "flags": [
-      {
-        "name": "WS-EOF-SW",
-        "values": [
-          {
-            "value": "Y",
-            "meaning": "END-OF-INPUT"
-          }
-        ]
-      },
-      {
-        "name": "MASTER-HEADER",
-        "values": [
-          {
-            "value": "LOW-VALUES"
-          }
-        ]
-      },
-      {
-        "name": "MASTER-TRAILER",
-        "values": [
-          {
-            "value": "HIGH-VALUES"
-          }
-        ]
-      }
+      "WS-EOF-SW",
+      "END-OF-INPUT",
+      "MASTER-HEADER",
+      "MASTER-TRAILER"
     ],
     "counters": [
       "WS-TOT-RECDS-READ",
@@ -77,22 +56,18 @@
       "WS-1099-TRLR-AMOUNT"
     ],
     "keyFields": [
-      {
-        "name": "WS-CURR-REC-KEY",
-        "fields": [
-          "WS-CURR-TAXID",
-          "WS-CURR-TAX-TYPE",
-          "WS-CURR-TAX-IND"
-        ]
-      },
-      {
-        "name": "WS-PREV-REC-KEY",
-        "fields": [
-          "WS-PREV-TAXID",
-          "WS-PREV-TAX-TYPE",
-          "WS-PREV-TIN-IND"
-        ]
-      }
+      "WS-M01R-OPER-LOC-CODE",
+      "WS-M01R-SOC-SEC-NUM",
+      "WS-M01R-TAX-TYPE",
+      "WS-M01R-TIN-IND",
+      "WS-M01R-BR-DEPT",
+      "WS-PREV-OPER-LOC-CODE",
+      "WS-PREV-SOC-SEC-NUM",
+      "WS-PREV-MSTR-TAX-TYPE",
+      "WS-PREV-MSTR-TIN-IND",
+      "WS-PREV-BR-DEPT",
+      "WS-CURR-REC-KEY",
+      "WS-PREV-REC-KEY"
     ]
   },
   "controlFlow": {
@@ -135,11 +110,10 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": false,
     "notes": [
-      "Program summarizes 1099 records by key fields and outputs trailer records per group.",
+      "Program summarizes 1099 records by key fields and outputs a trailer record per group.",
       "Manual checks are handled as individual records.",
-      "Trailer records contain record counts and summarized amounts for each location code.",
-      "Error handling and abnormal termination via 9998-COREDUMP.",
-      "Uses copybooks for initialization, display, and file closing routines."
+      "Trailer records contain record counts and summarized amounts.",
+      "Error handling includes core dump and writing error messages to display file."
     ]
   }
 }

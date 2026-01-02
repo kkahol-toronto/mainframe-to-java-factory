@@ -1,0 +1,32 @@
+{
+  "program": "CCAC6340",
+  "masterPojoClass": "com.fordcredit.misc1099.domain.copybook.C2INP001",
+  "masterFieldSpecsClass": "com.fordcredit.misc1099.parser.C2INP001FieldSpecs",
+  "corporatePojoClass": "com.fordcredit.misc1099.domain.copybook.C2INP003",
+  "corporateFieldSpecsClass": "com.fordcredit.misc1099.parser.C2INP003FieldSpecs",
+  "resolution": {
+    "masterPojo": "C2INP001",
+    "masterFieldSpecs": "C2INP001FieldSpecs",
+    "corporatePojo": "C2INP003",
+    "corporateFieldSpecs": "C2INP003FieldSpecs",
+    "masterTokens": [
+      "master",
+      "m01"
+    ],
+    "corporateTokens": [
+      "corporate",
+      "corp",
+      "t01"
+    ],
+    "copybooksInIR": [
+      "C2INX001",
+      "C2INX002",
+      "C2INX003",
+      "C2INZ001",
+      "C2INZ002",
+      "C2INZ003",
+      "C2INZ004",
+      "C2INZ005"
+    ]
+  }
+}

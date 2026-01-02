@@ -204,27 +204,27 @@ def inject_methods(java: str, methods: list[str]) -> str:
 def paragraph_prompt(program: str, para_name: str, para_body: str) -> str:
     method = method_name_for_paragraph(para_name)
     return f"""
-Generate EXACTLY ONE Java method.
+Please translate the following COBOL paragraph into a single Java helper method.
 
-ABSOLUTE RULES:
-- Output ONLY Java
-- One method only
-- DO NOT generate mainline()
-- DO NOT generate loops
-- DO NOT call other methods
-- Preserve intent as COMMENTS
-- Real braces only
+Guidelines:
+- Return one Java method only
+- The method should be named `{method}`
+- The method should accept a `MergeState state` parameter
+- Use comments to describe control flow and intent
+- Avoid introducing new control structures
+- Keep the method self-contained
 
-METHOD SIGNATURE (MANDATORY):
+Expected method shape:
 
 // COBOL {para_name}
 private void {method}(MergeState state) {{
     ...
 }}
 
-COBOL PARAGRAPH:
+COBOL paragraph:
 {para_body}
 """.strip()
+
 
 # ---------------------------------------------------------------------------
 # MAIN

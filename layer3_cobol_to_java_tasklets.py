@@ -147,7 +147,8 @@ def render_tasklet_skeleton(program_id: str, ir: Dict[str, Any]) -> str:
     IMPORTANT:
     - Includes Layer 3C anchors (paragraph methods)
     - Includes Layer 3E anchors (I/O plumbing)
-    - Defines MergeState so skeleton compiles before 3E
+    - Includes Layer 3F anchors (domain state + binding)
+    - Defines MergeState so skeleton compiles before 3E/3F
     """
     pattern_notes = ir.get("patterns", {}).get("notes", [])
     pattern_text = ", ".join(pattern_notes) if pattern_notes else "None detected"
@@ -174,6 +175,9 @@ public class {program_id}Tasklet implements Tasklet {{
      */
     static class MergeState {{
         // TODO: flags, counters, cursors, and records added later
+
+        // BEGIN DOMAIN STATE (Layer 3F)
+        // END DOMAIN STATE (Layer 3F)
     }}
 
     @Override
@@ -209,6 +213,9 @@ public class {program_id}Tasklet implements Tasklet {{
     // ======================================================
     // END IO PLUMBING (Layer 3E)
     // ======================================================
+
+    // BEGIN DOMAIN BINDING (Layer 3F)
+    // END DOMAIN BINDING (Layer 3F)
 }}
 """
 

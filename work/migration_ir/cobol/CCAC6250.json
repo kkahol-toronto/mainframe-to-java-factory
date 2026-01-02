@@ -1,54 +1,54 @@
 {
   "programId": "CCAC6250",
-  "purpose": "Enhanced 1099 Systems - Reformats 1099 reject, vendor, and master files, adding headers and trailers, for reporting and audit purposes.",
+  "purpose": "Enhanced 1099 Systems - Reformats 1099 reject, vendor, and master files, adding headers and trailers for reporting and audit purposes.",
   "files": [
     {
       "name": "CCAC-T01R-EDITED-1099-REJECT",
       "type": "input",
       "record": "CCAC-T01R-EDITED-REJECT-RCD",
-      "length": 526
+      "assignTo": "UT-S-CCACT01R"
     },
     {
       "name": "CCAC-T02R-1099-VENDOR-FILE",
       "type": "input",
       "record": "CCAC-T02R-1099-VENDOR-RCD",
-      "length": 320
+      "assignTo": "UT-S-CCACT02R"
     },
     {
       "name": "CCAC-M01R-EDITED-1099-MASTER",
       "type": "input",
       "record": "CCAC-M01R-EDITED-MASTER-RCD",
-      "length": 400
+      "assignTo": "UT-S-CCACM01R"
     },
     {
       "name": "CCAC-T01W-FORMAT-1099-REJECT",
       "type": "output",
       "record": "CCAC-T01W-FORMAT-REJECT-RCD",
-      "length": 526
+      "assignTo": "UT-S-CCACT01W"
     },
     {
       "name": "CCAC-T02W-FORMAT-1099-VENDOR",
       "type": "output",
       "record": "CCAC-T02W-FORMAT-VENDOR-RCD",
-      "length": 320
+      "assignTo": "UT-S-CCACT02W"
     },
     {
       "name": "CCAC-M01W-FORMAT-1099-MASTER",
       "type": "output",
       "record": "CCAC-M01W-FORMAT-MASTER-RCD",
-      "length": 400
+      "assignTo": "UT-S-CCACM01W"
     },
     {
       "name": "CCAC-R01R-CONTROL-CARD",
       "type": "input",
       "record": "CCAC-R01R-CONTROL-CARD-RCD",
-      "length": 80
+      "assignTo": "UT-S-CCACR01R"
     },
     {
       "name": "CC-E01W-DISPLAY-FILE",
       "type": "output",
       "record": "CC-E01W-DISPLAY-RCD",
-      "length": 133
+      "assignTo": "UT-S-CCACE01W"
     }
   ],
   "copybooks": [
@@ -125,8 +125,8 @@
       "9999-CLOSE-FILES"
     ],
     "errorExits": [
-      "8999-WRITE-SYSOUT",
-      "9998-COREDUMP"
+      "9998-COREDUMP",
+      "8999-WRITE-SYSOUT"
     ]
   },
   "patterns": {
@@ -136,12 +136,11 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": false,
     "notes": [
-      "Program reads three input files (reject, vendor, master), processes each, and writes reformatted output files with headers and trailers.",
-      "Accumulates counts and amounts for reporting in trailer records.",
-      "Displays summary statistics at end of job.",
-      "Handles error conditions for empty input files and missing control card.",
-      "No evidence of two-way merge or master/update logic.",
-      "Header/trailer formatting is a primary pattern."
+      "Program reads three input files (reject, vendor, master), reformats and writes them to output files with headers and trailers.",
+      "Counters and accumulators are maintained for reporting totals in trailers and display file.",
+      "Control card is used for header date values.",
+      "Error handling includes writing messages to display file and calling a coredump routine.",
+      "No evidence of lookup/enrichment or master/update merge logic."
     ]
   }
 }

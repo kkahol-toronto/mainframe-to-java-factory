@@ -1,26 +1,31 @@
 {
   "programId": "CCAC6340",
-  "purpose": "Mechanically flag 1099 master file records that have matching SSNs on the corporate extract file. The master and corporate files must be sorted by SSN. The program updates the master file by marking records with matching SSNs as mechanized, and writes the results to an output master file.",
+  "purpose": "Mechanically flag 1099 master file records that have matching SSNs on the corporate extract file. The master and corporate files must be sorted by SSN. A master file is required monthly; the corporate file may be empty on the initial run.",
   "files": [
     {
       "name": "TEN99-T01R-CORPORATE-FILE",
       "type": "input",
-      "recordName": "TEN99-T01R-CORPORATE-RCD"
+      "record": "TEN99-T01R-CORPORATE-RCD"
     },
     {
       "name": "TEN99-M01R-MASTER-IN-FILE",
       "type": "input",
-      "recordName": "TEN99-M01R-MASTER-IN-RCD"
+      "record": "TEN99-M01R-MASTER-IN-RCD"
     },
     {
       "name": "TEN99-R01R-CONTROL-FILE",
       "type": "input",
-      "recordName": "TEN99-R01R-CONTROL-RCD"
+      "record": "TEN99-R01R-CONTROL-RCD"
     },
     {
       "name": "TEN99-M01W-MASTER-OUT-FILE",
       "type": "output",
-      "recordName": "TEN99-M01W-MASTER-OUT-RCD"
+      "record": "TEN99-M01W-MASTER-OUT-RCD"
+    },
+    {
+      "name": "CC-E01W-DISPLAY-FILE",
+      "type": "output",
+      "record": null
     }
   ],
   "copybooks": [
@@ -88,9 +93,10 @@
     "isLookupEnrichment": true,
     "notes": [
       "The program reads two sorted files (master and corporate) and flags master records with matching SSNs from the corporate file.",
-      "It processes headers and trailers for both input and output master files.",
-      "It accumulates and checks record counts and amounts for balancing.",
-      "It handles the case where the corporate file is empty (initial run)."
+      "It processes headers and trailers for both input and output files.",
+      "It accumulates counts and amounts, and validates them at end-of-job.",
+      "If the corporate file is empty, the master file is processed unchanged.",
+      "The program writes error and summary messages to a SYSOUT file."
     ]
   }
 }

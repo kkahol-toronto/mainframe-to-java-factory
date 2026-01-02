@@ -5,37 +5,32 @@
     {
       "name": "TEN99-T01R-TRANSACTION-FILE",
       "type": "input",
-      "description": "1099 Transaction File"
+      "record": "TEN99-T01R-TRANSACTION-RCD"
     },
     {
       "name": "TEN99-M01R-MASTER-IN-FILE",
       "type": "input",
-      "description": "1099 Master Input File"
+      "record": "TEN99-M01R-MASTER-IN-RCD"
     },
     {
       "name": "TEN99-T02R-MASTER-UPDATE-FILE",
       "type": "input",
-      "description": "1099 Master Update File"
+      "record": "TEN99-T02R-MASTER-UPDATE-RCD"
     },
     {
       "name": "TEN99-R01R-CONTROL-FILE",
       "type": "input",
-      "description": "Control Card File"
+      "record": "TEN99-R01R-CONTROL-RCD"
     },
     {
       "name": "TEN99-T01W-DUPLICATE-TRAN-FILE",
       "type": "output",
-      "description": "1099 Duplicated Transaction File"
+      "record": "TEN99-T01W-DUPLICATE-TRAN-RCD"
     },
     {
       "name": "TEN99-M01W-MASTER-OUT-FILE",
       "type": "output",
-      "description": "1099 Master Output File"
-    },
-    {
-      "name": "CC-E01W-DISPLAY-FILE",
-      "type": "output",
-      "description": "Sysout/Display File"
+      "record": "TEN99-M01W-MASTER-OUT-RCD"
     }
   ],
   "copybooks": [
@@ -126,7 +121,7 @@
       "Program merges transaction, master, and update files by key fields (check number, department, tax type, TIN indicator).",
       "Creates new master records from transactions, overlays master records with updates, and writes out master and duplicate transaction files.",
       "Handles headers and trailers for all files.",
-      "Performs error handling and writes sysout messages for various error conditions."
+      "Performs error handling and writes sysout messages."
     ]
   }
 }

@@ -4,43 +4,53 @@
   "files": [
     {
       "name": "TEN99-T01R-MISC-TRANS-FILE",
-      "type": "input"
+      "type": "input",
+      "description": "Miscellaneous Input--Form #20071"
     },
     {
       "name": "TEN99-T03R-BCCW-FILE",
-      "type": "input"
+      "type": "input",
+      "description": "New B&CCW Issues"
     },
     {
       "name": "TEN99-T04R-DEFT-FILE",
-      "type": "input"
+      "type": "input",
+      "description": "DEFT Issues"
     },
     {
       "name": "TEN99-T05R-REJ-CYCLE-FILE",
-      "type": "input"
+      "type": "input",
+      "description": "Reject Cycling Issues"
     },
     {
       "name": "WS-T07R-1099ENTRY-CD-FILE",
-      "type": "input"
-    },
-    {
-      "name": "CC-R01R-CONTROL-CARD",
-      "type": "input"
+      "type": "input",
+      "description": "1099 Code Table"
     },
     {
       "name": "TEN99-T01W-MISC-TRANS-OUT-FILE",
-      "type": "output"
+      "type": "output",
+      "description": "Miscellaneous Output--Form #20071"
     },
     {
       "name": "TEN99-T03W-BCCW-OUT-FILE",
-      "type": "output"
+      "type": "output",
+      "description": "B&CCW Output"
     },
     {
       "name": "TEN99-T04W-DEFT-OUT-FILE",
-      "type": "output"
+      "type": "output",
+      "description": "DEFT Output"
     },
     {
       "name": "TEN99-T05W-REJ-CYCLE-OUT-FILE",
-      "type": "output"
+      "type": "output",
+      "description": "Reject Recycling Output File"
+    },
+    {
+      "name": "CC-R01R-CONTROL-CARD",
+      "type": "input",
+      "description": "Control Card"
     }
   ],
   "copybooks": [
@@ -69,9 +79,7 @@
       "EOF-1099ENTRY-TABLE",
       "FOREIGN-IND",
       "WS-US-IND",
-      "WS-CDN-IND",
-      "SW-BCCW-BUILD-COMPLETE",
-      "SW-DEFT-BUILD-COMPLETE"
+      "WS-CDN-IND"
     ],
     "counters": [
       "WS-MISC-FORM-TRANS-COUNTER",
@@ -100,13 +108,15 @@
       "WS-TOTAL-OUTPUT-TRANS-AMT"
     ],
     "keyFields": [
+      "WS-T01R-MISC-FORM-SSN",
+      "WS-T01R-MISC-FORM-REFERENCE",
+      "WS-T04R-DEFT-BUS-CODE",
+      "WS-T04R-DEFT-LABEL-CODE",
+      "WS-T04R-DEFT-BRANCH-CODE",
       "WS-T05R-REJECT-KEY-OP-LOC",
       "WS-T05R-REJECT-KEY-BR-DEPT-CD",
       "WS-T05R-REJECT-KEY-CHECK-NUM",
-      "WS-T05R-REJECT-KEY-CHECK-DT",
-      "WS-T05R-REJECT-TAX-TYPE",
-      "WS-T05R-REJECT-TIN-IND",
-      "WS-T05R-REJECT-SOURCE-CODE"
+      "WS-T05R-REJECT-KEY-CHECK-DT"
     ]
   },
   "controlFlow": {
@@ -174,11 +184,12 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": true,
     "notes": [
-      "The program reads multiple input files, verifies headers and trailers, processes detail records, and accumulates and verifies control totals.",
-      "Tax type is determined by looking up entry codes in a 1099 table (lookup enrichment).",
-      "The program summarizes counts and amounts for each file and validates against trailer records (group summarize).",
-      "Headers and trailers are processed and written to output (formatter headers/trailers).",
-      "Error handling and abnormal termination are performed via 9998-COREDUMP."
+      "The program reads multiple input files, verifies headers and trailers, processes detail records, accumulates and checks control totals, and writes output files.",
+      "Tax type assignment is performed by looking up entry codes in a 1099 table.",
+      "The program summarizes counts and amounts for each file and validates them against trailer records.",
+      "There is explicit handling for headers and trailers, and output formatting for control totals.",
+      "Foreign records (Canada, Puerto Rico) are handled with special logic.",
+      "Error handling and abnormal termination are managed via ERROR-FLAG and 9998-COREDUMP."
     ]
   }
 }
