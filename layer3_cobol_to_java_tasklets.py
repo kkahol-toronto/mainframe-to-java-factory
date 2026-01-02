@@ -143,6 +143,11 @@ def render_tasklet_skeleton(program_id: str, ir: Dict[str, Any]) -> str:
     """
     AUTHORITATIVE Java structure.
     LLMs do NOT control Java syntax here.
+
+    IMPORTANT:
+    - Includes Layer 3C anchors (paragraph methods)
+    - Includes Layer 3E anchors (I/O plumbing)
+    - Defines MergeState so skeleton compiles before 3E
     """
     pattern_notes = ir.get("patterns", {}).get("notes", [])
     pattern_text = ", ".join(pattern_notes) if pattern_notes else "None detected"
@@ -165,10 +170,10 @@ public class {program_id}Tasklet implements Tasklet {{
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E.
+     * Expanded in Layer 3E/3F.
      */
     static class MergeState {{
-        // TODO: flags, counters, cursors added later
+        // TODO: flags, counters, cursors, and records added later
     }}
 
     @Override
@@ -196,6 +201,14 @@ public class {program_id}Tasklet implements Tasklet {{
     // ======================================================
     // END GENERATED PARAGRAPHS (Layer 3C)
     // ======================================================
+
+    // ======================================================
+    // BEGIN IO PLUMBING (Layer 3E)
+    // ======================================================
+
+    // ======================================================
+    // END IO PLUMBING (Layer 3E)
+    // ======================================================
 }}
 """
 
@@ -206,7 +219,7 @@ public class {program_id}Tasklet implements Tasklet {{
 
 def main():
     cobol_paths = list_cobol_inputs()
-    print("\n=== Layer 3A/3B: COBOL -> IR -> Tasklet skeleton ===\n")
+    print("\\n=== Layer 3A/3B: COBOL -> IR -> Tasklet skeleton ===\\n")
     print(f"Found {len(cobol_paths)} COBOL files.")
 
     for cobol_path in cobol_paths:
@@ -229,7 +242,7 @@ def main():
         out_java.write_text(java_code, encoding="utf-8")
         print(f"Tasklet skeleton written: {out_java}")
 
-    print("\nLayer 3A/3B complete (IR + stable Tasklet skeletons).\n")
+    print("\\nLayer 3A/3B complete (IR + stable Tasklet skeletons).\\n")
 
 
 if __name__ == "__main__":

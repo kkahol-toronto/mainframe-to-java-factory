@@ -9,16 +9,16 @@ import org.springframework.batch.repeat.RepeatStatus;
  * Auto-generated Tasklet skeleton for COBOL program CCAC6340.
  *
  * Patterns detected:
- *   The program reads two sorted files (master and corporate) and flags master records with matching SSNs from the corporate file., It processes headers and trailers for both input and output master files., It accumulates and checks counts and amounts for balancing., It handles the case where the corporate file is empty (initial run).
+ *   The program reads two sorted files (master and corporate) and flags master records with matching SSNs from the corporate file., It processes headers and trailers for both input and output master files., It accumulates and checks record counts and amounts for balancing., It handles the case where the corporate file is empty (initial run).
  */
 public class CCAC6340Tasklet implements Tasklet {
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E.
+     * Expanded in Layer 3E/3F.
      */
     static class MergeState {
-        // TODO: flags, counters, cursors added later
+        // TODO: flags, counters, cursors, and records added later
     }
 
     @Override
@@ -71,7 +71,7 @@ private void initialization(MergeState state) {
         return;
     // } else {
     // if (state.mastHeader) {
-    // if (state.trccdControlDate.equals(state.tmmihHeadDate)) {
+    // if (state.trccdControlDate.equals(state.tmmiHeadDate)) {
     // // PERFORM 8000-WRITE-MASTER-OUT
     // // PERFORM 7200-READ-MASTER-FILE
     // if (state.masterEof) {
@@ -140,5 +140,58 @@ private void openFiles(MergeState state) {
 }
 
 // END GENERATED PARAGRAPHS (Layer 3C)
+    // ======================================================
+
+    // ======================================================
+    // BEGIN IO PLUMBING (Layer 3E)
+
+    private void openFiles(MergeState state) {
+        if (state.masterReader != null) {
+            state.masterReader.open(state.executionContext);
+        }
+        if (state.corporateReader != null) {
+            state.corporateReader.open(state.executionContext);
+        }
+        if (state.masterWriter != null) {
+            state.masterWriter.open(state.executionContext);
+        }
+    }
+
+    private void readMaster(MergeState state) {
+        if (state.masterReader == null) return;
+        try {
+            state.master = state.masterReader.read();
+            if (state.master == null) {
+                state.masterEof = true;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading master file", e);
+        }
+    }
+
+    private void readCorporate(MergeState state) {
+        if (state.corporateReader == null) return;
+        try {
+            state.corporate = state.corporateReader.read();
+            if (state.corporate == null) {
+                state.corporateEof = true;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading corporate file", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void writeMaster(MergeState state) {
+        if (state.masterWriter == null || state.master == null) return;
+        try {
+            state.masterWriter.write(java.util.List.of(state.master));
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing master record", e);
+        }
+    }
+
+
+// END IO PLUMBING (Layer 3E)
     // ======================================================
 }

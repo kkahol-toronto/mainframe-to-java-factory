@@ -5,25 +5,25 @@
     {
       "name": "TEN99-M01R-1099-MASTER-FILE",
       "type": "input",
-      "record": "TEN99-M01R-1099-MASTER-RCD",
+      "recordName": "TEN99-M01R-1099-MASTER-RCD",
       "length": 400
     },
     {
       "name": "TEN99-R01R-CONTROL-CARD",
       "type": "input",
-      "record": "TEN99-R01R-CONTROL-CARD-RCD",
+      "recordName": "TEN99-R01R-CONTROL-CARD-RCD",
       "length": 80
     },
     {
       "name": "TEN99-C01W-1099-SUMMARY-FILE",
       "type": "output",
-      "record": "TEN99-C01W-1099-SUMMARY-RCD",
+      "recordName": "TEN99-C01W-1099-SUMMARY-RCD",
       "length": 250
     },
     {
       "name": "CC-E01W-DISPLAY-FILE",
       "type": "output",
-      "record": "CC-E01W-DISPLAY-RCD",
+      "recordName": "CC-E01W-DISPLAY-RCD",
       "length": 133
     }
   ],
@@ -37,10 +37,31 @@
   ],
   "workingStorage": {
     "flags": [
-      "WS-EOF-SW",
-      "END-OF-INPUT",
-      "MASTER-HEADER",
-      "MASTER-TRAILER"
+      {
+        "name": "WS-EOF-SW",
+        "values": [
+          {
+            "value": "Y",
+            "meaning": "END-OF-INPUT"
+          }
+        ]
+      },
+      {
+        "name": "MASTER-HEADER",
+        "values": [
+          {
+            "value": "LOW-VALUES"
+          }
+        ]
+      },
+      {
+        "name": "MASTER-TRAILER",
+        "values": [
+          {
+            "value": "HIGH-VALUES"
+          }
+        ]
+      }
     ],
     "counters": [
       "WS-TOT-RECDS-READ",
@@ -56,13 +77,22 @@
       "WS-1099-TRLR-AMOUNT"
     ],
     "keyFields": [
-      "WS-CURR-REC-KEY",
-      "WS-PREV-REC-KEY",
-      "WS-M01R-OPER-LOC-CODE",
-      "WS-M01R-SOC-SEC-NUM",
-      "WS-M01R-TAX-TYPE",
-      "WS-M01R-TIN-IND",
-      "WS-M01R-BR-DEPT"
+      {
+        "name": "WS-CURR-REC-KEY",
+        "fields": [
+          "WS-CURR-TAXID",
+          "WS-CURR-TAX-TYPE",
+          "WS-CURR-TAX-IND"
+        ]
+      },
+      {
+        "name": "WS-PREV-REC-KEY",
+        "fields": [
+          "WS-PREV-TAXID",
+          "WS-PREV-TAX-TYPE",
+          "WS-PREV-TIN-IND"
+        ]
+      }
     ]
   },
   "controlFlow": {
@@ -108,7 +138,8 @@
       "Program summarizes 1099 records by key fields and outputs trailer records per group.",
       "Manual checks are handled as individual records.",
       "Trailer records contain record counts and summarized amounts for each location code.",
-      "Error handling and abnormal termination via 9998-COREDUMP."
+      "Error handling and abnormal termination via 9998-COREDUMP.",
+      "Uses copybooks for initialization, display, and file closing routines."
     ]
   }
 }

@@ -9,16 +9,16 @@ import org.springframework.batch.repeat.RepeatStatus;
  * Auto-generated Tasklet skeleton for COBOL program CCAC6320.
  *
  * Patterns detected:
- *   Program reads multiple input files and writes to multiple output files based on edit results., Group summarization occurs for transaction counts and amounts, with trailer records for balancing., Master update is implied by passing successfully edited transactions downstream., Header and trailer records are written for all output files., 1099 Entry Code Table is used for lookup/enrichment to determine reportable transactions., Foreign transactions (Canadian, Puerto Rico) are detected and routed to special output files., Extensive edit logic for SSN, address, state/province codes, and amounts., Error handling and reporting via SYSOUT and error flags., Excludes file is used for transactions with missing SSN or zero 1099 amount.
+ *   Program reads multiple input files, validates headers and trailers, and processes records based on tax month., Records are grouped and summarized by key fields (e.g., check number, batch number, tax type, TIN)., 1099 reportable status is determined by lookup in the 1099 entry code table., Records are classified and written to output files: transaction, reject, foreign, excludes, and report., Headers and trailers are written for all output files, with control totals and balancing., Foreign transactions (Canadian, Puerto Rico) are detected by state/province code and operation location., Master update merge pattern is present: successfully edited transactions are passed downstream for master file update., Extensive error handling and reporting via sysout and error flags.
  */
 public class CCAC6320Tasklet implements Tasklet {
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E.
+     * Expanded in Layer 3E/3F.
      */
     static class MergeState {
-        // TODO: flags, counters, cursors added later
+        // TODO: flags, counters, cursors, and records added later
     }
 
     @Override
@@ -45,5 +45,58 @@ public class CCAC6320Tasklet implements Tasklet {
 
     // ======================================================
     // END GENERATED PARAGRAPHS (Layer 3C)
+    // ======================================================
+
+    // ======================================================
+    // BEGIN IO PLUMBING (Layer 3E)
+
+    private void openFiles(MergeState state) {
+        if (state.masterReader != null) {
+            state.masterReader.open(state.executionContext);
+        }
+        if (state.corporateReader != null) {
+            state.corporateReader.open(state.executionContext);
+        }
+        if (state.masterWriter != null) {
+            state.masterWriter.open(state.executionContext);
+        }
+    }
+
+    private void readMaster(MergeState state) {
+        if (state.masterReader == null) return;
+        try {
+            state.master = state.masterReader.read();
+            if (state.master == null) {
+                state.masterEof = true;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading master file", e);
+        }
+    }
+
+    private void readCorporate(MergeState state) {
+        if (state.corporateReader == null) return;
+        try {
+            state.corporate = state.corporateReader.read();
+            if (state.corporate == null) {
+                state.corporateEof = true;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading corporate file", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void writeMaster(MergeState state) {
+        if (state.masterWriter == null || state.master == null) return;
+        try {
+            state.masterWriter.write(java.util.List.of(state.master));
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing master record", e);
+        }
+    }
+
+
+// END IO PLUMBING (Layer 3E)
     // ======================================================
 }
