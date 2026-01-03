@@ -6,49 +6,49 @@
       "name": "CCAC-T01R-EDITED-1099-REJECT",
       "type": "input",
       "record": "CCAC-T01R-EDITED-REJECT-RCD",
-      "assignTo": "UT-S-CCACT01R"
+      "length": 526
     },
     {
       "name": "CCAC-T02R-1099-VENDOR-FILE",
       "type": "input",
       "record": "CCAC-T02R-1099-VENDOR-RCD",
-      "assignTo": "UT-S-CCACT02R"
+      "length": 320
     },
     {
       "name": "CCAC-M01R-EDITED-1099-MASTER",
       "type": "input",
       "record": "CCAC-M01R-EDITED-MASTER-RCD",
-      "assignTo": "UT-S-CCACM01R"
+      "length": 400
     },
     {
       "name": "CCAC-T01W-FORMAT-1099-REJECT",
       "type": "output",
       "record": "CCAC-T01W-FORMAT-REJECT-RCD",
-      "assignTo": "UT-S-CCACT01W"
+      "length": 526
     },
     {
       "name": "CCAC-T02W-FORMAT-1099-VENDOR",
       "type": "output",
       "record": "CCAC-T02W-FORMAT-VENDOR-RCD",
-      "assignTo": "UT-S-CCACT02W"
+      "length": 320
     },
     {
       "name": "CCAC-M01W-FORMAT-1099-MASTER",
       "type": "output",
       "record": "CCAC-M01W-FORMAT-MASTER-RCD",
-      "assignTo": "UT-S-CCACM01W"
+      "length": 400
     },
     {
       "name": "CCAC-R01R-CONTROL-CARD",
       "type": "input",
       "record": "CCAC-R01R-CONTROL-CARD-RCD",
-      "assignTo": "UT-S-CCACR01R"
+      "length": 80
     },
     {
       "name": "CC-E01W-DISPLAY-FILE",
       "type": "output",
       "record": "CC-E01W-DISPLAY-RCD",
-      "assignTo": "UT-S-CCACE01W"
+      "length": 133
     }
   ],
   "copybooks": [
@@ -136,9 +136,9 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": false,
     "notes": [
-      "Program reads three input files (reject, vendor, master), reformats and writes them to output files with headers and trailers.",
-      "Counters and accumulators are maintained for reporting totals in trailers and display file.",
+      "Program reads three input files (reject, vendor, master), processes each record, accumulates totals, and writes formatted output files with headers and trailers.",
       "Control card is used for header date values.",
+      "Counters and accumulators are maintained for reporting in trailers and display file.",
       "Error handling includes writing messages to display file and calling a coredump routine.",
       "No evidence of lookup/enrichment or master/update merge logic."
     ]

@@ -9,7 +9,7 @@ import org.springframework.batch.repeat.RepeatStatus;
  * Auto-generated Tasklet skeleton for COBOL program CCAC6320.
  *
  * Patterns detected:
- *   The program reads multiple input files, verifies headers and control dates, and processes detail and trailer records for each file., It accumulates and balances totals for reporting and control., It uses lookup tables (state, province, 1099 entry codes) for enrichment and validation., It groups records by key fields (check number, tax type, TIN) and summarizes amounts., It writes output records to multiple files based on transaction status: valid, rejected, foreign, excluded., It prepares headers and trailers for all output files., It supports downstream master file update for successfully edited transactions.
+ *   Program reads multiple input files, verifies headers, processes details, and writes to multiple output files based on edit results., Group summarization occurs for transactions with the same key (e.g., check number, tax type, TIN)., Master update merge is implied by passing successfully edited transactions downstream for master file update., Formatter pattern is present: headers and trailers are written for all output files., Lookup enrichment is present: 1099 Entry Code Table is used to determine reportable transactions., Foreign transactions (Canadian, Puerto Rico) are identified and written to separate files., Excludes file is used for transactions without SSN or with zero 1099 amount., Rejects and error handling are robust, with error flags and abend routines.
  */
 public class CCAC6320Tasklet implements Tasklet {
 
@@ -53,25 +53,28 @@ public class CCAC6320Tasklet implements Tasklet {
     // ======================================================
     // BEGIN IO PLUMBING (Layer 3E)
 
+    // ---- Layer 3E IO plumbing (stub-safe) ----
+
     private void openFiles(MergeState state) {
-        if (state.masterReader != null) {
+        if (state.masterReader != null && state.executionContext != null) {
             state.masterReader.open(state.executionContext);
         }
-        if (state.corporateReader != null) {
+        if (state.corporateReader != null && state.executionContext != null) {
             state.corporateReader.open(state.executionContext);
         }
-        if (state.masterWriter != null) {
+        if (state.masterWriter != null && state.executionContext != null) {
             state.masterWriter.open(state.executionContext);
+        }
+        if (state.sysoutWriter != null && state.executionContext != null) {
+            state.sysoutWriter.open(state.executionContext);
         }
     }
 
     private void readMaster(MergeState state) {
         if (state.masterReader == null) return;
         try {
-            state.master = state.masterReader.read();
-            if (state.master == null) {
-                state.masterEof = true;
-            }
+            state.masterRawLine = state.masterReader.read();
+            if (state.masterRawLine == null) state.masterEof = true;
         } catch (Exception e) {
             throw new RuntimeException("Error reading master file", e);
         }
@@ -80,25 +83,40 @@ public class CCAC6320Tasklet implements Tasklet {
     private void readCorporate(MergeState state) {
         if (state.corporateReader == null) return;
         try {
-            state.corporate = state.corporateReader.read();
-            if (state.corporate == null) {
-                state.corporateEof = true;
-            }
+            state.corporateRawLine = state.corporateReader.read();
+            if (state.corporateRawLine == null) state.corporateEof = true;
         } catch (Exception e) {
             throw new RuntimeException("Error reading corporate file", e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void writeMaster(MergeState state) {
-        if (state.masterWriter == null || state.master == null) return;
+    private void writeMasterOut(MergeState state) {
+        if (state.masterWriter == null || state.masterOutLine == null) return;
         try {
-            state.masterWriter.write(java.util.List.of(state.master));
+            state.masterWriter.write(
+                new org.springframework.batch.item.Chunk<>(
+                    java.util.List.of(state.masterOutLine)
+                )
+            );
         } catch (Exception e) {
-            throw new RuntimeException("Error writing master record", e);
+            throw new RuntimeException("Error writing master out", e);
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private void writeSysout(MergeState state) {
+        if (state.sysoutWriter == null || state.sysoutLine == null) return;
+        try {
+            state.sysoutWriter.write(
+                new org.springframework.batch.item.Chunk<>(
+                    java.util.List.of(state.sysoutLine)
+                )
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing sysout", e);
+        }
+    }
 
 // END IO PLUMBING (Layer 3E)
     // ======================================================

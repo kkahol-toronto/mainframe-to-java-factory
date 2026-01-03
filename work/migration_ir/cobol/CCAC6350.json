@@ -5,26 +5,26 @@
     {
       "name": "TEN99-M01R-1099-MASTER-FILE",
       "type": "input",
-      "recordName": "TEN99-M01R-1099-MASTER-RCD",
-      "length": 400
+      "record": "TEN99-M01R-1099-MASTER-RCD",
+      "description": "1099 Master File"
     },
     {
       "name": "TEN99-R01R-CONTROL-CARD",
       "type": "input",
-      "recordName": "TEN99-R01R-CONTROL-CARD-RCD",
-      "length": 80
+      "record": "TEN99-R01R-CONTROL-CARD-RCD",
+      "description": "Control Card for 1099 Date"
     },
     {
       "name": "TEN99-C01W-1099-SUMMARY-FILE",
       "type": "output",
-      "recordName": "TEN99-C01W-1099-SUMMARY-RCD",
-      "length": 250
+      "record": "TEN99-C01W-1099-SUMMARY-RCD",
+      "description": "Year-End Summary File for 1099 Reporting"
     },
     {
       "name": "CC-E01W-DISPLAY-FILE",
       "type": "output",
-      "recordName": "CC-E01W-DISPLAY-RCD",
-      "length": 133
+      "record": "CC-E01W-DISPLAY-RCD",
+      "description": "Display File for messages and statistics"
     }
   ],
   "copybooks": [
@@ -37,10 +37,36 @@
   ],
   "workingStorage": {
     "flags": [
-      "WS-EOF-SW",
-      "END-OF-INPUT",
-      "MASTER-HEADER",
-      "MASTER-TRAILER"
+      {
+        "name": "WS-EOF-SW",
+        "type": "flag",
+        "values": [
+          {
+            "value": "Y",
+            "meaning": "END-OF-INPUT"
+          }
+        ]
+      },
+      {
+        "name": "MASTER-HEADER",
+        "type": "condition",
+        "values": [
+          {
+            "value": "LOW-VALUES",
+            "meaning": "Header record in master file"
+          }
+        ]
+      },
+      {
+        "name": "MASTER-TRAILER",
+        "type": "condition",
+        "values": [
+          {
+            "value": "HIGH-VALUES",
+            "meaning": "Trailer record in master file"
+          }
+        ]
+      }
     ],
     "counters": [
       "WS-TOT-RECDS-READ",
@@ -56,18 +82,42 @@
       "WS-1099-TRLR-AMOUNT"
     ],
     "keyFields": [
-      "WS-M01R-OPER-LOC-CODE",
-      "WS-M01R-SOC-SEC-NUM",
-      "WS-M01R-TAX-TYPE",
-      "WS-M01R-TIN-IND",
-      "WS-M01R-BR-DEPT",
-      "WS-PREV-OPER-LOC-CODE",
-      "WS-PREV-SOC-SEC-NUM",
-      "WS-PREV-MSTR-TAX-TYPE",
-      "WS-PREV-MSTR-TIN-IND",
-      "WS-PREV-BR-DEPT",
-      "WS-CURR-REC-KEY",
-      "WS-PREV-REC-KEY"
+      {
+        "name": "WS-CURR-REC-KEY",
+        "fields": [
+          "WS-CURR-TAXID",
+          "WS-CURR-TAX-TYPE",
+          "WS-CURR-TAX-IND"
+        ]
+      },
+      {
+        "name": "WS-PREV-REC-KEY",
+        "fields": [
+          "WS-PREV-TAXID",
+          "WS-PREV-TAX-TYPE",
+          "WS-PREV-TIN-IND"
+        ]
+      },
+      {
+        "name": "WS-M01R-OPER-LOC-CODE",
+        "description": "Operation Location Code"
+      },
+      {
+        "name": "WS-M01R-SOC-SEC-NUM",
+        "description": "Social Security Number"
+      },
+      {
+        "name": "WS-M01R-TAX-TYPE",
+        "description": "Tax Type"
+      },
+      {
+        "name": "WS-M01R-TIN-IND",
+        "description": "TIN Indicator"
+      },
+      {
+        "name": "WS-M01R-BR-DEPT",
+        "description": "Branch Department"
+      }
     ]
   },
   "controlFlow": {
@@ -96,8 +146,7 @@
       "9000-CLOSING-ROUTINE",
       "9100-WRITE-LAST-DISPLAY-RCD",
       "9998-COREDUMP",
-      "9999-CLOSE-FILES",
-      "8999-WRITE-SYSOUT"
+      "9999-CLOSE-FILES"
     ],
     "errorExits": [
       "9998-COREDUMP"
@@ -110,10 +159,11 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": false,
     "notes": [
-      "Program summarizes 1099 records by key fields and outputs a trailer record per group.",
+      "Program summarizes 1099 records by key fields and outputs a trailer per group.",
       "Manual checks are handled as individual records.",
-      "Trailer records contain record counts and summarized amounts.",
-      "Error handling includes core dump and writing error messages to display file."
+      "Trailer records contain record counts and summarized amounts for each location code.",
+      "Error handling and core dump on fatal errors.",
+      "Uses copybooks for initialization, display, and file closing routines."
     ]
   }
 }

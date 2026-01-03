@@ -307,30 +307,25 @@ def ensure_binder_class() -> None:
 
 def state_block(program: str, m: dict) -> str:
     return f"""\
-        // BEGIN DOMAIN STATE (Layer 3F)
-
         // Auto-discovered bindings (Layer 3F.1)
         String masterPojoClass = "{m["masterPojoClass"]}";
         String masterFieldSpecsClass = "{m["masterFieldSpecsClass"]}";
         String corporatePojoClass = "{m["corporatePojoClass"]}";
         String corporateFieldSpecsClass = "{m["corporateFieldSpecsClass"]}";
 
-        // Raw lines (Layer 3E.1 will actually set these)
-        String masterRawLine;
-        String corporateRawLine;
+        # // Raw lines (Layer 3E.1 will actually set these)
+        # String masterRawLine;
+        # String corporateRawLine;
 
         // Bound records (typed later in Layer 3F.2)
         Object masterRecord;
         Object corporateRecord;
+""".rstrip()
 
-        // END DOMAIN STATE (Layer 3F)
-"""
 
 
 def binding_block() -> str:
     return f"""\
-    // BEGIN DOMAIN BINDING (Layer 3F)
-
     private void bindMasterRecord(MergeState state) {{
         state.masterRecord = {PKG_BASE}.batch.bind.ReflectionDomainBinder.bind(
                 state.masterRawLine,
@@ -346,9 +341,8 @@ def binding_block() -> str:
                 state.corporateFieldSpecsClass
         );
     }}
+""".rstrip()
 
-    // END DOMAIN BINDING (Layer 3F)
-"""
 
 
 def apply_to_program(program: str) -> None:

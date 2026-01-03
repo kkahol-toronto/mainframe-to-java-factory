@@ -1,6 +1,6 @@
 {
   "programId": "CCAC6320",
-  "purpose": "This program reads transaction data from multiple sources (Miscellaneous Form, B&CCW Issues, DEFT Issues, Reject Cycle, 1099 Entry Code Table, Control Card) and determines which transactions are 1099 reportable. Transactions passing edits are reported in a transaction record and sent downstream for master file update. Transactions failing edits, foreign transactions, and excluded transactions (no SSN or $0 amount) are written to separate output files for reporting and control purposes.",
+  "purpose": "This program reads transaction data from multiple sources (Miscellaneous Input, B&CCW Issues, DEFT Issues, Reject Cycle, 1099 Entry Code Table, Control Card) and determines which transactions are 1099 reportable. Transactions passing edits are written to a transaction output file, while those failing edits or identified as foreign/excluded are written to separate files. Successfully edited transactions are passed downstream for master file updates.",
   "files": [
     {
       "name": "TEN99-T01R-MISC-TRANS-FILE",
@@ -158,7 +158,6 @@
     "mainEntry": "0000-MAINLINE",
     "termination": "9000-TERMINATION-ROUTINE",
     "paragraphs": [
-      "0000-MAINLINE",
       "1000-INITIALIZATION",
       "1130-INCLUDE-SYSOUT-DISPLAY",
       "3000-MAIN-PROCESS",
@@ -214,7 +213,6 @@
       "8040-WRITE-FOR-TRANS-RCD",
       "8050-WRITE-EXCLUDES-RCD",
       "8999-WRITE-SYSOUT",
-      "9000-TERMINATION-ROUTINE",
       "9010-ENDING-SYSOUT-MESSAGES",
       "9998-COREDUMP",
       "9999-CLOSE-FILES"
@@ -230,13 +228,14 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": true,
     "notes": [
-      "The program reads multiple input files, verifies headers and control dates, and processes detail and trailer records for each file.",
-      "It accumulates and balances totals for reporting and control.",
-      "It uses lookup tables (state, province, 1099 entry codes) for enrichment and validation.",
-      "It groups records by key fields (check number, tax type, TIN) and summarizes amounts.",
-      "It writes output records to multiple files based on transaction status: valid, rejected, foreign, excluded.",
-      "It prepares headers and trailers for all output files.",
-      "It supports downstream master file update for successfully edited transactions."
+      "Program reads multiple input files, verifies headers, processes details, and writes to multiple output files based on edit results.",
+      "Group summarization occurs for transactions with the same key (e.g., check number, tax type, TIN).",
+      "Master update merge is implied by passing successfully edited transactions downstream for master file update.",
+      "Formatter pattern is present: headers and trailers are written for all output files.",
+      "Lookup enrichment is present: 1099 Entry Code Table is used to determine reportable transactions.",
+      "Foreign transactions (Canadian, Puerto Rico) are identified and written to separate files.",
+      "Excludes file is used for transactions without SSN or with zero 1099 amount.",
+      "Rejects and error handling are robust, with error flags and abend routines."
     ]
   }
 }

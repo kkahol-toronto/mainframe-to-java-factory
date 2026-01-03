@@ -96,18 +96,14 @@ def strip_markdown(text: str) -> str:
 
 
 def extract_first_method_block(text: str) -> str | None:
-    """
-    Extract the first 'private void ... { ... }' block from arbitrary text.
-    We DO NOT rely on it starting at the beginning.
-    """
-    # Find first method signature
-    sig = re.search(r"\bprivate\s+void\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*MergeState\s+state\s*\)\s*\{", text)
+    sig = re.search(
+        r"\bprivate\s+void\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*MergeState\s+state\s*\)\s*\{",
+        text,
+    )
     if not sig:
         return None
 
     start = sig.start()
-
-    # Brace-match from the first '{'
     brace_start = text.find("{", sig.end() - 1)
     if brace_start == -1:
         return None
@@ -129,20 +125,19 @@ def sanitize_method(raw_llm: str, para_name: str, expected_method_name: str) -> 
     Enforce a SAFE Java method:
     - Extract exactly one method block from the LLM output
     - Force signature method name to expected_method_name
-    - Keep braces real
+    - NEVER emit class-level braces
     - Comment-only for COBOL control keywords
     """
     text = strip_markdown(raw_llm)
 
     block = extract_first_method_block(text)
     if block is None:
-        # Fallback: safe stub method (never crash pipeline)
         return f"""// COBOL {para_name}
 private void {expected_method_name}(MergeState state) {{
     // TODO: LLM did not return a valid method. Manual review required.
 }}""".strip()
 
-    # Force the method name to the expected one (in case the model chose differently)
+    # Force the method name
     block = re.sub(
         r"\bprivate\s+void\s+[A-Za-z_][A-Za-z0-9_]*\s*\(",
         f"private void {expected_method_name}(",
@@ -150,33 +145,46 @@ private void {expected_method_name}(MergeState state) {{
         count=1
     )
 
-    # Comment COBOL-ish control words inside the method body (but DO NOT comment braces)
     cleaned_lines = []
-    for line in block.splitlines():
-        s = line.strip()
+    brace_depth = 0
+    inside_method = False
 
-        # Do not comment braces or blank lines
-        if s in ("{", "}", ""):
-            cleaned_lines.append(line)
+    for line in block.splitlines():
+        stripped = line.strip()
+
+        # Detect method start
+        if stripped.startswith("private void"):
+            inside_method = True
+
+        # Track brace depth
+        brace_depth += stripped.count("{")
+        brace_depth -= stripped.count("}")
+
+        # 🚫 HARD RULE: never allow class-closing braces
+        if not inside_method and stripped == "}":
             continue
 
-        # Comment lines that contain COBOL control words or pseudo-control
-        if re.search(r"\b(IF|ELSE|END-IF|PERFORM|EVALUATE|WHEN)\b", s, re.IGNORECASE):
-            cleaned_lines.append("    // " + s)
+        # Comment COBOL control keywords (but not braces)
+        if stripped not in ("{", "}", "") and re.search(
+            r"\b(IF|ELSE|END-IF|PERFORM|EVALUATE|WHEN)\b",
+            stripped,
+            re.IGNORECASE
+        ):
+            cleaned_lines.append("    // " + stripped)
         else:
             cleaned_lines.append(line)
 
     method = "\n".join(cleaned_lines).strip()
 
-    # Final structural validation: braces must match
+    # 🚨 Final structural validation
     if method.count("{") != method.count("}"):
-        # If brace mismatch, return a safe stub (never emit broken Java)
         return f"""// COBOL {para_name}
 private void {expected_method_name}(MergeState state) {{
-    // TODO: Brace mismatch in LLM output. Manual review required.
+    // TODO: Brace imbalance detected. Method generation skipped.
 }}""".strip()
 
     return method
+
 
 
 def inject_methods(java: str, methods: list[str]) -> str:
@@ -184,7 +192,7 @@ def inject_methods(java: str, methods: list[str]) -> str:
         raise RuntimeError("3C anchor markers missing (regenerate via Layer 3B)")
 
     before, rest = java.split(BEGIN_MARKER, 1)
-    middle, after = rest.split(END_MARKER, 1)
+    _, after = rest.split(END_MARKER, 1)
 
     injected = (
         BEGIN_MARKER
@@ -196,7 +204,6 @@ def inject_methods(java: str, methods: list[str]) -> str:
 
     return before + injected + after
 
-
 # ---------------------------------------------------------------------------
 # PROMPT
 # ---------------------------------------------------------------------------
@@ -204,27 +211,26 @@ def inject_methods(java: str, methods: list[str]) -> str:
 def paragraph_prompt(program: str, para_name: str, para_body: str) -> str:
     method = method_name_for_paragraph(para_name)
     return f"""
-Please translate the following COBOL paragraph into a single Java helper method.
+Translate the following COBOL paragraph into a single Java helper method.
 
-Guidelines:
-- Return one Java method only
-- The method should be named `{method}`
-- The method should accept a `MergeState state` parameter
-- Use comments to describe control flow and intent
-- Avoid introducing new control structures
-- Keep the method self-contained
+Rules:
+- Output ONE Java method only
+- Method name: {method}
+- Signature: private void {method}(MergeState state)
+- Use comments ONLY to describe logic
+- DO NOT emit executable Java logic
+- DO NOT use placeholders like ...
 
-Expected method shape:
+Expected shape:
 
 // COBOL {para_name}
 private void {method}(MergeState state) {{
-    ...
+    // TODO: describe COBOL logic here
 }}
 
 COBOL paragraph:
 {para_body}
 """.strip()
-
 
 # ---------------------------------------------------------------------------
 # MAIN
@@ -240,13 +246,10 @@ def main():
 
     cobol_files = list(COBOL_DIR.glob(f"{program}.*"))
     if not cobol_files:
-        raise FileNotFoundError(f"No COBOL file found for {program} in {COBOL_DIR}")
+        raise FileNotFoundError(f"No COBOL file found for {program}")
 
     cobol = cobol_files[0].read_text(encoding="utf-8", errors="ignore")
     java_file = JAVA_DIR / f"{program}Tasklet.java"
-
-    if not java_file.exists():
-        raise FileNotFoundError(java_file)
 
     java = java_file.read_text(encoding="utf-8")
 
@@ -260,7 +263,6 @@ def main():
     for name, body in paragraphs:
         method_name = method_name_for_paragraph(name)
 
-        # Layer 3C must NEVER translate control-entry paragraphs
         if method_name == "mainline":
             print(f"Skipping control paragraph {name}")
             continue
@@ -278,7 +280,6 @@ def main():
         raw = resp.choices[0].message.content
         method = sanitize_method(raw, name, method_name)
 
-        # Final guard: never allow mainline() in Layer 3C output
         if re.search(r"\bprivate\s+void\s+mainline\s*\(", method):
             continue
 
@@ -288,7 +289,6 @@ def main():
     java_file.write_text(java, encoding="utf-8")
 
     print(f"✔ Layer 3C applied safely to {java_file}")
-
 
 if __name__ == "__main__":
     main()

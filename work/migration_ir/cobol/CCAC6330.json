@@ -5,32 +5,32 @@
     {
       "name": "TEN99-T01R-TRANSACTION-FILE",
       "type": "input",
-      "record": "TEN99-T01R-TRANSACTION-RCD"
+      "recordName": "TEN99-T01R-TRANSACTION-RCD"
     },
     {
       "name": "TEN99-M01R-MASTER-IN-FILE",
       "type": "input",
-      "record": "TEN99-M01R-MASTER-IN-RCD"
+      "recordName": "TEN99-M01R-MASTER-IN-RCD"
     },
     {
       "name": "TEN99-T02R-MASTER-UPDATE-FILE",
       "type": "input",
-      "record": "TEN99-T02R-MASTER-UPDATE-RCD"
+      "recordName": "TEN99-T02R-MASTER-UPDATE-RCD"
     },
     {
       "name": "TEN99-R01R-CONTROL-FILE",
       "type": "input",
-      "record": "TEN99-R01R-CONTROL-RCD"
+      "recordName": "TEN99-R01R-CONTROL-RCD"
     },
     {
       "name": "TEN99-T01W-DUPLICATE-TRAN-FILE",
       "type": "output",
-      "record": "TEN99-T01W-DUPLICATE-TRAN-RCD"
+      "recordName": "TEN99-T01W-DUPLICATE-TRAN-RCD"
     },
     {
       "name": "TEN99-M01W-MASTER-OUT-FILE",
       "type": "output",
-      "record": "TEN99-M01W-MASTER-OUT-RCD"
+      "recordName": "TEN99-M01W-MASTER-OUT-RCD"
     }
   ],
   "copybooks": [
@@ -118,10 +118,10 @@
     "isFormatterHeadersTrailers": true,
     "isLookupEnrichment": false,
     "notes": [
-      "Program merges transaction, master, and update files by key fields (check number, department, tax type, TIN indicator).",
-      "Creates new master records from transactions, overlays master records with updates, and writes out master and duplicate transaction files.",
-      "Handles headers and trailers for all files.",
-      "Performs error handling and writes sysout messages."
+      "Program merges transaction, master, and update files to produce a new master file.",
+      "Handles duplicate detection and writes duplicates to a separate file.",
+      "Processes headers and trailers for input and output files.",
+      "Performs master file updates based on update file records."
     ]
   }
 }
