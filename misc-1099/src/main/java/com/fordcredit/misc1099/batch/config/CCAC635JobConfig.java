@@ -52,7 +52,7 @@ public class CCAC635JobConfig {
     @Bean
     public Step step2() {
         return new StepBuilder("CCAC6353", jobRepository)
-                .tasklet(new com.fordcredit.misc1099.batch.program.CCAC6350Tasklet(), transactionManager)
+                .tasklet(new com.fordcredit.misc1099.batch.program.CCAC6350Tasklet("work/mainframe_clean/testcases/CCAC6350"), transactionManager)
                 .build();
     }
 

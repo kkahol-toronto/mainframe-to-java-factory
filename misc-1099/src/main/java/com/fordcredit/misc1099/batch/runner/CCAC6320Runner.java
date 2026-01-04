@@ -4,7 +4,7 @@ public class CCAC6320Runner {
     public static void main(String[] args) {
         System.out.println("▶ Running CCAC6320Tasklet...");
         try {
-            var tasklet = new com.fordcredit.misc1099.batch.program.CCAC6320Tasklet();
+            var tasklet = new com.fordcredit.misc1099.batch.program.CCAC6320Tasklet("work/mainframe_clean/testcases/CCAC6320");
             tasklet.execute(null, null);
             System.out.println("✔ CCAC6320Tasklet completed successfully");
         } catch (Exception e) {

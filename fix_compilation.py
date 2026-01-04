@@ -100,11 +100,14 @@ OUTPUT ONLY FIX BLOCKS - no explanations."""
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
-                max_tokens=3000
+                max_tokens=6000
             )
             
             result = response.choices[0].message.content
-            return self._parse_fixes(result)
+            fixes = self._parse_fixes(result)
+            if not fixes and result:
+                print(f"    [DEBUG] LLM response preview: {result[:500]}")
+            return fixes
         except Exception as e:
             print(f"    LLM error: {e}")
             return []
@@ -113,20 +116,49 @@ OUTPUT ONLY FIX BLOCKS - no explanations."""
         """Parse FIX blocks from LLM response"""
         fixes = []
         
-        # Find all FIX blocks
-        pattern = r'FIX:\s*\nOLD:\s*(.*?)\nNEW:\s*(.*?)\nEND_FIX'
-        matches = re.findall(pattern, text, re.DOTALL)
+        # Try multiple patterns (LLM can be inconsistent)
+        patterns = [
+            r'FIX:\s*\nOLD:\s*(.*?)\nNEW:\s*(.*?)\nEND_FIX',
+            r'FIX:\s*OLD:\s*(.*?)\s*NEW:\s*(.*?)\s*END_FIX',
+            r'OLD:\s*```[^\n]*\n(.*?)```\s*NEW:\s*```[^\n]*\n(.*?)```',
+            r'```java\s*// OLD\s*(.*?)```\s*```java\s*// NEW\s*(.*?)```',
+        ]
         
-        for old, new in matches:
-            old = old.strip()
-            new = new.strip()
-            
-            # Remove line numbers if LLM included them (e.g., "1234: code")
-            old = re.sub(r'^\d+:\s*', '', old)
-            new = re.sub(r'^\d+:\s*', '', new)
-            
-            if old and old != new:
-                fixes.append((old, new))
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.DOTALL)
+            if matches:
+                for old, new in matches:
+                    old = old.strip()
+                    new = new.strip()
+                    
+                    # Remove line numbers if LLM included them (e.g., "1234: code")
+                    old = re.sub(r'^\d+:\s*', '', old)
+                    new = re.sub(r'^\d+:\s*', '', new)
+                    
+                    # Remove markdown code fences if present
+                    old = re.sub(r'^```\w*\n?', '', old)
+                    old = re.sub(r'\n?```$', '', old)
+                    new = re.sub(r'^```\w*\n?', '', new)
+                    new = re.sub(r'\n?```$', '', new)
+                    
+                    if old and old != new:
+                        fixes.append((old, new))
+                break
+        
+        # If still no fixes, try a looser heuristic
+        if not fixes and 'OLD:' in text and 'NEW:' in text:
+            # Split on OLD: and try to parse
+            parts = re.split(r'OLD:\s*', text)
+            for part in parts[1:]:  # Skip first (before first OLD:)
+                if 'NEW:' in part:
+                    old_new = re.split(r'NEW:\s*', part, 1)
+                    if len(old_new) == 2:
+                        old = old_new[0].strip().split('END_FIX')[0].strip()
+                        new = old_new[1].strip().split('END_FIX')[0].strip()
+                        old = re.sub(r'^\d+:\s*', '', old)
+                        new = re.sub(r'^\d+:\s*', '', new)
+                        if old and old != new:
+                            fixes.append((old, new))
         
         return fixes
 
@@ -200,6 +232,8 @@ class IterativeFixer:
         print("Iterative Compilation Fixer")
         print("=" * 60)
         
+        error_history = []  # Track error counts to detect cycles
+        
         for iteration in range(1, MAX_ITERATIONS + 1):
             print(f"\n[Iteration {iteration}/{MAX_ITERATIONS}]")
             
@@ -219,7 +253,16 @@ class IterativeFixer:
                 print("  No errors found for target file")
                 return True
             
-            print(f"  Found {len(errors)} errors")
+            error_count = len(errors)
+            print(f"  Found {error_count} errors")
+            
+            # Detect cycles - if same error count for 5+ iterations, increase context
+            error_history.append(error_count)
+            if len(error_history) >= 5:
+                recent = error_history[-5:]
+                if len(set(recent)) <= 2:  # Oscillating between 1-2 values
+                    print(f"  ⚠️ Detected oscillation - adding full file context")
+                    # Will pass more context below
             
             # Group errors by file
             errors_by_file = {}
