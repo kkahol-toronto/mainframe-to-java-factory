@@ -408,7 +408,6 @@ public class CCAC6310Tasklet implements Tasklet {
         String endOfDeftDetailYes = "";
         String foreignIndNo = "";
         String foreignIndYes = "";
-        String litRejectFileName = "";
         String sarParagraph = "";
         String ten99CcHdr = "";
         String ten99CompassEntCdeData = "";
@@ -433,8 +432,11 @@ public class CCAC6310Tasklet implements Tasklet {
         String ten99YyHdr = "";
         String wsBusUnitCan = "";
         String wsT01rMiscFormValidTax = "";
+        String wsT05rRejectHdrValue = "";
         String wsT05rRejectTrlValue = "";
         String wsT05rRejectValidTaxType = "";
+        String wsT07r1099EntryCodes = "";
+        String wsT07r1099EntryTaxType = "";
         String wsTotalOutputTransAmt29680001 = "";
         String wsTotalOutputTransCnt29670001 = "";
     }
@@ -723,7 +725,7 @@ public class CCAC6310Tasklet implements Tasklet {
         
         try {
             for (int codeIndex = 1; codeIndex <= state.litNumOf1099Codes; codeIndex++) {
-                read1099EntryTable(state, codeIndex);
+                search1099Table(state);
             }
             if ("JAN".equals(state.ccTaxMm1)) {
                 janMonthProcessing(state);
@@ -766,7 +768,7 @@ public class CCAC6310Tasklet implements Tasklet {
             if ("Y".equals(state.errorFlag)) {
                 state.ccE01wDisplayRcd = state.litErrorFlagEqualsYes;
                 includeSysoutDisplay(state);
-                yearEndProcessing(state);
+                mainline(state); // Assuming 9998-COREDUMP maps to mainline or similar error handling
             }
             miscFormProcess(state);
             bccwProcess(state);
@@ -808,7 +810,7 @@ public class CCAC6310Tasklet implements Tasklet {
             if ("Y".equals(state.errorFlag)) {
                 state.ccE01wDisplayRcd = state.litErrorFlagEqualsYes;
                 includeSysoutDisplay(state);
-                mainline(state); // Assuming 9998-COREDUMP maps to mainline or similar error handling
+                yearEndProcessing(state);
             }
             miscFormProcess(state);
             bccwProcess(state);
@@ -845,7 +847,7 @@ public class CCAC6310Tasklet implements Tasklet {
             if ("Y".equals(state.errorFlag)) {
                 state.ccE01wDisplayRcd = state.litErrorFlagEqualsYes;
                 includeSysoutDisplay(state);
-                mainline(state); // Assuming 9998-COREDUMP maps to mainline or a similar error handler
+                // TODO: unknown method
             }
             miscFormProcess(state);
             rejCycleProcess(state);
@@ -895,10 +897,10 @@ public class CCAC6310Tasklet implements Tasklet {
         
         try {
             miscFormReadRcd(state);
-            if (state.ten99T01rMiscFormEofYes) {
+            if ("Y".equals(state.ten99T01rMiscFormEofYes)) {
                 state.msgNoDataFileName = state.litMiscForm;
                 state.ccE01wDisplayRcd = state.msgNoData;
-                writeSysout(state);
+                includeSysoutDisplay(state);
                 state.errorFlag = "Y";
             } else {
                 if ("\u0000".equals(state.wsT01rMiscFormHdrValue) && state.wsT01rMiscFormHdrName.equals(state.litMiscFormHdr)) {
@@ -908,13 +910,13 @@ public class CCAC6310Tasklet implements Tasklet {
                     } else {
                         state.msgFileName = state.litMiscForm;
                         state.ccE01wDisplayRcd = state.msgIncorrectDate;
-                        writeSysout(state);
+                        includeSysoutDisplay(state);
                         state.errorFlag = "Y";
                     }
                 } else {
                     state.msgFileId = state.litMiscForm;
                     state.ccE01wDisplayRcd = state.msgBadFile;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                     state.errorFlag = "Y";
                 }
             }
@@ -997,7 +999,7 @@ public class CCAC6310Tasklet implements Tasklet {
             if ("LIT_BCCW_FILE".equals(state.ten99FileIdHdr)) {
                 if ("CC_TAX_YY1".equals(state.ten99YyHdr) && "CC_TAX_CC1".equals(state.ten99CcHdr) && "CC_TAX_MM1".equals(state.ten99MmHdr)) {
                     state.wsOutputTransRcd = state.ten99RecordHdr;
-                    initialization(state.ten99RecordHdr);
+                    initialization(state);
                 } else {
                     state.msgFileName = "LIT_BCCW";
                     state.ccE01wDisplayRcd = "MSG_INCORRECT_DATE";
@@ -1012,7 +1014,7 @@ public class CCAC6310Tasklet implements Tasklet {
                 includeSysoutDisplay(state);
                 state.wsOutputTransRcd = state.ten99RecordHdr;
             }
-            bccwProcess(state);
+            mainProcess(state);
         } catch (Exception e) {
             throw new RuntimeException("Error in bccwVerify: " + e.getMessage(), e);
         }
@@ -1044,7 +1046,7 @@ public class CCAC6310Tasklet implements Tasklet {
                 state.msgNoDataFileName = state.litDeft;
                 state.ccE01wDisplayRcd = state.msgNoData;
                 state.errorFlag = "Y";
-                writeSysout(state);
+                includeSysoutDisplay(state);
             } else {
                 deftVerify(state);
                 deftReadRcd(state);
@@ -1092,13 +1094,13 @@ public class CCAC6310Tasklet implements Tasklet {
                     state.msgFileName = "LIT-DEFT";
                     state.ccE01wDisplayRcd = "MSG-INCORRECT-DATE";
                     state.errorFlag = "Y";
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                 }
             } else {
                 state.msgFileId = "LIT-DEFT";
                 state.ccE01wDisplayRcd = "MSG-BAD-FILE";
                 state.errorFlag = "Y";
-                writeSysout(state);
+                includeSysoutDisplay(state);
             }
         } catch (Exception e) {
             throw new RuntimeException("Error in deftVerify: " + e.getMessage(), e);
@@ -1145,12 +1147,12 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            rejCycleReadRcd(state);
-            if (state.ten99T05rRejCycleEofYes) {
+            rejCycleProcessRcd(state);
+            if ("Y".equals(state.ten99T05rRejCycleEofYes)) {
                 state.msgNoDataFileName = state.litRejectFile;
                 state.ccE01wDisplayRcd = state.msgNoData;
                 state.errorFlag = "Y";
-                writeSysout(state);
+                includeSysoutDisplay(state);
             } else {
                 if ("\u0000".equals(state.wsT05rRejCycleHdrValue) &&
                     state.wsT05rRejCycleHdrId.equals(state.litTen99RejectTrans)) {
@@ -1158,18 +1160,18 @@ public class CCAC6310Tasklet implements Tasklet {
                         state.wsT05rRejCycleHdrCc.equals(state.ccTaxCc1) &&
                         state.wsT05rRejCycleHdrMm.equals(state.ccTaxMm1)) {
                         state.ten99T05wRejCycleOutRcd = state.wsT05rRejectRecyclingRcd;
-                        writeRejectRcd(state);
+                        rejCycleProcess(state);
                     } else {
                         state.msgFileName = state.litRejectFile;
                         state.ccE01wDisplayRcd = state.msgIncorrectDate;
                         state.errorFlag = "Y";
-                        writeSysout(state);
+                        includeSysoutDisplay(state);
                     }
                 } else {
                     state.msgFileId = state.litRejectFile;
                     state.ccE01wDisplayRcd = state.msgBadFile;
                     state.errorFlag = "Y";
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                 }
             }
         } catch (Exception e) {
@@ -1213,20 +1215,20 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            initialization(state.wsMiscFormSeqCnt);
+            initialization(state);
             mainProcess(state);
             miscFormProcessRcd(state);
-            if (state.ten99T01rMiscFormEofYes || "\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
+            if ("Y".equals(state.ten99T01rMiscFormEofYes) || "\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
                 state.msgNoDataFileName = state.litMiscForm;
                 state.ccE01wDisplayRcd = state.msgNoData;
                 includeSysoutDisplay(state);
                 miscFormResultsProcess(state);
                 if ("\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
                     state.wsOutputTransRcd = state.wsT01rMiscFormRcd;
-                    miscFormProcess(state);
+                    mainline(state);
                 }
             } else {
-                while (!state.ten99T01rMiscFormEofYes && !"\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
+                while (!"Y".equals(state.ten99T01rMiscFormEofYes) && !"\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
                     miscFormProcessRcd(state);
                 }
                 miscFormResultsProcess(state);
@@ -1289,10 +1291,10 @@ public class CCAC6310Tasklet implements Tasklet {
                 // CONTINUE
             } else if ("\uFFFF".equals(state.wsT01rMiscFormTrlValue)) {
                 // CONTINUE
-            } else if (state.wsT01rMiscFormValidTax) {
+            } else if ("Y".equals(state.wsT01rMiscFormValidTax)) {
                 // CONTINUE
             } else {
-                state.wsT01rMiscFormTaxType = state.lit3;
+                state.wsT01rMiscFormTaxType = String.valueOf(state.lit3);
             }
             state.wsOutputTransRcd = state.wsT01rMiscFormRcd;
             writeMiscTransRcd(state);
@@ -1368,10 +1370,10 @@ public class CCAC6310Tasklet implements Tasklet {
             state.msgOutputFileName = state.litMiscForm;
             if (state.wsMiscFormTransCounter == state.wsT01rMiscFormTrlCount && state.wsMiscFormTransAmtAccum.compareTo(state.wsT01rMiscFormTrlAmount) == 0) {
                 state.ccE01wDisplayRcd = state.litMiscInputSuccess;
+                // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method // TODO: unknown method writeSysout(state);
                 writeSysout(state);
-                writeSysout(state);
-                state.msgMiscFileCount = state.wsMiscFormTransCounter;
-                state.msgMiscFileAmount = state.wsMiscFormTransAmtAccum;
+                state.msgMiscFileCount = String.valueOf(state.wsMiscFormTransCounter);
+                state.msgMiscFileAmount = String.valueOf(state.wsMiscFormTransAmtAccum);
                 state.ccE01wDisplayRcd = state.msgMiscFormSummary;
                 writeSysout(state);
                 writeSysout(state);
@@ -1385,8 +1387,8 @@ public class CCAC6310Tasklet implements Tasklet {
                 writeSysout(state);
                 state.ccE01wDisplayRcd = state.litForMiscellaneousInput;
                 writeSysout(state);
-                state.msgFileCount = state.wsMiscFormTransCounter;
-                state.msgTrailerCount = state.wsT01rMiscFormTrlCount;
+                state.msgFileCount = String.valueOf(state.wsMiscFormTransCounter);
+                state.msgTrailerCount = String.valueOf(state.wsT01rMiscFormTrlCount);
                 state.ccE01wDisplayRcd = state.msgTrailerCountDisplay;
                 writeSysout(state);
             }
@@ -1649,53 +1651,53 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            includeSysoutDisplay(state);
+            writeSysout(state);
             state.msgOutputFileName = state.litBccw;
             if (state.wsBccwTransCounter == state.wsBccwTrlCounter && state.wsBccwTransAmtAccum.compareTo(state.wsBccwTrlAmtAccum) == 0) {
                 state.ccE01wDisplayRcd = state.litBccwSuccess;
-                includeSysoutDisplay(state);
+                writeSysout(state);
                 state.msgFileCount = state.wsBccwTransCounter;
                 state.msgTrailerCount = state.wsBccwTrlCounter;
                 state.ccE01wDisplayRcd = state.msgTrailerCountDisplay;
-                includeSysoutDisplay(state);
+                writeSysout(state);
                 state.msgFileAmount = state.wsBccwTransAmtAccum;
                 state.msgTrailerAmount = state.wsBccwTrlAmtAccum;
                 state.ccE01wDisplayRcd = state.msgTrailerDollarDisplay;
-                includeSysoutDisplay(state);
-                includeSysoutDisplay(state);
+                writeSysout(state);
+                writeSysout(state);
             } else {
                 if (state.wsBccwTransCounter == state.wsBccwTrlCounter) {
                     // CONTINUE
                 } else {
                     state.ccE01wDisplayRcd = state.litTransTlsDoNotAgree;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                     state.ccE01wDisplayRcd = state.litForBccwInput;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                     state.msgFileCount = state.wsBccwTransCounter;
                     state.msgTrailerCount = state.wsBccwTrlCounter;
                     state.ccE01wDisplayRcd = state.msgTrailerCountDisplay;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                 }
                 if (state.wsBccwTransAmtAccum.compareTo(state.wsBccwTrlAmtAccum) == 0) {
                     // CONTINUE
                 } else {
                     state.ccE01wDisplayRcd = state.litTransTlsDoNotAgree;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                     state.ccE01wDisplayRcd = state.litForBccwInput;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                     state.msgFileAmount = state.wsBccwTransAmtAccum;
                     state.msgTrailerAmount = state.wsBccwTrlAmtAccum;
                     state.ccE01wDisplayRcd = state.msgTrailerDollarDisplay;
-                    includeSysoutDisplay(state);
+                    writeSysout(state);
                 }
-                includeSysoutDisplay(state);
+                writeSysout(state);
             }
             state.ccE01wDisplayRcd = state.litBccwControlTotals;
-            includeSysoutDisplay(state);
+            writeSysout(state);
             state.wsOutputTransCnt = state.wsBccwTransCounter;
             state.wsOutputTransAmt = state.wsBccwTransAmtAccum;
-            mainProcess6600OutputBalancingProcess(state);
-            includeSysoutDisplay(state);
+            outputBalancingProcess(state);
+            writeSysout(state);
         } catch (Exception e) {
             throw new RuntimeException("Error in bccwEndProcess: " + e.getMessage(), e);
         }
@@ -1931,52 +1933,52 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            writeSysout(state);
+            includeSysoutDisplay(state);
             state.msgOutputFileName = state.litDeft;
             if (state.wsT04rDeftTrlCnt == state.wsT04rDeftDisbSeq && state.wsT04rDeftTrlAmt.compareTo(state.wsT04rDeftDisbAmt) == 0) {
                 state.ccE01wDisplayRcd = state.litDeftSuccess;
-                writeSysout(state);
+                includeSysoutDisplay(state);
                 state.msgFileCount = state.wsT04rDeftTrlCnt;
                 state.msgTrailerCount = state.wsT04rDeftTrlCnt;
                 state.ccE01wDisplayRcd = state.msgTrailerCountDisplay;
-                writeSysout(state);
-                state.msgFileAmount = state.wsT04rDeftDisbAmt;
+                includeSysoutDisplay(state);
+                state.msgFileAmount = state.wsT04rDeftTrlAmt;
                 state.msgTrailerAmount = state.wsT04rDeftTrlAmt;
                 state.ccE01wDisplayRcd = state.msgTrailerDollarDisplay;
-                writeSysout(state);
+                includeSysoutDisplay(state);
             } else {
                 if (state.wsT04rDeftTrlCnt == state.wsT04rDeftDisbSeq) {
                     // CONTINUE
                 } else {
                     state.ccE01wDisplayRcd = state.litTransTlsDoNotAgree;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                     state.ccE01wDisplayRcd = state.litForDeftInput;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                     state.msgFileCount = state.wsT04rDeftTrlCnt;
                     state.msgTrailerCount = state.wsT04rDeftTrlCnt;
                     state.ccE01wDisplayRcd = state.msgTrailerCountDisplay;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                 }
                 if (state.wsT04rDeftTrlAmt.compareTo(state.wsT04rDeftDisbAmt) == 0) {
                     // CONTINUE
                 } else {
                     state.ccE01wDisplayRcd = state.litTransTlsDoNotAgree;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                     state.ccE01wDisplayRcd = state.litForDeftInput;
-                    writeSysout(state);
-                    state.msgFileAmount = state.wsT04rDeftDisbAmt;
+                    includeSysoutDisplay(state);
+                    state.msgFileAmount = state.wsT04rDeftTrlAmt;
                     state.msgTrailerAmount = state.wsT04rDeftTrlAmt;
                     state.ccE01wDisplayRcd = state.msgTrailerDollarDisplay;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                 }
-                writeSysout(state);
+                includeSysoutDisplay(state);
             }
             state.ccE01wDisplayRcd = state.litDeftControlTotals;
-            writeSysout(state);
+            includeSysoutDisplay(state);
             state.wsOutputTransCnt = state.wsT04rDeftTrlCnt;
-            state.wsOutputTransAmt = state.wsT04rDeftDisbAmt;
-            outputBalancingProcess(state);
-            writeSysout(state);
+            state.wsOutputTransAmt = state.wsT04rDeftTrlAmt;
+            mainProcess(state);
+            includeSysoutDisplay(state);
         } catch (Exception e) {
             throw new RuntimeException("Error in deftTrailerProcess: " + e.getMessage(), e);
         }
@@ -2120,10 +2122,9 @@ public class CCAC6310Tasklet implements Tasklet {
         
         try {
             initialization(state);
-            state.wsOutputTransRcd = null;
-            if ("\u0000".equals(state.wsT05rRejCycleHdrValue)) {
+            if ("\u0000".equals(state.wsT05rRejectHdrValue)) {
                 // CONTINUE
-            } else if ("\uFFFF".equals(state.wsT05rRejCycleTrlValue)) {
+            } else if ("\uFFFF".equals(state.wsT05rRejectTrlValue)) {
                 // CONTINUE
             } else {
                 if (state.wsT05rRejectValidTaxType) {
@@ -2131,11 +2132,11 @@ public class CCAC6310Tasklet implements Tasklet {
                 } else {
                     state.wsT05rRejectTaxType = "3";
                     state.ccE01wDisplayRcd = state.wsT05rRejectRecyclingRcd;
-                    writeSysout(state);
+                    includeSysoutDisplay(state);
                 }
             }
             state.ten99T05wRejCycleOutRcd = state.wsT05rRejectRecyclingRcd;
-            writeRejectRcd(state);
+            rejCycleProcess(state);
         } catch (Exception e) {
             throw new RuntimeException("Error in rejCycleSetTaxType: " + e.getMessage(), e);
         }
@@ -2214,7 +2215,7 @@ public class CCAC6310Tasklet implements Tasklet {
         try {
             writeSysout(state);
             writeSysout(state);
-            state.msgOutputFileName = state.litRejectFileName;
+            state.msgOutputFileName = state.litRejectFile;
             if (state.wsRejCycleTransCounter == state.wsT05rRejCycleTrlCount && state.wsRejCycleTransAmtAccum.compareTo(state.wsT05rRejCycleTrlAmt) == 0) {
                 state.ccE01wDisplayRcd = state.litRejCycleSuccess;
                 writeSysout(state);
@@ -2282,14 +2283,15 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            int codeIndex = 1;
+            int codeIndex = 0;
+            state.wsCec = state.wsT07r1099EntryCodes[codeIndex];
             boolean found = false;
-            while (codeIndex <= WS_T07R_1099ENTRY_CODES.length && !found) {
-                if (state.wsCec != null && state.wsCec.equals(WS_T07R_1099ENTRY_CODE[codeIndex - 1])) {
-                    state.wsTaxType = WS_T07R_1099ENTRY_TAX_TYPE[codeIndex - 1];
+            for (codeIndex = 0; codeIndex < state.wsT07r1099EntryCodes.length; codeIndex++) {
+                if (state.wsCec.equals(state.wsT07r1099EntryCodes[codeIndex])) {
+                    state.wsTaxType = state.wsT07r1099EntryTaxType[codeIndex];
                     found = true;
+                    break;
                 }
-                codeIndex++;
             }
         } catch (Exception e) {
             throw new RuntimeException("Error in search1099Table: " + e.getMessage(), e);
@@ -2367,10 +2369,10 @@ public class CCAC6310Tasklet implements Tasklet {
         // ===== End COBOL =====
         
         try {
-            initialization(state.wsT01rMiscFormRcd);
+            initialization(state);
             readTen99T01rMiscTransFile(state);
-            if ("Y".equals(state.ten99T01rMiscFormEof)) {
-                // No operation needed as per COBOL logic
+            if (state.ten99T01rMiscFormEof == null) {
+                state.ten99T01rMiscFormEof = "Y";
             }
         } catch (Exception e) {
             throw new RuntimeException("Error in miscFormReadRcd: " + e.getMessage(), e);
@@ -2455,17 +2457,20 @@ public class CCAC6310Tasklet implements Tasklet {
             initialization(state.wsT04rDeftRcd);
             readTen99T04rDeftFile(state);
             if ("Y".equals(state.ten99T04rDeftEof)) {
+                // AT END
                 state.ten99T04rDeftEof = "Y";
             }
             state.wsOutputTransRcd = state.wsT04rDeftRcd;
-            if ("\u0000".equals(state.wsT04rDeftHdrValue)) {
-                // CONTINUE
-            } else if ("Y".equals(state.ten99T04rDeftEofYes)) {
-                // CONTINUE
-            } else if ("\uFFFF".equals(state.wsT04rDeftHdrValue)) {
-                state.endOfDeftDetail = "Y";
-            } else {
-                state.endOfDeftHeaders = "Y";
+            if (true) {
+                if ("\u0000".equals(state.wsT04rDeftHdrValue)) {
+                    // CONTINUE
+                } else if ("Y".equals(state.ten99T04rDeftEofYes)) {
+                    // CONTINUE
+                } else if ("\uFFFF".equals(state.wsT04rDeftHdrValue)) {
+                    state.endOfDeftDetail = "Y";
+                } else {
+                    state.endOfDeftHeaders = "Y";
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Error in deftReadRcd: " + e.getMessage(), e);
@@ -2708,7 +2713,7 @@ public class CCAC6310Tasklet implements Tasklet {
                 state.wsTotalOutputTransAmt = state.wsTotalOutputTransAmt.add(state.wsT04rDeftDisbAmt);
                 state.wsFileAmtAccum = state.wsFileAmtAccum.add(state.wsT04rDeftDisbAmt);
             }
-            writeTen99T04wDeftOutRcd(state);
+            writeTen99T04wDeftOutRcd(state.wsOutputTransRcd);
             state.wsOutputTransRcd = " ";
             initializeRejectIndicators(state);
         } catch (Exception e) {
@@ -2808,7 +2813,8 @@ public class CCAC6310Tasklet implements Tasklet {
         
         try {
             includeSysoutDisplay(state);
-            mainline(state);
+            includeAbendInformation(state);
+            includeCloseFiles(state);
         } catch (Exception e) {
             throw new RuntimeException("Error in endingSysoutMessages: " + e.getMessage(), e);
         }
