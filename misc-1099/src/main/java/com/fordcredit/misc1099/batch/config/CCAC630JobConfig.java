@@ -36,7 +36,7 @@ public class CCAC630JobConfig {
     @Bean
     public Step step0() {
         return new StepBuilder("CCAC6301", jobRepository)
-                .tasklet(new com.fordcredit.misc1099.batch.program.CCAC6310Tasklet(), transactionManager)
+                .tasklet(new com.fordcredit.misc1099.batch.program.CCAC6310Tasklet("work/mainframe_clean/testcases/CCAC6310"), transactionManager)
                 .build();
     }
 

@@ -120,6 +120,11 @@ OUTPUT ONLY FIX BLOCKS - no explanations."""
         for old, new in matches:
             old = old.strip()
             new = new.strip()
+            
+            # Remove line numbers if LLM included them (e.g., "1234: code")
+            old = re.sub(r'^\d+:\s*', '', old)
+            new = re.sub(r'^\d+:\s*', '', new)
+            
             if old and old != new:
                 fixes.append((old, new))
         

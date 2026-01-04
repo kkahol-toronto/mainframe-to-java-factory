@@ -4,8 +4,7 @@ import com.fordcredit.misc1099.batch.program.CCAC6340Tasklet;
 
 public class CCAC6340Runner {
     public static void main(String[] args) {
-        String basePath = args.length > 0 ? args[0] : "work/mainframe_clean/testcases/CCAC6340";
-        CCAC6340Tasklet tasklet = new CCAC6340Tasklet(basePath);
+        CCAC6340Tasklet tasklet = new CCAC6340Tasklet();
         try {
             tasklet.execute(null, null);
             System.out.println("CCAC6340 completed successfully");
