@@ -6,121 +6,228 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 
 /**
- * Auto-generated Tasklet skeleton for COBOL program CCAC6350.
- *
- * Patterns detected:
- *   Program summarizes 1099 records by key fields and outputs a trailer per group., Manual checks are handled as individual records., Trailer records contain record counts and summarized amounts for each location code., Error handling and core dump on fatal errors., Uses copybooks for initialization, display, and file closing routines.
+ * Auto-generated Tasklet for COBOL program CCAC6350.
+ * 
+ * Pattern: SUMMARIZATION
+ * Purpose: 
  */
 public class CCAC6350Tasklet implements Tasklet {
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E/3F.
      */
-    static class MergeState {
-        // TODO: flags, counters, cursors, and records added later
-
-        // BEGIN DOMAIN STATE (Layer 3F)
-        // END DOMAIN STATE (Layer 3F)
+    static class ProgramState {
+        java.io.BufferedReader m01r1099MasterFileReader;
+        boolean m01r1099MasterFileEof = false;
+        String m01r1099MasterFileRawLine;
+        java.io.BufferedReader r01rControlCardReader;
+        boolean r01rControlCardEof = false;
+        String r01rControlCardRawLine;
+        java.io.BufferedWriter c01w1099SummaryFileWriter;
+        String c01w1099SummaryFileOutLine;
+        java.io.BufferedWriter e01wDisplayFileWriter;
+        String e01wDisplayFileOutLine;
+        java.math.BigDecimal totalAmount = java.math.BigDecimal.ZERO;
+        int recordCount = 0;
     }
 
     @Override
     public RepeatStatus execute(
             StepContribution contribution,
-            ChunkContext chunkContext) throws Exception {
+            ChunkContext chunkContext) {
 
-        MergeState state = new MergeState();
+        ProgramState state = new ProgramState();
         mainline(state);
         return RepeatStatus.FINISHED;
     }
 
-    /**
-     * COBOL main entry point.
-     * Control flow is normalized in Layer 3D.
-     */
-    private void mainline(MergeState state) {
-        // Implemented by Layer 3D
+    private void mainline(ProgramState state) {
+        openFiles(state);
+        initialization(state);
+        mainProcess(state);
+        endOfJob(state);
+        closeFiles(state);
     }
 
     // ======================================================
-    // BEGIN GENERATED PARAGRAPHS (Layer 3C)
+    // FILE I/O
     // ======================================================
 
-    // ======================================================
-    // END GENERATED PARAGRAPHS (Layer 3C)
-    // ======================================================
-
-    // ======================================================
-    // BEGIN IO PLUMBING (Layer 3E)
-
-    // ---- Layer 3E IO plumbing (stub-safe) ----
-
-    private void openFiles(MergeState state) {
-        if (state.masterReader != null && state.executionContext != null) {
-            state.masterReader.open(state.executionContext);
-        }
-        if (state.corporateReader != null && state.executionContext != null) {
-            state.corporateReader.open(state.executionContext);
-        }
-        if (state.masterWriter != null && state.executionContext != null) {
-            state.masterWriter.open(state.executionContext);
-        }
-        if (state.sysoutWriter != null && state.executionContext != null) {
-            state.sysoutWriter.open(state.executionContext);
-        }
-    }
-
-    private void readMaster(MergeState state) {
-        if (state.masterReader == null) return;
+    private void openFiles(ProgramState state) {
         try {
-            state.masterRawLine = state.masterReader.read();
-            if (state.masterRawLine == null) state.masterEof = true;
+            String programName = "CCAC6350";
+            java.nio.file.Path testDir = java.nio.file.Paths.get(
+                    "../work/mainframe_clean/testcases", programName);
+
+            java.nio.file.Path m01r1099MasterFilePath = testDir.resolve("input/master.txt");
+            if (java.nio.file.Files.exists(m01r1099MasterFilePath)) {
+                state.m01r1099MasterFileReader = java.nio.file.Files.newBufferedReader(m01r1099MasterFilePath);
+            }
+
+            java.nio.file.Path r01rControlCardPath = testDir.resolve("input/control.txt");
+            if (java.nio.file.Files.exists(r01rControlCardPath)) {
+                state.r01rControlCardReader = java.nio.file.Files.newBufferedReader(r01rControlCardPath);
+            }
+
+            java.nio.file.Path c01w1099SummaryFilePath = testDir.resolve("output/report.txt");
+            java.nio.file.Files.createDirectories(c01w1099SummaryFilePath.getParent());
+            state.c01w1099SummaryFileWriter = java.nio.file.Files.newBufferedWriter(c01w1099SummaryFilePath);
+
+            java.nio.file.Path e01wDisplayFilePath = testDir.resolve("output/report.txt");
+            java.nio.file.Files.createDirectories(e01wDisplayFilePath.getParent());
+            state.e01wDisplayFileWriter = java.nio.file.Files.newBufferedWriter(e01wDisplayFilePath);
+
         } catch (Exception e) {
-            throw new RuntimeException("Error reading master file", e);
+            throw new RuntimeException("Failed to open files", e);
         }
     }
 
-    private void readCorporate(MergeState state) {
-        if (state.corporateReader == null) return;
+    private void closeFiles(ProgramState state) {
         try {
-            state.corporateRawLine = state.corporateReader.read();
-            if (state.corporateRawLine == null) state.corporateEof = true;
+            if (state.m01r1099MasterFileReader != null) state.m01r1099MasterFileReader.close();
+            if (state.r01rControlCardReader != null) state.r01rControlCardReader.close();
+            if (state.c01w1099SummaryFileWriter != null) state.c01w1099SummaryFileWriter.close();
+            if (state.e01wDisplayFileWriter != null) state.e01wDisplayFileWriter.close();
         } catch (Exception e) {
-            throw new RuntimeException("Error reading corporate file", e);
+            throw new RuntimeException("Failed to close files", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void writeMasterOut(MergeState state) {
-        if (state.masterWriter == null || state.masterOutLine == null) return;
+    private void readM01r1099MasterFileFile(ProgramState state) {
         try {
-            state.masterWriter.write(
-                new org.springframework.batch.item.Chunk<>(
-                    java.util.List.of(state.masterOutLine)
-                )
-            );
+            if (state.m01r1099MasterFileReader == null) {
+                state.m01r1099MasterFileEof = true;
+                return;
+            }
+            String line = state.m01r1099MasterFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.m01r1099MasterFileEof = true;
+                state.m01r1099MasterFileRawLine = null;
+            } else {
+                state.m01r1099MasterFileRawLine = line;
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Error writing master out", e);
+            throw new RuntimeException("Error reading m01r1099MasterFile file", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void writeSysout(MergeState state) {
-        if (state.sysoutWriter == null || state.sysoutLine == null) return;
+    private void readR01rControlCardFile(ProgramState state) {
         try {
-            state.sysoutWriter.write(
-                new org.springframework.batch.item.Chunk<>(
-                    java.util.List.of(state.sysoutLine)
-                )
-            );
+            if (state.r01rControlCardReader == null) {
+                state.r01rControlCardEof = true;
+                return;
+            }
+            String line = state.r01rControlCardReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.r01rControlCardEof = true;
+                state.r01rControlCardRawLine = null;
+            } else {
+                state.r01rControlCardRawLine = line;
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Error writing sysout", e);
+            throw new RuntimeException("Error reading r01rControlCard file", e);
         }
     }
 
-// END IO PLUMBING (Layer 3E)
+    private void writeC01w1099SummaryFileLine(ProgramState state, String line) {
+        if (state.c01w1099SummaryFileWriter == null || line == null) return;
+        try {
+            state.c01w1099SummaryFileWriter.write(line);
+            state.c01w1099SummaryFileWriter.newLine();
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing c01w1099SummaryFile file", e);
+        }
+    }
+
+    private void writeE01wDisplayFileLine(ProgramState state, String line) {
+        if (state.e01wDisplayFileWriter == null || line == null) return;
+        try {
+            state.e01wDisplayFileWriter.write(line);
+            state.e01wDisplayFileWriter.newLine();
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing e01wDisplayFile file", e);
+        }
+    }
+
+    // ======================================================
+    // BUSINESS LOGIC
     // ======================================================
 
-    // BEGIN DOMAIN BINDING (Layer 3F)
-    // END DOMAIN BINDING (Layer 3F)
+    private void initialization(ProgramState state) {
+        // TODO: Initialize counters, accumulators, flags
+    }
+
+    private void mainProcess(ProgramState state) {
+        // Prime read
+        readM01r1099MasterFileFile(state);
+
+        String currentKey = null;
+
+        while (!state.m01r1099MasterFileEof) {
+            // Skip headers/trailers
+            if (isHeaderOrTrailer(state)) {
+                readM01r1099MasterFileFile(state);
+                continue;
+            }
+
+            String key = extractKey(state);
+
+            if (currentKey == null) {
+                currentKey = key;
+                initializeAccumulators(state);
+            }
+
+            if (!key.equals(currentKey)) {
+                // Key break: write summary, reset
+                writeSummary(state, currentKey);
+                currentKey = key;
+                initializeAccumulators(state);
+            }
+
+            accumulate(state);
+            readM01r1099MasterFileFile(state);
+        }
+
+        // Write final group
+        if (currentKey != null) {
+            writeSummary(state, currentKey);
+        }
+    }
+
+    private void endOfJob(ProgramState state) {
+        // TODO: Write trailers, final reports
+    }
+
+    // ======================================================
+    // HELPER METHODS
+    // ======================================================
+
+    private boolean isHeaderOrTrailer(ProgramState state) {
+        if (state.m01r1099MasterFileRawLine == null) return false;
+        return state.m01r1099MasterFileRawLine.startsWith("HDR") 
+            || state.m01r1099MasterFileRawLine.startsWith("TRL")
+            || state.m01r1099MasterFileRawLine.charAt(0) == '\u0000'
+            || state.m01r1099MasterFileRawLine.charAt(0) == '\u00FF';
+    }
+
+    private String extractKey(ProgramState state) {
+        if (state.m01r1099MasterFileRawLine == null) return "";
+        // Extract grouping key - customize based on record layout
+        String[] parts = state.m01r1099MasterFileRawLine.split("\\|", -1);
+        return parts.length > 0 ? parts[0].trim() : "";
+    }
+
+    private void initializeAccumulators(ProgramState state) {
+        state.totalAmount = java.math.BigDecimal.ZERO;
+        state.recordCount = 0;
+    }
+
+    private void accumulate(ProgramState state) {
+        state.recordCount++;
+        // TODO: Add amount accumulation based on record layout
+    }
+
+    private void writeSummary(ProgramState state, String key) {
+        // TODO: Format and write summary record
+    }
 }

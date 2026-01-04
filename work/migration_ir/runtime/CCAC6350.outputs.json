@@ -1,0 +1,7 @@
+{
+  "program": "CCAC6350",
+  "outputDir": "work/mainframe_clean/testcases/CCAC6350/output",
+  "outputs": {
+    "report": "work/mainframe_clean/testcases/CCAC6350/output/report.txt"
+  }
+}

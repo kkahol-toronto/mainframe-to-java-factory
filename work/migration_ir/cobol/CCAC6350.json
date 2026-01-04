@@ -1,169 +1,96 @@
 {
   "programId": "CCAC6350",
-  "purpose": "Summarizes 1099 reportable items by location code, SSN/EIN, tax type, TIN indicator, and branch for year-end reporting. Outputs a summary file with trailer records for each location code, including record counts and summarized amounts. Manual checks are reported as individual records.",
+  "purpose": "Summarizes 1099 reportable items by key fields and produces a year-end summary file with trailer records for 1099 reporting.",
   "files": [
     {
-      "name": "TEN99-M01R-1099-MASTER-FILE",
-      "type": "input",
-      "record": "TEN99-M01R-1099-MASTER-RCD",
-      "description": "1099 Master File"
+      "selectName": "TEN99-M01R-1099-MASTER-FILE",
+      "fdName": "TEN99-M01R-1099-MASTER-FILE",
+      "recordPic": "01  TEN99-M01R-1099-MASTER-RCD                 PIC X(400).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-R01R-CONTROL-CARD",
-      "type": "input",
-      "record": "TEN99-R01R-CONTROL-CARD-RCD",
-      "description": "Control Card for 1099 Date"
+      "selectName": "TEN99-R01R-CONTROL-CARD",
+      "fdName": "TEN99-R01R-CONTROL-CARD",
+      "recordPic": "01  TEN99-R01R-CONTROL-CARD-RCD                PIC X(80).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-C01W-1099-SUMMARY-FILE",
-      "type": "output",
-      "record": "TEN99-C01W-1099-SUMMARY-RCD",
-      "description": "Year-End Summary File for 1099 Reporting"
+      "selectName": "TEN99-C01W-1099-SUMMARY-FILE",
+      "fdName": "TEN99-C01W-1099-SUMMARY-FILE",
+      "recordPic": "01  TEN99-C01W-1099-SUMMARY-RCD                PIC X(250).",
+      "direction": "OUTPUT"
     },
     {
-      "name": "CC-E01W-DISPLAY-FILE",
-      "type": "output",
-      "record": "CC-E01W-DISPLAY-RCD",
-      "description": "Display File for messages and statistics"
+      "selectName": "CC-E01W-DISPLAY-FILE",
+      "fdName": "CC-E01W-DISPLAY-FILE",
+      "recordPic": "01  CC-E01W-DISPLAY-RCD                        PIC X(133).",
+      "direction": "OUTPUT"
     }
   ],
-  "copybooks": [
-    "C2INX003",
-    "C2INZ001",
-    "C2INZ002",
-    "C2INZ003",
-    "C2INZ004",
-    "C2INZ005"
-  ],
+  "copybooks": [],
   "workingStorage": {
     "flags": [
-      {
-        "name": "WS-EOF-SW",
-        "type": "flag",
-        "values": [
-          {
-            "value": "Y",
-            "meaning": "END-OF-INPUT"
-          }
-        ]
-      },
-      {
-        "name": "MASTER-HEADER",
-        "type": "condition",
-        "values": [
-          {
-            "value": "LOW-VALUES",
-            "meaning": "Header record in master file"
-          }
-        ]
-      },
-      {
-        "name": "MASTER-TRAILER",
-        "type": "condition",
-        "values": [
-          {
-            "value": "HIGH-VALUES",
-            "meaning": "Trailer record in master file"
-          }
-        ]
-      }
+      "MASTER-HEADER",
+      "MASTER-TRAILER"
     ],
-    "counters": [
-      "WS-TOT-RECDS-READ",
-      "WS-TOT-WRITTEN-CNT",
-      "WS-1099-TRLR-CNT",
-      "WS-TOT-1099-AMT",
-      "WS-1099-TRLR-AMOUNT",
-      "WS-TOT-BATCH-NUM"
-    ],
+    "counters": [],
     "accumulators": [
-      "WS-CALC-TOT-AMOUNT",
-      "WS-MANUAL-TOT-AMOUNT",
-      "WS-1099-TRLR-AMOUNT"
+      "WS-M01R-TOT-AMOUNT",
+      "WS-M01R-1099-AMOUNT",
+      "WS-M01R-DIST-AMOUNT"
     ],
     "keyFields": [
-      {
-        "name": "WS-CURR-REC-KEY",
-        "fields": [
-          "WS-CURR-TAXID",
-          "WS-CURR-TAX-TYPE",
-          "WS-CURR-TAX-IND"
-        ]
-      },
-      {
-        "name": "WS-PREV-REC-KEY",
-        "fields": [
-          "WS-PREV-TAXID",
-          "WS-PREV-TAX-TYPE",
-          "WS-PREV-TIN-IND"
-        ]
-      },
-      {
-        "name": "WS-M01R-OPER-LOC-CODE",
-        "description": "Operation Location Code"
-      },
-      {
-        "name": "WS-M01R-SOC-SEC-NUM",
-        "description": "Social Security Number"
-      },
-      {
-        "name": "WS-M01R-TAX-TYPE",
-        "description": "Tax Type"
-      },
-      {
-        "name": "WS-M01R-TIN-IND",
-        "description": "TIN Indicator"
-      },
-      {
-        "name": "WS-M01R-BR-DEPT",
-        "description": "Branch Department"
-      }
+      "WS-M01R-OPER-LOC-CODE",
+      "WS-M01R-SOC-SEC-NUM",
+      "WS-M01R-TAX-TYPE",
+      "WS-M01R-TIN-IND",
+      "WS-M01R-BR-DEPT"
     ]
   },
   "controlFlow": {
-    "mainEntry": "0000-MAINLINE",
-    "termination": "GOBACK",
-    "paragraphs": [
-      "0000-MAINLINE",
-      "1000-GENERAL-HOUSEKEEPING",
-      "1400-OPEN-FILES",
-      "1600-INITIALIZATION",
-      "1700-INIT-FIRST-DISPLAY-RCD",
-      "3000-PROCESS-MASTER-FILE",
-      "3100-BREAK-FOR-BRANCH",
-      "3200-BREAK-FOR-SOC-SEC-NUM",
-      "3300-BREAK-FOR-OPER-LOC-CODE",
-      "3900-SET-RECORD-KEY",
-      "4000-CREATE-SUMM-OUT-RECORD",
-      "4100-CREATE-MANUAL-OUT-RECORD",
-      "4200-CHECK-ZIP-CODE",
-      "4250-CHECK-NUMERIC-ZIP",
-      "4260-CHECK-ALPHA-ZIP",
-      "5000-PROCESS-TRAILER",
-      "7000-READ-CONTROL-CARD",
-      "7500-READ-MASTER-FILE",
-      "8700-WRITE-OUTPUT-RECORD",
-      "9000-CLOSING-ROUTINE",
-      "9100-WRITE-LAST-DISPLAY-RCD",
-      "9998-COREDUMP",
-      "9999-CLOSE-FILES"
-    ],
-    "errorExits": [
-      "9998-COREDUMP"
-    ]
+    "mainEntry": "",
+    "termination": "",
+    "paragraphs": [],
+    "errorExits": []
   },
   "patterns": {
     "isTwoWayMerge": false,
     "isGroupSummarize": true,
-    "isMasterUpdateMerge": false,
-    "isFormatterHeadersTrailers": true,
-    "isLookupEnrichment": false,
+    "isMultiInput": true,
     "notes": [
-      "Program summarizes 1099 records by key fields and outputs a trailer per group.",
-      "Manual checks are handled as individual records.",
-      "Trailer records contain record counts and summarized amounts for each location code.",
-      "Error handling and core dump on fatal errors.",
-      "Uses copybooks for initialization, display, and file closing routines."
+      "Summarizes 1099 records by multiple key fields including location code, SSN/EIN, tax type, TIN indicator, and branch.",
+      "Produces a trailer record for each location code with record count and amount summary.",
+      "Processes both a master file and a control card as inputs."
     ]
-  }
+  },
+  "detectedPattern": "SUMMARIZATION",
+  "fileRoles": [
+    {
+      "name": "TEN99-M01R-1099-MASTER-FILE",
+      "role": "MASTER_INPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "TEN99-R01R-CONTROL-CARD",
+      "role": "CONTROL_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "TEN99-C01W-1099-SUMMARY-FILE",
+      "role": "REPORT_OUTPUT",
+      "recordLength": 250
+    },
+    {
+      "name": "CC-E01W-DISPLAY-FILE",
+      "role": "REPORT_OUTPUT",
+      "recordLength": 133
+    }
+  ],
+  "hasHeadersTrailers": true,
+  "keyFields": [
+    "KEY",
+    "SSN",
+    "BEING",
+    "EIN"
+  ]
 }

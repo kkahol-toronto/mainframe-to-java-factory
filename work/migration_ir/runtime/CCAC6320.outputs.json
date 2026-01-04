@@ -1,0 +1,8 @@
+{
+  "program": "CCAC6320",
+  "outputDir": "work/mainframe_clean/testcases/CCAC6320/output",
+  "outputs": {
+    "reject": "work/mainframe_clean/testcases/CCAC6320/output/reject.txt",
+    "report": "work/mainframe_clean/testcases/CCAC6320/output/report.txt"
+  }
+}

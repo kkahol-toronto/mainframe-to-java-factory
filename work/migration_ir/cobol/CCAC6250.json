@@ -1,86 +1,63 @@
 {
   "programId": "CCAC6250",
-  "purpose": "Enhanced 1099 Systems - Reformats 1099 reject, vendor, and master files, adding headers and trailers for reporting and audit purposes.",
+  "purpose": "Reformats the 1099 reject file by adding a header and trailer, using control card and vendor file inputs.",
   "files": [
     {
-      "name": "CCAC-T01R-EDITED-1099-REJECT",
-      "type": "input",
-      "record": "CCAC-T01R-EDITED-REJECT-RCD",
-      "length": 526
+      "selectName": "CCAC-T01R-EDITED-1099-REJECT",
+      "fdName": "CCAC-T01R-EDITED-1099-REJECT",
+      "recordPic": "X(526)",
+      "direction": "INPUT"
     },
     {
-      "name": "CCAC-T02R-1099-VENDOR-FILE",
-      "type": "input",
-      "record": "CCAC-T02R-1099-VENDOR-RCD",
-      "length": 320
+      "selectName": "CCAC-T02R-1099-VENDOR-FILE",
+      "fdName": "CCAC-T02R-1099-VENDOR-FILE",
+      "recordPic": "X(320)",
+      "direction": "INPUT"
     },
     {
-      "name": "CCAC-M01R-EDITED-1099-MASTER",
-      "type": "input",
-      "record": "CCAC-M01R-EDITED-MASTER-RCD",
-      "length": 400
+      "selectName": "CCAC-M01R-EDITED-1099-MASTER",
+      "fdName": "CCAC-M01R-EDITED-1099-MASTER",
+      "recordPic": "X(400)",
+      "direction": "INPUT"
     },
     {
-      "name": "CCAC-T01W-FORMAT-1099-REJECT",
-      "type": "output",
-      "record": "CCAC-T01W-FORMAT-REJECT-RCD",
-      "length": 526
+      "selectName": "CCAC-T01W-FORMAT-1099-REJECT",
+      "fdName": "CCAC-T01W-FORMAT-1099-REJECT",
+      "recordPic": "X(526)",
+      "direction": "OUTPUT"
     },
     {
-      "name": "CCAC-T02W-FORMAT-1099-VENDOR",
-      "type": "output",
-      "record": "CCAC-T02W-FORMAT-VENDOR-RCD",
-      "length": 320
+      "selectName": "CCAC-T02W-FORMAT-1099-VENDOR",
+      "fdName": "CCAC-T02W-FORMAT-1099-VENDOR",
+      "recordPic": "X(320)",
+      "direction": "OUTPUT"
     },
     {
-      "name": "CCAC-M01W-FORMAT-1099-MASTER",
-      "type": "output",
-      "record": "CCAC-M01W-FORMAT-MASTER-RCD",
-      "length": 400
+      "selectName": "CCAC-M01W-FORMAT-1099-MASTER",
+      "fdName": "CCAC-M01W-FORMAT-1099-MASTER",
+      "recordPic": "X(400)",
+      "direction": "OUTPUT"
     },
     {
-      "name": "CCAC-R01R-CONTROL-CARD",
-      "type": "input",
-      "record": "CCAC-R01R-CONTROL-CARD-RCD",
-      "length": 80
+      "selectName": "CCAC-R01R-CONTROL-CARD",
+      "fdName": "CCAC-R01R-CONTROL-CARD",
+      "recordPic": "X(80)",
+      "direction": "INPUT"
     },
     {
-      "name": "CC-E01W-DISPLAY-FILE",
-      "type": "output",
-      "record": "CC-E01W-DISPLAY-RCD",
-      "length": 133
+      "selectName": "CC-E01W-DISPLAY-FILE",
+      "fdName": "CC-E01W-DISPLAY-FILE",
+      "recordPic": "X(133)",
+      "direction": "OUTPUT"
     }
   ],
-  "copybooks": [
-    "C2INX003",
-    "C2INZ001",
-    "C2INZ002",
-    "C2INZ003",
-    "C2INZ005"
-  ],
+  "copybooks": [],
   "workingStorage": {
-    "flags": [
-      "WS-REJ-EOF-SW",
-      "WS-VEND-EOF-SW",
-      "WS-MSTR-EOF-SW",
-      "END-OF-REJECTS",
-      "END-OF-VENDOR",
-      "END-OF-MASTER"
-    ],
-    "counters": [
-      "WS-TOT-REJ-RECDS-READ",
-      "WS-TOT-VEND-RECDS-READ",
-      "WS-TOT-MSTR-RECDS-READ",
-      "WS-TOT-REJ-WRITTEN-CNT",
-      "WS-TOT-VEND-WRITTEN-CNT",
-      "WS-TOT-MSTR-NDEL-CNT",
-      "WS-TOT-MSTR-DEL-CNT"
-    ],
+    "flags": [],
+    "counters": [],
     "accumulators": [
-      "WS-TOT-REJ-1099-AMT",
-      "WS-TOT-VEND-1099-AMT",
-      "WS-TOT-MSTR-NDEL-AMT",
-      "WS-TOT-MSTR-DEL-AMT"
+      "WS-T01R-MISC-FORM-AMT",
+      "WS-T01R-OLD-BCCW-AMT"
     ],
     "keyFields": [
       "WS-T01R-KEY-OP-LOC",
@@ -93,54 +70,65 @@
     ]
   },
   "controlFlow": {
-    "mainEntry": "0000-MAINLINE",
-    "termination": "GOBACK",
-    "paragraphs": [
-      "0000-MAINLINE",
-      "1000-GENERAL-HOUSEKEEPING",
-      "1200-HEADER-REC-HOUSEKEEPING",
-      "1250-CREATE-REJ-HEADER",
-      "1300-CREATE-MSTR-HEADER",
-      "1350-CREATE-VEND-HEADER",
-      "1400-OPEN-FILES",
-      "1600-INITIALIZATION",
-      "3000-PROCESS-REJECT-FILE",
-      "3500-PROCESS-MASTER-FILE",
-      "3600-PROCESS-VENDOR-FILE",
-      "5000-PROCESS-TRAILERS",
-      "5100-CREATE-REJ-TRAILER",
-      "5200-CREATE-MSTR-TRAILER",
-      "5300-CREATE-VEND-TRAILER",
-      "7100-READ-CONTROL-CARD",
-      "7500-READ-REJECT-FILE",
-      "7600-READ-MASTER-FILE",
-      "7700-READ-VENDOR-FILE",
-      "8700-WRITE-REJECT-RECORD",
-      "8750-WRITE-MASTER-RECORD",
-      "8760-WRITE-VENDOR-RECORD",
-      "8999-WRITE-SYSOUT",
-      "9000-CLOSING-ROUTINE",
-      "9100-DISPLAY-CLOSING-RECORD",
-      "9998-COREDUMP",
-      "9999-CLOSE-FILES"
-    ],
-    "errorExits": [
-      "9998-COREDUMP",
-      "8999-WRITE-SYSOUT"
-    ]
+    "mainEntry": "",
+    "termination": "",
+    "paragraphs": [],
+    "errorExits": []
   },
   "patterns": {
     "isTwoWayMerge": false,
-    "isGroupSummarize": true,
-    "isMasterUpdateMerge": false,
-    "isFormatterHeadersTrailers": true,
-    "isLookupEnrichment": false,
+    "isGroupSummarize": false,
+    "isMultiInput": true,
     "notes": [
-      "Program reads three input files (reject, vendor, master), processes each record, accumulates totals, and writes formatted output files with headers and trailers.",
-      "Control card is used for header date values.",
-      "Counters and accumulators are maintained for reporting in trailers and display file.",
-      "Error handling includes writing messages to display file and calling a coredump routine.",
-      "No evidence of lookup/enrichment or master/update merge logic."
+      "Program reads multiple input files (reject, vendor, master, control card) and writes multiple output files.",
+      "Purpose and file usage indicate reformatting and header/trailer addition, not merging or group summarization."
     ]
-  }
+  },
+  "detectedPattern": "MULTI_INPUT",
+  "fileRoles": [
+    {
+      "name": "CCAC-T01R-EDITED-1099-REJECT",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 526
+    },
+    {
+      "name": "CCAC-T02R-1099-VENDOR-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 320
+    },
+    {
+      "name": "CCAC-M01R-EDITED-1099-MASTER",
+      "role": "MASTER_INPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "CCAC-T01W-FORMAT-1099-REJECT",
+      "role": "REJECT_OUTPUT",
+      "recordLength": 526
+    },
+    {
+      "name": "CCAC-T02W-FORMAT-1099-VENDOR",
+      "role": "UNKNOWN",
+      "recordLength": 320
+    },
+    {
+      "name": "CCAC-M01W-FORMAT-1099-MASTER",
+      "role": "MASTER_OUTPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "CCAC-R01R-CONTROL-CARD",
+      "role": "CONTROL_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "CC-E01W-DISPLAY-FILE",
+      "role": "REPORT_OUTPUT",
+      "recordLength": 133
+    }
+  ],
+  "hasHeadersTrailers": true,
+  "keyFields": [
+    "KEY"
+  ]
 }

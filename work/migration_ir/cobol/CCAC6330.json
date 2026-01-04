@@ -1,127 +1,117 @@
 {
   "programId": "CCAC6330",
-  "purpose": "Create and maintain an annual master file containing 1099 reportable information. Inputs from program CCAC6320 are used to create new master file records. An out-of-stream editing process is used to create updates to the master file.",
+  "purpose": "To create and maintain an annual master file containing 1099 reportable information using inputs from program CCAC6320 and master update files.",
   "files": [
     {
-      "name": "TEN99-T01R-TRANSACTION-FILE",
-      "type": "input",
-      "recordName": "TEN99-T01R-TRANSACTION-RCD"
+      "selectName": "TEN99-T01R-TRANSACTION-FILE",
+      "fdName": "TEN99-T01R-TRANSACTION-FILE",
+      "recordPic": "01  TEN99-T01R-TRANSACTION-RCD                    PIC X(450).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-M01R-MASTER-IN-FILE",
-      "type": "input",
-      "recordName": "TEN99-M01R-MASTER-IN-RCD"
+      "selectName": "TEN99-M01R-MASTER-IN-FILE",
+      "fdName": "TEN99-M01R-MASTER-IN-FILE",
+      "recordPic": "01  TEN99-M01R-MASTER-IN-RCD                      PIC X(400).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-T02R-MASTER-UPDATE-FILE",
-      "type": "input",
-      "recordName": "TEN99-T02R-MASTER-UPDATE-RCD"
+      "selectName": "TEN99-T02R-MASTER-UPDATE-FILE",
+      "fdName": "TEN99-T02R-MASTER-UPDATE-FILE",
+      "recordPic": "01  TEN99-T02R-MASTER-UPDATE-RCD                  PIC X(400).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-R01R-CONTROL-FILE",
-      "type": "input",
-      "recordName": "TEN99-R01R-CONTROL-RCD"
+      "selectName": "TEN99-R01R-CONTROL-FILE",
+      "fdName": "TEN99-R01R-CONTROL-FILE",
+      "recordPic": "01  TEN99-R01R-CONTROL-RCD                        PIC X(80).",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-T01W-DUPLICATE-TRAN-FILE",
-      "type": "output",
-      "recordName": "TEN99-T01W-DUPLICATE-TRAN-RCD"
+      "selectName": "TEN99-T01W-DUPLICATE-TRAN-FILE",
+      "fdName": "TEN99-T01W-DUPLICATE-TRAN-FILE",
+      "recordPic": "01  TEN99-T01W-DUPLICATE-TRAN-RCD                 PIC X(450).",
+      "direction": "OUTPUT"
     },
     {
-      "name": "TEN99-M01W-MASTER-OUT-FILE",
-      "type": "output",
-      "recordName": "TEN99-M01W-MASTER-OUT-RCD"
+      "selectName": "TEN99-M01W-MASTER-OUT-FILE",
+      "fdName": "TEN99-M01W-MASTER-OUT-FILE",
+      "recordPic": "01  TEN99-M01W-MASTER-OUT-RCD                     PIC X(400).",
+      "direction": "OUTPUT"
     }
   ],
   "copybooks": [
     "C2INX001",
-    "C2INX002",
-    "C2INX003",
-    "C2INZ001",
-    "C2INZ002",
-    "C2INZ003",
-    "C2INZ004",
-    "C2INZ005"
+    "C2INX002"
   ],
   "workingStorage": {
     "flags": [
-      "WS-CONTROL-CARD-FLG",
-      "WS-TRANSACTION-FLG",
-      "WS-MASTER-FLG",
-      "WS-UPDATE-FLG",
-      "WS-ALL-INPUTS-FLG"
+      "TRAN-HEADER",
+      "TRAN-TRAILER",
+      "MISC-FORM-ISSUE"
     ],
-    "counters": [
-      "WS-MASTER-IN-CNT",
-      "WS-MAST-DELETE-IN-CNT",
-      "WS-TRANS-IN-CNT",
-      "WS-UPDATES-IN-CNT",
-      "WS-MAST-OUT-CNT",
-      "WS-MAST-DELETE-OUT-CNT",
-      "WS-DUPLICATE-OUT-CNT"
-    ],
-    "accumulators": [
-      "WS-TRANS-AMT",
-      "WS-DUPLICATE-AMT",
-      "WS-MAST-DELETE-IN-AMT",
-      "WS-MAST-IN-AMT",
-      "WS-MAST-DELETE-UP-AMT",
-      "WS-MAST-UP-AMT",
-      "WS-MAST-DELETE-OUT-AMT",
-      "WS-MAST-OUT-AMT"
-    ],
+    "counters": [],
+    "accumulators": [],
     "keyFields": [
-      "WS-HOLD-KEY-CURRENT",
-      "WS-HOLD-KEY-PREVIOUS",
-      "WS-HOLD-TRANS-KEY",
-      "WS-HOLD-LAST-WRITE-KEY",
-      "WS-UPDATE-KEY"
+      "TTTD-KEY-CHECK-NUM",
+      "TTTD-KEY-TAX-TYPE",
+      "TTTD-KEY-TIN-IND",
+      "TTTD-DEPARTMENT-CODE"
     ]
   },
   "controlFlow": {
-    "mainEntry": "0000-MAINLINE",
-    "termination": "9000-END-OF-JOB",
-    "paragraphs": [
-      "0000-MAINLINE",
-      "1000-INITIALIZATION",
-      "1010-OPEN-FILES",
-      "1020-INITIALIZE-SYSOUT",
-      "2000-MAIN-PROCESS",
-      "2200-PROCESS-TRANSACTION",
-      "2210-CREATE-NEW-MASTER-RECORD",
-      "2215-CREATE-DISB-RECORDS",
-      "2300-CHECK-UPDATES",
-      "2310-PROCESS-UPDATE",
-      "2400-PROCESS-MASTER",
-      "2500-CHECK-FLAGS",
-      "7000-READ-CONTROL-CARD",
-      "7100-READ-TRANSACTION-FILE",
-      "7200-READ-MASTER-FILE",
-      "7300-READ-UPDATE-FILE",
-      "8000-WRITE-MASTER-OUT",
-      "8100-WRITE-DUPLICATE-TRANS-OUT",
-      "8999-WRITE-SYSOUT",
-      "9000-END-OF-JOB",
-      "9010-WRAP-UP",
-      "9020-CREATE-TRAILER",
-      "9998-COREDUMP",
-      "9999-CLOSE-FILES"
-    ],
-    "errorExits": [
-      "9998-COREDUMP"
-    ]
+    "mainEntry": "",
+    "termination": "",
+    "paragraphs": [],
+    "errorExits": []
   },
   "patterns": {
-    "isTwoWayMerge": true,
+    "isTwoWayMerge": false,
     "isGroupSummarize": false,
-    "isMasterUpdateMerge": true,
-    "isFormatterHeadersTrailers": true,
-    "isLookupEnrichment": false,
+    "isMultiInput": true,
     "notes": [
-      "Program merges transaction, master, and update files to produce a new master file.",
-      "Handles duplicate detection and writes duplicates to a separate file.",
-      "Processes headers and trailers for input and output files.",
-      "Performs master file updates based on update file records."
+      "The program reads multiple input files (transaction, master, update, control) and writes to master and duplicate transaction output files.",
+      "The program uses key fields for processing and possibly for duplicate detection.",
+      "A return code of 9999 indicates duplicate records."
     ]
-  }
+  },
+  "detectedPattern": "MULTI_INPUT",
+  "fileRoles": [
+    {
+      "name": "TEN99-T01R-TRANSACTION-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 450
+    },
+    {
+      "name": "TEN99-M01R-MASTER-IN-FILE",
+      "role": "MASTER_INPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "TEN99-T02R-MASTER-UPDATE-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "TEN99-R01R-CONTROL-FILE",
+      "role": "CONTROL_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "TEN99-T01W-DUPLICATE-TRAN-FILE",
+      "role": "UNKNOWN",
+      "recordLength": 450
+    },
+    {
+      "name": "TEN99-M01W-MASTER-OUT-FILE",
+      "role": "MASTER_OUTPUT",
+      "recordLength": 400
+    }
+  ],
+  "hasHeadersTrailers": true,
+  "keyFields": [
+    "SOCIAL-SEC-NUMBER",
+    "KEYS",
+    "BEING",
+    "KEY"
+  ]
 }

@@ -6,121 +6,431 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 
 /**
- * Auto-generated Tasklet skeleton for COBOL program CCAC6310.
- *
- * Patterns detected:
- *   The program reads multiple input files, verifies headers and trailers, processes detail records, accumulates and checks control totals, and writes output files., Tax type assignment is performed by looking up entry codes in a 1099 table., The program summarizes counts and amounts for each file and validates them against trailer records., There is explicit handling for headers and trailers, and output formatting for control totals., Foreign records (Canada, Puerto Rico) are handled with special logic., Error handling and abnormal termination are managed via ERROR-FLAG and 9998-COREDUMP.
+ * Auto-generated Tasklet for COBOL program CCAC6310.
+ * 
+ * Pattern: MULTI_INPUT
+ * Purpose: 
  */
 public class CCAC6310Tasklet implements Tasklet {
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E/3F.
      */
-    static class MergeState {
-        // TODO: flags, counters, cursors, and records added later
-
-        // BEGIN DOMAIN STATE (Layer 3F)
-        // END DOMAIN STATE (Layer 3F)
+    static class ProgramState {
+        java.io.BufferedReader t01rMiscTransFileReader;
+        boolean t01rMiscTransFileEof = false;
+        String t01rMiscTransFileRawLine;
+        java.io.BufferedReader t03rBccwFileReader;
+        boolean t03rBccwFileEof = false;
+        String t03rBccwFileRawLine;
+        java.io.BufferedReader t04rDeftFileReader;
+        boolean t04rDeftFileEof = false;
+        String t04rDeftFileRawLine;
+        java.io.BufferedReader t05rRejCycleFileReader;
+        boolean t05rRejCycleFileEof = false;
+        String t05rRejCycleFileRawLine;
+        java.io.BufferedReader t07r1099entryCdFileReader;
+        boolean t07r1099entryCdFileEof = false;
+        String t07r1099entryCdFileRawLine;
+        java.io.BufferedReader t01wMiscTransOutFileReader;
+        boolean t01wMiscTransOutFileEof = false;
+        String t01wMiscTransOutFileRawLine;
+        java.io.BufferedReader t03wBccwOutFileReader;
+        boolean t03wBccwOutFileEof = false;
+        String t03wBccwOutFileRawLine;
+        java.io.BufferedReader t04wDeftOutFileReader;
+        boolean t04wDeftOutFileEof = false;
+        String t04wDeftOutFileRawLine;
+        java.io.BufferedReader r01rControlCardReader;
+        boolean r01rControlCardEof = false;
+        String r01rControlCardRawLine;
+        java.io.BufferedWriter t05wRejCycleOutFileWriter;
+        String t05wRejCycleOutFileOutLine;
     }
 
     @Override
     public RepeatStatus execute(
             StepContribution contribution,
-            ChunkContext chunkContext) throws Exception {
+            ChunkContext chunkContext) {
 
-        MergeState state = new MergeState();
+        ProgramState state = new ProgramState();
         mainline(state);
         return RepeatStatus.FINISHED;
     }
 
-    /**
-     * COBOL main entry point.
-     * Control flow is normalized in Layer 3D.
-     */
-    private void mainline(MergeState state) {
-        // Implemented by Layer 3D
+    private void mainline(ProgramState state) {
+        openFiles(state);
+        initialization(state);
+        mainProcess(state);
+        endOfJob(state);
+        closeFiles(state);
     }
 
     // ======================================================
-    // BEGIN GENERATED PARAGRAPHS (Layer 3C)
+    // FILE I/O
     // ======================================================
 
-    // ======================================================
-    // END GENERATED PARAGRAPHS (Layer 3C)
-    // ======================================================
-
-    // ======================================================
-    // BEGIN IO PLUMBING (Layer 3E)
-
-    // ---- Layer 3E IO plumbing (stub-safe) ----
-
-    private void openFiles(MergeState state) {
-        if (state.masterReader != null && state.executionContext != null) {
-            state.masterReader.open(state.executionContext);
-        }
-        if (state.corporateReader != null && state.executionContext != null) {
-            state.corporateReader.open(state.executionContext);
-        }
-        if (state.masterWriter != null && state.executionContext != null) {
-            state.masterWriter.open(state.executionContext);
-        }
-        if (state.sysoutWriter != null && state.executionContext != null) {
-            state.sysoutWriter.open(state.executionContext);
-        }
-    }
-
-    private void readMaster(MergeState state) {
-        if (state.masterReader == null) return;
+    private void openFiles(ProgramState state) {
         try {
-            state.masterRawLine = state.masterReader.read();
-            if (state.masterRawLine == null) state.masterEof = true;
+            String programName = "CCAC6310";
+            java.nio.file.Path testDir = java.nio.file.Paths.get(
+                    "../work/mainframe_clean/testcases", programName);
+
+            java.nio.file.Path t01rMiscTransFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t01rMiscTransFilePath)) {
+                state.t01rMiscTransFileReader = java.nio.file.Files.newBufferedReader(t01rMiscTransFilePath);
+            }
+
+            java.nio.file.Path t03rBccwFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t03rBccwFilePath)) {
+                state.t03rBccwFileReader = java.nio.file.Files.newBufferedReader(t03rBccwFilePath);
+            }
+
+            java.nio.file.Path t04rDeftFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t04rDeftFilePath)) {
+                state.t04rDeftFileReader = java.nio.file.Files.newBufferedReader(t04rDeftFilePath);
+            }
+
+            java.nio.file.Path t05rRejCycleFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t05rRejCycleFilePath)) {
+                state.t05rRejCycleFileReader = java.nio.file.Files.newBufferedReader(t05rRejCycleFilePath);
+            }
+
+            java.nio.file.Path t07r1099entryCdFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t07r1099entryCdFilePath)) {
+                state.t07r1099entryCdFileReader = java.nio.file.Files.newBufferedReader(t07r1099entryCdFilePath);
+            }
+
+            java.nio.file.Path t01wMiscTransOutFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t01wMiscTransOutFilePath)) {
+                state.t01wMiscTransOutFileReader = java.nio.file.Files.newBufferedReader(t01wMiscTransOutFilePath);
+            }
+
+            java.nio.file.Path t03wBccwOutFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t03wBccwOutFilePath)) {
+                state.t03wBccwOutFileReader = java.nio.file.Files.newBufferedReader(t03wBccwOutFilePath);
+            }
+
+            java.nio.file.Path t04wDeftOutFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t04wDeftOutFilePath)) {
+                state.t04wDeftOutFileReader = java.nio.file.Files.newBufferedReader(t04wDeftOutFilePath);
+            }
+
+            java.nio.file.Path r01rControlCardPath = testDir.resolve("input/control.txt");
+            if (java.nio.file.Files.exists(r01rControlCardPath)) {
+                state.r01rControlCardReader = java.nio.file.Files.newBufferedReader(r01rControlCardPath);
+            }
+
+            java.nio.file.Path t05wRejCycleOutFilePath = testDir.resolve("output/reject.txt");
+            java.nio.file.Files.createDirectories(t05wRejCycleOutFilePath.getParent());
+            state.t05wRejCycleOutFileWriter = java.nio.file.Files.newBufferedWriter(t05wRejCycleOutFilePath);
+
         } catch (Exception e) {
-            throw new RuntimeException("Error reading master file", e);
+            throw new RuntimeException("Failed to open files", e);
         }
     }
 
-    private void readCorporate(MergeState state) {
-        if (state.corporateReader == null) return;
+    private void closeFiles(ProgramState state) {
         try {
-            state.corporateRawLine = state.corporateReader.read();
-            if (state.corporateRawLine == null) state.corporateEof = true;
+            if (state.t01rMiscTransFileReader != null) state.t01rMiscTransFileReader.close();
+            if (state.t03rBccwFileReader != null) state.t03rBccwFileReader.close();
+            if (state.t04rDeftFileReader != null) state.t04rDeftFileReader.close();
+            if (state.t05rRejCycleFileReader != null) state.t05rRejCycleFileReader.close();
+            if (state.t07r1099entryCdFileReader != null) state.t07r1099entryCdFileReader.close();
+            if (state.t01wMiscTransOutFileReader != null) state.t01wMiscTransOutFileReader.close();
+            if (state.t03wBccwOutFileReader != null) state.t03wBccwOutFileReader.close();
+            if (state.t04wDeftOutFileReader != null) state.t04wDeftOutFileReader.close();
+            if (state.t05wRejCycleOutFileWriter != null) state.t05wRejCycleOutFileWriter.close();
+            if (state.r01rControlCardReader != null) state.r01rControlCardReader.close();
         } catch (Exception e) {
-            throw new RuntimeException("Error reading corporate file", e);
+            throw new RuntimeException("Failed to close files", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void writeMasterOut(MergeState state) {
-        if (state.masterWriter == null || state.masterOutLine == null) return;
+    private void readT01rMiscTransFileFile(ProgramState state) {
         try {
-            state.masterWriter.write(
-                new org.springframework.batch.item.Chunk<>(
-                    java.util.List.of(state.masterOutLine)
-                )
-            );
+            if (state.t01rMiscTransFileReader == null) {
+                state.t01rMiscTransFileEof = true;
+                return;
+            }
+            String line = state.t01rMiscTransFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t01rMiscTransFileEof = true;
+                state.t01rMiscTransFileRawLine = null;
+            } else {
+                state.t01rMiscTransFileRawLine = line;
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Error writing master out", e);
+            throw new RuntimeException("Error reading t01rMiscTransFile file", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void writeSysout(MergeState state) {
-        if (state.sysoutWriter == null || state.sysoutLine == null) return;
+    private void readT03rBccwFileFile(ProgramState state) {
         try {
-            state.sysoutWriter.write(
-                new org.springframework.batch.item.Chunk<>(
-                    java.util.List.of(state.sysoutLine)
-                )
-            );
+            if (state.t03rBccwFileReader == null) {
+                state.t03rBccwFileEof = true;
+                return;
+            }
+            String line = state.t03rBccwFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t03rBccwFileEof = true;
+                state.t03rBccwFileRawLine = null;
+            } else {
+                state.t03rBccwFileRawLine = line;
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Error writing sysout", e);
+            throw new RuntimeException("Error reading t03rBccwFile file", e);
         }
     }
 
-// END IO PLUMBING (Layer 3E)
+    private void readT04rDeftFileFile(ProgramState state) {
+        try {
+            if (state.t04rDeftFileReader == null) {
+                state.t04rDeftFileEof = true;
+                return;
+            }
+            String line = state.t04rDeftFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t04rDeftFileEof = true;
+                state.t04rDeftFileRawLine = null;
+            } else {
+                state.t04rDeftFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t04rDeftFile file", e);
+        }
+    }
+
+    private void readT05rRejCycleFileFile(ProgramState state) {
+        try {
+            if (state.t05rRejCycleFileReader == null) {
+                state.t05rRejCycleFileEof = true;
+                return;
+            }
+            String line = state.t05rRejCycleFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t05rRejCycleFileEof = true;
+                state.t05rRejCycleFileRawLine = null;
+            } else {
+                state.t05rRejCycleFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t05rRejCycleFile file", e);
+        }
+    }
+
+    private void readT07r1099entryCdFileFile(ProgramState state) {
+        try {
+            if (state.t07r1099entryCdFileReader == null) {
+                state.t07r1099entryCdFileEof = true;
+                return;
+            }
+            String line = state.t07r1099entryCdFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t07r1099entryCdFileEof = true;
+                state.t07r1099entryCdFileRawLine = null;
+            } else {
+                state.t07r1099entryCdFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t07r1099entryCdFile file", e);
+        }
+    }
+
+    private void readT01wMiscTransOutFileFile(ProgramState state) {
+        try {
+            if (state.t01wMiscTransOutFileReader == null) {
+                state.t01wMiscTransOutFileEof = true;
+                return;
+            }
+            String line = state.t01wMiscTransOutFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t01wMiscTransOutFileEof = true;
+                state.t01wMiscTransOutFileRawLine = null;
+            } else {
+                state.t01wMiscTransOutFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t01wMiscTransOutFile file", e);
+        }
+    }
+
+    private void readT03wBccwOutFileFile(ProgramState state) {
+        try {
+            if (state.t03wBccwOutFileReader == null) {
+                state.t03wBccwOutFileEof = true;
+                return;
+            }
+            String line = state.t03wBccwOutFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t03wBccwOutFileEof = true;
+                state.t03wBccwOutFileRawLine = null;
+            } else {
+                state.t03wBccwOutFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t03wBccwOutFile file", e);
+        }
+    }
+
+    private void readT04wDeftOutFileFile(ProgramState state) {
+        try {
+            if (state.t04wDeftOutFileReader == null) {
+                state.t04wDeftOutFileEof = true;
+                return;
+            }
+            String line = state.t04wDeftOutFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t04wDeftOutFileEof = true;
+                state.t04wDeftOutFileRawLine = null;
+            } else {
+                state.t04wDeftOutFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t04wDeftOutFile file", e);
+        }
+    }
+
+    private void readR01rControlCardFile(ProgramState state) {
+        try {
+            if (state.r01rControlCardReader == null) {
+                state.r01rControlCardEof = true;
+                return;
+            }
+            String line = state.r01rControlCardReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.r01rControlCardEof = true;
+                state.r01rControlCardRawLine = null;
+            } else {
+                state.r01rControlCardRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading r01rControlCard file", e);
+        }
+    }
+
+    private void writeT05wRejCycleOutFileLine(ProgramState state, String line) {
+        if (state.t05wRejCycleOutFileWriter == null || line == null) return;
+        try {
+            state.t05wRejCycleOutFileWriter.write(line);
+            state.t05wRejCycleOutFileWriter.newLine();
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing t05wRejCycleOutFile file", e);
+        }
+    }
+
+    // ======================================================
+    // BUSINESS LOGIC
     // ======================================================
 
-    // BEGIN DOMAIN BINDING (Layer 3F)
-    // END DOMAIN BINDING (Layer 3F)
+    private void initialization(ProgramState state) {
+        // TODO: Initialize counters, accumulators, flags
+    }
+
+    private void mainProcess(ProgramState state) {
+        // Process TEN99-T01R-MISC-TRANS-FILE
+        processT01rMiscTransFile(state);
+
+        // Process TEN99-T03R-BCCW-FILE
+        processT03rBccwFile(state);
+
+        // Process TEN99-T04R-DEFT-FILE
+        processT04rDeftFile(state);
+
+        // Process TEN99-T05R-REJ-CYCLE-FILE
+        processT05rRejCycleFile(state);
+
+        // Process WS-T07R-1099ENTRY-CD-FILE
+        processT07r1099entryCdFile(state);
+
+        // Process TEN99-T01W-MISC-TRANS-OUT-FILE
+        processT01wMiscTransOutFile(state);
+
+        // Process TEN99-T03W-BCCW-OUT-FILE
+        processT03wBccwOutFile(state);
+
+        // Process TEN99-T04W-DEFT-OUT-FILE
+        processT04wDeftOutFile(state);
+
+    }
+
+    private void endOfJob(ProgramState state) {
+        // TODO: Write trailers, final reports
+    }
+
+    // ======================================================
+    // HELPER METHODS
+    // ======================================================
+
+    private boolean isHeaderOrTrailer(ProgramState state) {
+        if (state.t01rMiscTransFileRawLine == null) return false;
+        return state.t01rMiscTransFileRawLine.startsWith("HDR") 
+            || state.t01rMiscTransFileRawLine.startsWith("TRL")
+            || state.t01rMiscTransFileRawLine.charAt(0) == '\u0000'
+            || state.t01rMiscTransFileRawLine.charAt(0) == '\u00FF';
+    }
+
+    private void processT01rMiscTransFile(ProgramState state) {
+        readT01rMiscTransFileFile(state);
+        while (!state.t01rMiscTransFileEof) {
+            // TODO: Process record from TEN99-T01R-MISC-TRANS-FILE
+            readT01rMiscTransFileFile(state);
+        }
+    }
+
+    private void processT03rBccwFile(ProgramState state) {
+        readT03rBccwFileFile(state);
+        while (!state.t03rBccwFileEof) {
+            // TODO: Process record from TEN99-T03R-BCCW-FILE
+            readT03rBccwFileFile(state);
+        }
+    }
+
+    private void processT04rDeftFile(ProgramState state) {
+        readT04rDeftFileFile(state);
+        while (!state.t04rDeftFileEof) {
+            // TODO: Process record from TEN99-T04R-DEFT-FILE
+            readT04rDeftFileFile(state);
+        }
+    }
+
+    private void processT05rRejCycleFile(ProgramState state) {
+        readT05rRejCycleFileFile(state);
+        while (!state.t05rRejCycleFileEof) {
+            // TODO: Process record from TEN99-T05R-REJ-CYCLE-FILE
+            readT05rRejCycleFileFile(state);
+        }
+    }
+
+    private void processT07r1099entryCdFile(ProgramState state) {
+        readT07r1099entryCdFileFile(state);
+        while (!state.t07r1099entryCdFileEof) {
+            // TODO: Process record from WS-T07R-1099ENTRY-CD-FILE
+            readT07r1099entryCdFileFile(state);
+        }
+    }
+
+    private void processT01wMiscTransOutFile(ProgramState state) {
+        readT01wMiscTransOutFileFile(state);
+        while (!state.t01wMiscTransOutFileEof) {
+            // TODO: Process record from TEN99-T01W-MISC-TRANS-OUT-FILE
+            readT01wMiscTransOutFileFile(state);
+        }
+    }
+
+    private void processT03wBccwOutFile(ProgramState state) {
+        readT03wBccwOutFileFile(state);
+        while (!state.t03wBccwOutFileEof) {
+            // TODO: Process record from TEN99-T03W-BCCW-OUT-FILE
+            readT03wBccwOutFileFile(state);
+        }
+    }
+
+    private void processT04wDeftOutFile(ProgramState state) {
+        readT04wDeftOutFileFile(state);
+        while (!state.t04wDeftOutFileEof) {
+            // TODO: Process record from TEN99-T04W-DEFT-OUT-FILE
+            readT04wDeftOutFileFile(state);
+        }
+    }
 }

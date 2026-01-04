@@ -1,0 +1,5 @@
+CCAC6320 PROCESSING REPORT
+Valid: 3
+Foreign: 1
+Excludes: 1
+Rejects: 1

@@ -1,101 +1,104 @@
 {
   "programId": "CCAC6340",
-  "purpose": "Mechanically flag 1099 master file records that have matching SSNs on the corporate extract file. The master and corporate files must be sorted by SSN in ascending order. A master file is required every month; the corporate file may be empty on the initial run.",
+  "purpose": "Mechanically flag 1099 master file records that have matching SSNs on the corporate extract file.",
   "files": [
     {
-      "name": "TEN99-T01R-CORPORATE-FILE",
-      "type": "input",
-      "recordName": "TEN99-T01R-CORPORATE-RCD"
+      "selectName": "TEN99-T01R-CORPORATE-FILE",
+      "fdName": "TEN99-T01R-CORPORATE-FILE",
+      "recordPic": "PIC X(80)",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-M01R-MASTER-IN-FILE",
-      "type": "input",
-      "recordName": "TEN99-M01R-MASTER-IN-RCD"
+      "selectName": "TEN99-M01R-MASTER-IN-FILE",
+      "fdName": "TEN99-M01R-MASTER-IN-FILE",
+      "recordPic": "PIC X(400)",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-R01R-CONTROL-FILE",
-      "type": "input",
-      "recordName": "TEN99-R01R-CONTROL-RCD"
+      "selectName": "TEN99-R01R-CONTROL-FILE",
+      "fdName": "TEN99-R01R-CONTROL-FILE",
+      "recordPic": "PIC X(80)",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-M01W-MASTER-OUT-FILE",
-      "type": "output",
-      "recordName": "TEN99-M01W-MASTER-OUT-RCD"
-    },
-    {
-      "name": "CC-E01W-DISPLAY-FILE",
-      "type": "output",
-      "recordName": null
+      "selectName": "TEN99-M01W-MASTER-OUT-FILE",
+      "fdName": "TEN99-M01W-MASTER-OUT-FILE",
+      "recordPic": "PIC X(400)",
+      "direction": "OUTPUT"
     }
   ],
   "copybooks": [
     "C2INX001",
-    "C2INX002",
-    "C2INX003",
-    "C2INZ001",
-    "C2INZ002",
-    "C2INZ003",
-    "C2INZ004",
-    "C2INZ005"
+    "C2INX002"
   ],
   "workingStorage": {
     "flags": [
-      "WS-CONTROL-CARD-FLG",
-      "WS-CORPORATE-FLG",
-      "WS-MASTER-FLG",
-      "WS-TRAILER-REACHED"
+      "NON-DELETE-INPUT",
+      "BUSINESS-INPUT",
+      "DELETE-INPUT",
+      "MECHANIZED-INPUT",
+      "MAST-HEADER",
+      "MAST-TRAILER"
     ],
     "counters": [
-      "WS-MAST-IN-CNT",
-      "WS-MAST-OUT-CNT",
-      "WS-ORIGINAL-IN-CNT-TOTAL"
+      "TMMID-NUM-DISB-RECORDS",
+      "TMMIT-NON-DELETE-TRAIL-CNT",
+      "TMMIT-DELETE-TRAIL-CNT"
     ],
     "accumulators": [
-      "WS-MAST-IN-AMT",
-      "WS-MAST-OUT-AMT",
-      "WS-ORIGINAL-IN-AMT-TOTAL"
+      "TMMID-TOTAL-AMOUNT",
+      "TMMID-1099-AMOUNT",
+      "TMMIT-NON-DELETE-TRAIL-AMT",
+      "TMMIT-DELETE-TRAIL-AMT"
     ],
     "keyFields": [
-      "TMMID-SOCIAL-SEC-NUMBER",
-      "TTCD-SOCIAL-SEC-NUMBER"
+      "TMMID-SOCIAL-SEC-NUMBER"
     ]
   },
   "controlFlow": {
-    "mainEntry": "0000-MAINLINE",
-    "termination": "9000-END-OF-JOB",
-    "paragraphs": [
-      "0000-MAINLINE",
-      "1000-INITIALIZATION",
-      "1010-OPEN-FILES",
-      "1020-INITIALIZE-SYSOUT",
-      "2000-MAIN-PROCESS",
-      "2200-PROCESS-ENTIRE-MASTER",
-      "7000-READ-CONTROL-CARD",
-      "7100-READ-CORPORATE-FILE",
-      "7200-READ-MASTER-FILE",
-      "8000-WRITE-MASTER-OUT",
-      "8500-WRITE-NEW-TRAILER-OUT",
-      "8999-WRITE-SYSOUT",
-      "9000-END-OF-JOB",
-      "9010-WRAP-UP",
-      "9998-COREDUMP",
-      "9999-CLOSE-FILES"
-    ],
-    "errorExits": [
-      "9998-COREDUMP"
-    ]
+    "mainEntry": "",
+    "termination": "",
+    "paragraphs": [],
+    "errorExits": []
   },
   "patterns": {
-    "isTwoWayMerge": false,
+    "isTwoWayMerge": true,
     "isGroupSummarize": false,
-    "isMasterUpdateMerge": true,
-    "isFormatterHeadersTrailers": true,
-    "isLookupEnrichment": true,
+    "isMultiInput": true,
     "notes": [
-      "The program reads two sorted files (master and corporate) and flags master records with matching SSNs from the corporate file.",
-      "Headers and trailers are processed and validated for both input and output files.",
-      "The program accumulates counts and amounts, and validates them at end-of-job.",
-      "If the corporate file is empty, the master file is processed without enrichment."
+      "The program reads two sorted input files (master and corporate) by SSN and flags records with matching SSNs.",
+      "The presence of header and trailer records in the master file is indicated by 88-level flags.",
+      "The control file is present but its use is not detailed in the provided code."
     ]
-  }
+  },
+  "detectedPattern": "TWO_WAY_MERGE",
+  "fileRoles": [
+    {
+      "name": "TEN99-T01R-CORPORATE-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "TEN99-M01R-MASTER-IN-FILE",
+      "role": "MASTER_INPUT",
+      "recordLength": 400
+    },
+    {
+      "name": "TEN99-R01R-CONTROL-FILE",
+      "role": "CONTROL_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "TEN99-M01W-MASTER-OUT-FILE",
+      "role": "MASTER_OUTPUT",
+      "recordLength": 400
+    }
+  ],
+  "hasHeadersTrailers": true,
+  "keyFields": [
+    "SOCIAL-SEC-NUMBER",
+    "KEY",
+    "SSN",
+    "SSNS"
+  ]
 }

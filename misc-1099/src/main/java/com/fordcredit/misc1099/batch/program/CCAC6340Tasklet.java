@@ -5,289 +5,266 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 
+/**
+ * Auto-generated Tasklet for COBOL program CCAC6340.
+ * 
+ * Pattern: TWO_WAY_MERGE
+ * Purpose: 
+ */
 public class CCAC6340Tasklet implements Tasklet {
 
     /**
      * Program state holder.
-     * Expanded in Layer 3E/3F.
      */
-    static class MergeState {
-        // TODO: flags, counters, cursors, and records added later
-
-        // BEGIN DOMAIN STATE (Layer 3F)
-        // Auto-discovered bindings (Layer 3F.1)
-        String masterPojoClass = "com.fordcredit.misc1099.domain.copybook.C2INP001";
-        String masterFieldSpecsClass = "com.fordcredit.misc1099.parser.C2INP001FieldSpecs";
-        String corporatePojoClass = "com.fordcredit.misc1099.domain.copybook.C2INP003";
-        String corporateFieldSpecsClass = "com.fordcredit.misc1099.parser.C2INP003FieldSpecs";
-
-        # // Raw lines (Layer 3E.1 will actually set these)
-        # String masterRawLine;
-        # String corporateRawLine;
-
-        // Bound records (typed later in Layer 3F.2)
-        Object masterRecord;
-        Object corporateRecord;
-        // END DOMAIN STATE (Layer 3F)
+    static class ProgramState {
+        java.io.BufferedReader t01rCorporateFileReader;
+        boolean t01rCorporateFileEof = false;
+        String t01rCorporateFileRawLine;
+        java.io.BufferedReader m01rMasterInFileReader;
+        boolean m01rMasterInFileEof = false;
+        String m01rMasterInFileRawLine;
+        java.io.BufferedReader r01rControlFileReader;
+        boolean r01rControlFileEof = false;
+        String r01rControlFileRawLine;
+        java.io.BufferedWriter m01wMasterOutFileWriter;
+        String m01wMasterOutFileOutLine;
+        String deleteIndicator;
     }
 
     @Override
-public RepeatStatus execute(
-        StepContribution contribution,
-        ChunkContext chunkContext) throws Exception {
+    public RepeatStatus execute(
+            StepContribution contribution,
+            ChunkContext chunkContext) {
 
-    MergeState state = new MergeState();
-    mainline(state);
-    return RepeatStatus.FINISHED;
-}
+        ProgramState state = new ProgramState();
+        mainline(state);
+        return RepeatStatus.FINISHED;
+    }
 
-    /**
-     * COBOL main entry point.
-     * Control flow is normalized in Layer 3D.
-     */
-    private void mainline(MergeState state) {
-        // Implemented by Layer 3D
+    private void mainline(ProgramState state) {
+        openFiles(state);
+        initialization(state);
+        mainProcess(state);
+        endOfJob(state);
+        closeFiles(state);
     }
 
     // ======================================================
-    // BEGIN GENERATED PARAGRAPHS (Layer 3C)
-
-private void initialization(MergeState state) {
-    // Open all required files
-    // Initialize system output
-    // Reset counters and accumulators
-    // Initialize master output detail record
-    // Read the control card
-    // // If end of control card file:
-    //   - Set error message 1 for display
-    //   - Set paragraph name to initialization
-    //   - Write system output
-    // //   - Perform core dump
-    // Read the master file for header
-    // // If end of master file:
-    //   - Set error message 2 for display
-    //   - Set paragraph name to initialization
-    //   - Write system output
-    // //   - Perform core dump
-    // // Else:
-    // //   If master record is a header:
-    // //     If control date matches header date:
-    //       - Write master output
-    //       - Read next master file record
-    // //       - If end of master file:
-    //           - Set error message 5 for display
-    //           - Set paragraph name to initialization
-    //           - Write system output
-    // //           - Perform core dump
-    // //       - Else: continue
-    // //     Else:
-    //       - Set error message 3 for display
-    //       - Set paragraph name to initialization
-    //       - Write system output
-    // //       - Perform core dump
-    // //   Else:
-    //     - Set error message 4 for display
-    //     - Set paragraph name to initialization
-    //     - Write system output
-    // //     - Perform core dump
-    // Read the corporate file for the first record
-    // // If end of corporate file:
-    //   - Set message 1 for display
-    //   - Write system output
-    //   - Process entire master file until end of master file
-    // // Else: continue
-}
-
-private void openFiles(MergeState state) {
-    // Open all input files: TEN99-M01R-MASTER-IN-FILE, TEN99-T01R-CORPORATE-FILE, TEN99-R01R-CONTROL-FILE
-    // Open all output files: TEN99-M01W-MASTER-OUT-FILE, CC-E01W-DISPLAY-FILE
-}
-
-private void initializeSysout(MergeState state) {
-    // Initializes the SYSOUT display area.
-    // The initialization logic is included from COPYLIB member C2INP001.
-    // The actual initialization code is brought in via COPY C2INZ001.
-    // (No executable logic shown here; logic is sourced from COBOL copybooks.)
-}
-
-private void mainProcess(MergeState state) {
-    // Main control logic: executes until end-of-file (EOF) of the master file is reached.
-    // // If the master record is a trailer:
-    //   - Set the total input count to the sum of non-delete and delete trailer counts.
-    //   - Set the total input amount to the sum of non-delete and delete trailer amounts.
-    //   - Read the next master file record.
-    // // Else:
-    // //   - If the record qualifies for business, delete, or mechanized output:
-    //       - Increment the master input count by one.
-    //       - Add the 1099 amount to the master input amount.
-    //       - Write the record to the master output.
-    //       - Read the next master file record.
-    // //   - Else:
-    // //       - If the social security number matches the corporate record:
-    //           - Set the delete indicator to the mechanized literal.
-    //           - Increment the master input count by one.
-    //           - Add the 1099 amount to the master input amount.
-    //           - Write the record to the master output.
-    //           - Read the next master file record.
-    // //       - Else:
-    // //           - If the master social security number is less than the corporate social security number:
-    //               - Increment the master input count by one.
-    //               - Add the 1099 amount to the master input amount.
-    //               - Write the record to the master output.
-    //               - Read the next master file record.
-    // //           - Else:
-    //               - Read the next corporate file record.
-    // //               - If corporate EOF is reached:
-    //                   - Process the entire master file until master EOF.
-    // //               - Else:
-    //                   - Continue processing.
-    // //           - End if (master SSN < corporate SSN)
-    // //       - End if (master SSN = corporate SSN)
-    // //   - End if (business/delete/mechanized output)
-    // // End if (master trailer)
-}
-
-private void processEntireMaster(MergeState state) {
-    // // If the master trailer record is present:
-    //   - Set the total original input count to the sum of non-delete and delete trailer counts.
-    //   - Set the total original input amount to the sum of non-delete and delete trailer amounts.
-    // Otherwise:
-    //   - Increment the master input count by one.
-    //   - Add the 1099 amount to the master input amount.
-    //   - Write the current master record to the output.
-    // In all cases:
-    //   - Read the next master file record.
-}
-
-private void readControlCard(MergeState state) {  
-    // Read a record from the TEN99-R01R-CONTROL-FILE into TEN99-R01R-CONTROL-CARD-DTL
-    // // If end of file is reached during the read, set the CC-EOF flag to true
-}
-
-private void readCorporateFile(MergeState state) {
-    // Read a record from the corporate file into the corporate detail structure
-    // // If end of file is reached during the read, set the corporate EOF flag to true
-}
-
-private void readMasterFile(MergeState state) {
-    // Read a record from the master input file into the master detail structure.
-    // // If the end of the file is reached during the read,
-    // set the MASTER-EOF flag to true.
-}
-
-private void writeMasterOut(MergeState state) {
-    // Move the input master detail record to the output master detail record structure
-    // Write the output master record using the output master detail record structure
-    // // If the record is a header or trailer, do nothing further
-    // Otherwise, increment the master output count by one
-    // Also, add the 1099 amount from the current record to the master output amount accumulator
-    // Re-initialize (clear/reset) the output master detail record structure for the next use
-}
-
-private void writeNewTrailerOut(MergeState state) {
-    // Write the new master trailer record to the output file,
-    // using the contents of the master output detail structure.
-    // After writing, initialize (clear/reset) the master output detail structure.
-    // Then, write system output messages as defined in the included C2INZ002 copybook.
-}
-
-private void endOfJob(MergeState state) {
-    // Compare master trailer record counts and amounts with input/output totals
-    // // If all counts and amounts match:
-    //   - Set TMMOT-TRAIL-SOURCE to high values
-    //   - Set TMMOT-TRAIL-CNT to master output count
-    //   - Set TMMOT-TRAIL-AMT to master output amount
-    //   - Write new trailer out (call 8500-WRITE-NEW-TRAILER-OUT)
-    // //   - Perform wrap-up (call 9010-WRAP-UP)
-    //   - Close files (call 9999-CLOSE-FILES)
-    // // Else:
-    //   - Set display record to error message 7
-    //   - Set SAR-PARAGRAPH to end-of-job value
-    //   - Write system output (call 8999-WRITE-SYSOUT)
-    // //   - Perform wrap-up (call 9010-WRAP-UP)
-    // //   - Perform core dump (call 9998-COREDUMP)
-}
-
-private void wrapUp(MergeState state) {
-    // Write final messages to the system output (SYSOUT)
-    // The first six messages display record counts:
-    //   1. Display end-of-job message 1
-    //   2. Display original input record count total
-    //   3. Display end-of-job message 3
-    //   4. Display master input record count
-    //   5. Display end-of-job message 5
-    //   6. Display master output record count
-    // The next three messages display total amounts:
-    //   7. Display original input amount total with message 2
-    //   8. Display master input amount with message 4
-    //   9. Display master output amount with message 6
-    // Include and execute logic from C2INZ003 (likely additional wrap-up or reporting)
-    // Call coredump routine to stop processing (from C2INZ004)
-    // Include and execute logic from C2INZ005 (likely file closing routines)
-    // Close all files: master input, master output, control, and corporate files
-}
-
-// END GENERATED PARAGRAPHS (Layer 3C)
+    // FILE I/O
     // ======================================================
 
-    // ======================================================
-    // BEGIN IO PLUMBING (Layer 3E)
-
-    private java.io.BufferedWriter masterOutWriter;
-
-    private void initOutputWriter(String programName) {
+    private void openFiles(ProgramState state) {
         try {
-            java.nio.file.Path outPath =
-                java.nio.file.Paths.get("work/runtime", programName, "master_out.txt");
-            java.nio.file.Files.createDirectories(outPath.getParent());
-            masterOutWriter = java.nio.file.Files.newBufferedWriter(outPath);
+            String programName = "CCAC6340";
+            java.nio.file.Path testDir = java.nio.file.Paths.get(
+                    "../work/mainframe_clean/testcases", programName);
+
+            java.nio.file.Path t01rCorporateFilePath = testDir.resolve("input/corporate.txt");
+            if (java.nio.file.Files.exists(t01rCorporateFilePath)) {
+                state.t01rCorporateFileReader = java.nio.file.Files.newBufferedReader(t01rCorporateFilePath);
+            }
+
+            java.nio.file.Path m01rMasterInFilePath = testDir.resolve("input/master.txt");
+            if (java.nio.file.Files.exists(m01rMasterInFilePath)) {
+                state.m01rMasterInFileReader = java.nio.file.Files.newBufferedReader(m01rMasterInFilePath);
+            }
+
+            java.nio.file.Path r01rControlFilePath = testDir.resolve("input/control.txt");
+            if (java.nio.file.Files.exists(r01rControlFilePath)) {
+                state.r01rControlFileReader = java.nio.file.Files.newBufferedReader(r01rControlFilePath);
+            }
+
+            java.nio.file.Path m01wMasterOutFilePath = testDir.resolve("output/master_out.txt");
+            java.nio.file.Files.createDirectories(m01wMasterOutFilePath.getParent());
+            state.m01wMasterOutFileWriter = java.nio.file.Files.newBufferedWriter(m01wMasterOutFilePath);
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize master output writer", e);
+            throw new RuntimeException("Failed to open files", e);
         }
     }
 
-    private void writeMasterLine(String line) {
-        if (masterOutWriter == null || line == null) return;
+    private void closeFiles(ProgramState state) {
         try {
-            masterOutWriter.write(line);
-            masterOutWriter.newLine();
+            if (state.t01rCorporateFileReader != null) state.t01rCorporateFileReader.close();
+            if (state.m01rMasterInFileReader != null) state.m01rMasterInFileReader.close();
+            if (state.r01rControlFileReader != null) state.r01rControlFileReader.close();
+            if (state.m01wMasterOutFileWriter != null) state.m01wMasterOutFileWriter.close();
         } catch (Exception e) {
-            throw new RuntimeException("Failed writing master output", e);
+            throw new RuntimeException("Failed to close files", e);
         }
     }
 
-    private void closeOutputWriter() {
-        if (masterOutWriter != null) {
-            try {
-                masterOutWriter.close();
-            } catch (Exception e) {
-                throw new RuntimeException("Failed closing master output writer", e);
+    private void readT01rCorporateFileFile(ProgramState state) {
+        try {
+            if (state.t01rCorporateFileReader == null) {
+                state.t01rCorporateFileEof = true;
+                return;
+            }
+            String line = state.t01rCorporateFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.t01rCorporateFileEof = true;
+                state.t01rCorporateFileRawLine = null;
+            } else {
+                state.t01rCorporateFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading t01rCorporateFile file", e);
+        }
+    }
+
+    private void readM01rMasterInFileFile(ProgramState state) {
+        try {
+            if (state.m01rMasterInFileReader == null) {
+                state.m01rMasterInFileEof = true;
+                return;
+            }
+            String line = state.m01rMasterInFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.m01rMasterInFileEof = true;
+                state.m01rMasterInFileRawLine = null;
+            } else {
+                state.m01rMasterInFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading m01rMasterInFile file", e);
+        }
+    }
+
+    private void readR01rControlFileFile(ProgramState state) {
+        try {
+            if (state.r01rControlFileReader == null) {
+                state.r01rControlFileEof = true;
+                return;
+            }
+            String line = state.r01rControlFileReader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                state.r01rControlFileEof = true;
+                state.r01rControlFileRawLine = null;
+            } else {
+                state.r01rControlFileRawLine = line;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading r01rControlFile file", e);
+        }
+    }
+
+    private void writeM01wMasterOutFileLine(ProgramState state, String line) {
+        if (state.m01wMasterOutFileWriter == null || line == null) return;
+        try {
+            state.m01wMasterOutFileWriter.write(line);
+            state.m01wMasterOutFileWriter.newLine();
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing m01wMasterOutFile file", e);
+        }
+    }
+
+    // ======================================================
+    // BUSINESS LOGIC
+    // ======================================================
+
+    private void initialization(ProgramState state) {
+        // TODO: Initialize counters, accumulators, flags
+    }
+
+    private void mainProcess(ProgramState state) {
+        // Prime reads
+        if (!state.m01rMasterInFileEof && state.m01rMasterInFileRawLine == null) {
+            readM01rMasterInFileFile(state);
+        }
+        if (!state.t01rCorporateFileEof && state.t01rCorporateFileRawLine == null) {
+            readT01rCorporateFileFile(state);
+        }
+
+        // Two-way merge loop
+        while (!state.m01rMasterInFileEof) {
+            state.deleteIndicator = null;
+            state.m01wMasterOutFileOutLine = null;
+
+            // Pass-through headers/trailers
+            if (isHeaderOrTrailer(state)) {
+                state.m01wMasterOutFileOutLine = state.m01rMasterInFileRawLine;
+                writeM01wMasterOutFileLine(state, state.m01wMasterOutFileOutLine);
+                readM01rMasterInFileFile(state);
+                continue;
+            }
+
+            // If transaction exhausted, copy master through
+            if (state.t01rCorporateFileEof || state.t01rCorporateFileRawLine == null) {
+                prepareOutputFromMaster(state);
+                writeM01wMasterOutFileLine(state, state.m01wMasterOutFileOutLine);
+                readM01rMasterInFileFile(state);
+                continue;
+            }
+
+            int cmp = compareKeys(state);
+
+            if (cmp == 0) {
+                // MATCH: set flag, advance both
+                setMatchFlag(state);
+                prepareOutputFromMaster(state);
+                writeM01wMasterOutFileLine(state, state.m01wMasterOutFileOutLine);
+                readM01rMasterInFileFile(state);
+                readT01rCorporateFileFile(state);
+            } else if (cmp < 0) {
+                // Master < Transaction: write master, advance master
+                prepareOutputFromMaster(state);
+                writeM01wMasterOutFileLine(state, state.m01wMasterOutFileOutLine);
+                readM01rMasterInFileFile(state);
+            } else {
+                // Master > Transaction: advance transaction
+                readT01rCorporateFileFile(state);
             }
         }
     }
 
+    private void endOfJob(ProgramState state) {
+        // TODO: Write trailers, final reports
+    }
 
-// END IO PLUMBING (Layer 3E)
+    // ======================================================
+    // HELPER METHODS
     // ======================================================
 
-    // BEGIN DOMAIN BINDING (Layer 3F)
-
-    // Auto-bound runtime domain binding (Layer 3F.2)
-    private void bindMasterRecord(MergeState state) {
-        state.masterRecord = com.fordcredit.misc1099.batch.bind.ReflectionDomainBinder.bind(
-                state.masterRawLine,
-                "com.fordcredit.misc1099.domain.copybook.C2INP001",
-                "com.fordcredit.misc1099.parser.C2INP001FieldSpecs"
-        );
+    private boolean isHeaderOrTrailer(ProgramState state) {
+        if (state.m01rMasterInFileRawLine == null) return false;
+        return state.m01rMasterInFileRawLine.startsWith("HDR") 
+            || state.m01rMasterInFileRawLine.startsWith("TRL")
+            || state.m01rMasterInFileRawLine.charAt(0) == '\u0000'
+            || state.m01rMasterInFileRawLine.charAt(0) == '\u00FF';
     }
 
-    private void bindCorporateRecord(MergeState state) {
-        state.corporateRecord = com.fordcredit.misc1099.batch.bind.ReflectionDomainBinder.bind(
-                state.corporateRawLine,
-                "com.fordcredit.misc1099.domain.copybook.C2INP003",
-                "com.fordcredit.misc1099.parser.C2INP003FieldSpecs"
-        );
+    private String masterKey(ProgramState state) {
+        if (state.m01rMasterInFileRawLine == null) return null;
+        // Extract key - customize based on record layout
+        String[] parts = state.m01rMasterInFileRawLine.split("\\|", -1);
+        return parts.length > 0 ? parts[0].trim() : null;
     }
 
-// END DOMAIN BINDING (Layer 3F)
+    private String transactionKey(ProgramState state) {
+        if (state.t01rCorporateFileRawLine == null) return null;
+        return state.t01rCorporateFileRawLine.trim();
+    }
+
+    private int compareKeys(ProgramState state) {
+        String mk = masterKey(state);
+        String tk = transactionKey(state);
+        if (mk == null && tk == null) return 0;
+        if (mk == null) return -1;
+        if (tk == null) return 1;
+        return mk.compareTo(tk);
+    }
+
+    private void setMatchFlag(ProgramState state) {
+        state.deleteIndicator = "M";
+    }
+
+    private void prepareOutputFromMaster(ProgramState state) {
+        state.m01wMasterOutFileOutLine = state.m01rMasterInFileRawLine;
+        if ("M".equals(state.deleteIndicator)) {
+            if (!state.m01wMasterOutFileOutLine.endsWith("|")) {
+                state.m01wMasterOutFileOutLine = state.m01wMasterOutFileOutLine + "|";
+            }
+            state.m01wMasterOutFileOutLine = state.m01wMasterOutFileOutLine + "M";
+        }
+    }
 }

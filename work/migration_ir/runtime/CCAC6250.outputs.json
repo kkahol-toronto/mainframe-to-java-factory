@@ -1,0 +1,9 @@
+{
+  "program": "CCAC6250",
+  "outputDir": "work/mainframe_clean/testcases/CCAC6250/output",
+  "outputs": {
+    "reject": "work/mainframe_clean/testcases/CCAC6250/output/reject.txt",
+    "master_out": "work/mainframe_clean/testcases/CCAC6250/output/master_out.txt",
+    "report": "work/mainframe_clean/testcases/CCAC6250/output/report.txt"
+  }
+}

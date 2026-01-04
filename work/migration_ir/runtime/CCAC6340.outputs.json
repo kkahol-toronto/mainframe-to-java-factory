@@ -2,7 +2,6 @@
   "program": "CCAC6340",
   "outputDir": "work/mainframe_clean/testcases/CCAC6340/output",
   "outputs": {
-    "master_out": "work/mainframe_clean/testcases/CCAC6340/output/master_out.txt",
-    "sysout": "work/mainframe_clean/testcases/CCAC6340/output/sysout.txt"
+    "master_out": "work/mainframe_clean/testcases/CCAC6340/output/master_out.txt"
   }
 }

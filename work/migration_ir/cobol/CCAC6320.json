@@ -1,241 +1,135 @@
 {
   "programId": "CCAC6320",
-  "purpose": "This program reads transaction data from multiple sources (Miscellaneous Input, B&CCW Issues, DEFT Issues, Reject Cycle, 1099 Entry Code Table, Control Card) and determines which transactions are 1099 reportable. Transactions passing edits are written to a transaction output file, while those failing edits or identified as foreign/excluded are written to separate files. Successfully edited transactions are passed downstream for master file updates.",
+  "purpose": "This program reads multiple transaction input sources, determines 1099 reportable transactions, and writes results to various output files based on edit criteria.",
   "files": [
     {
-      "name": "TEN99-T01R-MISC-TRANS-FILE",
-      "type": "input",
-      "record": "TEN99-T01R-MISC-FORM-RCD"
+      "selectName": "B&CCW ISSUES",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-T03R-BCCW-FILE",
-      "type": "input",
-      "record": "TEN99-T03R-BCCW-RCD"
+      "selectName": "1099 MISCELLANEOUS INPUT-FORM 20071",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-T04R-DEFT-FILE",
-      "type": "input",
-      "record": "TEN99-T04R-DEFT-RCD"
+      "selectName": "PREVIOUSLY REJECT TRANSACTIONS",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "INPUT"
     },
     {
-      "name": "TEN99-T05R-REJ-CYCLE-FILE",
-      "type": "input",
-      "record": "TEN99-T05R-REJ-CYCLE-RCD"
+      "selectName": "TRANSACTION RECORD",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "OUTPUT"
     },
     {
-      "name": "WS-T07R-1099ENTRY-CD-FILE",
-      "type": "input",
-      "record": "WS-T07R-1099ENTRY-CD-RCD"
+      "selectName": "REJECT FILE",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "OUTPUT"
     },
     {
-      "name": "CC-R01R-CONTROL-CARD",
-      "type": "input",
-      "record": "CC-R01R-CONTROL-CARD-REC"
+      "selectName": "SECOND REJECT FILE",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "OUTPUT"
     },
     {
-      "name": "TEN99-T01W-TRANS-OUTPUT-FILE",
-      "type": "output",
-      "record": "TEN99-T01W-TRANS-OUTPUT-RCD"
-    },
-    {
-      "name": "TEN99-T02W-REJ-CYCLE-OUT-FILE",
-      "type": "output",
-      "record": "TEN99-T02W-REJ-CYCLE-OUT-RCD"
-    },
-    {
-      "name": "TEN99-C01W-REJ-RPT-OUTPUT-FILE",
-      "type": "output",
-      "record": "TEN99-C01W-REJ-RPT-OUTPUT-RCD"
-    },
-    {
-      "name": "TEN99-T03W-FOREIGN-OUTPUT-FILE",
-      "type": "output",
-      "record": "TEN99-T03W-FOREIGN-OUTPUT-RCD"
-    },
-    {
-      "name": "TEN99-T04W-EXCLUDES-FILE",
-      "type": "output",
-      "record": "TEN99-T04W-EXCLUDES-RCD"
+      "selectName": "EXCLUDES FILE",
+      "fdName": "",
+      "recordPic": "",
+      "direction": "OUTPUT"
     }
   ],
-  "copybooks": [
-    "C2INX001",
-    "C2INX002",
-    "C2INX003",
-    "C2INZ001",
-    "C2INZ002",
-    "C2INZ003",
-    "C2INZ004",
-    "C2INZ005"
-  ],
+  "copybooks": [],
   "workingStorage": {
-    "flags": [
-      "ERROR-FLAG",
-      "TEN99-T01R-MISC-FORM-EOF",
-      "TEN99-T03R-BCCW-EOF",
-      "TEN99-T04R-DEFT-EOF",
-      "TEN99-T05R-REJ-CYCLE-EOF",
-      "END-OF-BCCW-DETAIL",
-      "END-OF-BCCW-HEADERS",
-      "END-OF-DEFT-DETAIL",
-      "END-OF-DEFT-HEADERS",
-      "EOF-CONTROL-CARD",
-      "EOF-1099ENTRY-TABLE",
-      "SW-BCCW-BUILD-COMPLETE",
-      "SW-DEFT-BUILD-COMPLETE",
-      "FOREIGN-INDICATOR",
-      "WS-US-IND",
-      "WS-CDN-IND"
-    ],
-    "counters": [
-      "WS-MISC-FORM-TRANS-COUNTER",
-      "WS-MISC-FORM-SEQ-CNT",
-      "WS-BCCW-TRANS-COUNTER",
-      "WS-BCCW-DIST-COUNTER",
-      "WS-BCCW-TRL-COUNTER",
-      "WS-DEFT-TRANS-COUNTER",
-      "WS-DEFT-DIST-COUNTER",
-      "WS-DEFT-TRL-COUNTER",
-      "WS-REJ-CYCLE-TRANS-COUNTER",
-      "WS-OUTPUT-TRANS-CNT",
-      "WS-FOR-TRANS-CNT",
-      "WS-REJ-TRANS-CNT",
-      "WS-EXCLUDES-TRANS-CNT",
-      "WS-TOTAL-OUTPUT-TRANS-CNT",
-      "WS-TOTAL-FOR-TRANS-CNT",
-      "WS-TOTAL-REJ-TRANS-CNT",
-      "WS-TOTAL-REJ-RPT-TRANS-CNT",
-      "WS-TOTAL-EXCLUDES-TRANS-CNT"
-    ],
-    "accumulators": [
-      "WS-MISC-FORM-TRANS-AMT-ACCUM",
-      "WS-BCCW-TRANS-AMT-ACCUM",
-      "WS-BCCW-DIST-AMT-ACCUM",
-      "WS-BCCW-TRL-AMT-ACCUM",
-      "WS-DEFT-TRANS-AMT-ACCUM",
-      "WS-DEFT-DIST-AMT-ACCUM",
-      "WS-DEFT-TRL-AMT-ACCUM",
-      "WS-TRANS-AMT-ACCUM",
-      "WS-REJ-CYCLE-TRANS-AMT-ACCUM",
-      "WS-OUTPUT-TRANS-AMT",
-      "WS-FOR-TRANS-AMT",
-      "WS-REJ-TRANS-AMT",
-      "WS-EXCLUDES-TRANS-AMT",
-      "WS-TOTAL-OUTPUT-TRANS-AMT",
-      "WS-TOTAL-FOR-TRANS-AMT",
-      "WS-TOTAL-REJ-TRANS-AMT",
-      "WS-TOTAL-REJ-RPT-TRANS-AMT",
-      "WS-TOTAL-EXCLUDES-TRANS-AMT"
-    ],
-    "keyFields": [
-      {
-        "name": "WS-BCCW-KEY",
-        "fields": [
-          "WS-BCCW-CHECK-NUM",
-          "WS-BCCW-TAX-TYPE",
-          "WS-BCCW-TIN-IND"
-        ]
-      },
-      {
-        "name": "WS-DEFT-KEY",
-        "fields": [
-          "WS-DEFT-BATCH-NUM",
-          "WS-DEFT-TAX-TYPE",
-          "WS-DEFT-TIN-IND"
-        ]
-      },
-      {
-        "name": "WS-T01W-REC-KEY",
-        "fields": [
-          "WS-T01W-CHECK-NUM-KEY",
-          "WS-T01W-TAX-TYPE",
-          "WS-T01W-TIN-IND"
-        ]
-      }
-    ]
+    "flags": [],
+    "counters": [],
+    "accumulators": [],
+    "keyFields": []
   },
   "controlFlow": {
-    "mainEntry": "0000-MAINLINE",
-    "termination": "9000-TERMINATION-ROUTINE",
-    "paragraphs": [
-      "1000-INITIALIZATION",
-      "1130-INCLUDE-SYSOUT-DISPLAY",
-      "3000-MAIN-PROCESS",
-      "3002-JAN-MONTH-PROCESSING",
-      "3004-FEB-DEC-MONTH-PROCESSING",
-      "3006-YEAR-END-PROCESSING",
-      "4000-MISC-FORM-VERIFY-PROCESS",
-      "4200-BCCW-VERIFY-PROCESS",
-      "4210-BCCW-VERIFY",
-      "4300-DEFT-VERIFY-PROCESS",
-      "4310-DEFT-VERIFY",
-      "4500-REJ-CYCLE-VERIFY-PROCESS",
-      "5000-MISC-FORM-PROCESS",
-      "5010-MISC-FORM-PROCESS-RCD",
-      "5020-MISC-FORM-EDIT",
-      "5030-MISC-FORM-WRITE-TRANS-RCD",
-      "5040-MISC-FORM-RESULTS-PROCESS",
-      "5200-BCCW-PROCESS",
-      "5210-BCCW-PROCESS-RCD",
-      "5215-BCCW-DIST-CNTL",
-      "5220-BCCW-EDIT",
-      "5230-BCCW-WRITE-TRANS-RCD",
-      "5240-BCCW-TRAILER-PROCESS",
-      "5250-BCCW-TRAILER-ACCUM",
-      "5400-DEFT-PROCESS",
-      "5410-DEFT-PROCESS-RCD",
-      "5415-DEFT-DIST-CNTL",
-      "5420-DEFT-EDIT",
-      "5430-DEFT-WRITE-TRANS-RCD",
-      "5440-DEFT-TRAILER-PROCESS",
-      "5450-DEFT-TRAILER-ACCUM",
-      "5500-REJ-CYCLE-PROCESS",
-      "5510-REJ-CYCLE-PROCESS-RCD",
-      "5520-REJ-CYCLE-EDIT",
-      "5540-REJ-CYCLE-TRAILER-PROCESS",
-      "6000-GENERAL-EDIT-PROCESS",
-      "6010-DOMESTIC-EDIT-PROCESS",
-      "6100-VERIFY-STATE-CODE",
-      "6200-VERIFY-PROV-CODE",
-      "6400-1099ENTRY-CODE-SEARCH",
-      "6500-INITIAL-OUTPUT-COUNT",
-      "6600-OUTPUT-BALANCING-PROCESS",
-      "7000-MISC-FORM-READ-RCD",
-      "7200-BCCW-READ-RCD",
-      "7300-DEFT-READ-RCD",
-      "7500-REJ-CYCLE-READ-RCD",
-      "7900-READ-CONTROL-CARD-IN",
-      "7910-READ-1099ENTRY-TABLE",
-      "8000-WRITE-HEADERS",
-      "8010-WRITE-TRANS-RCD",
-      "8020-WRITE-REJECT-TRANS-RCD",
-      "8030-WRITE-REJECT-REPORT-RCD",
-      "8040-WRITE-FOR-TRANS-RCD",
-      "8050-WRITE-EXCLUDES-RCD",
-      "8999-WRITE-SYSOUT",
-      "9010-ENDING-SYSOUT-MESSAGES",
-      "9998-COREDUMP",
-      "9999-CLOSE-FILES"
-    ],
-    "errorExits": [
-      "9998-COREDUMP"
-    ]
+    "mainEntry": "",
+    "termination": "",
+    "paragraphs": [],
+    "errorExits": []
   },
   "patterns": {
     "isTwoWayMerge": false,
-    "isGroupSummarize": true,
-    "isMasterUpdateMerge": true,
-    "isFormatterHeadersTrailers": true,
-    "isLookupEnrichment": true,
+    "isGroupSummarize": false,
+    "isMultiInput": true,
     "notes": [
-      "Program reads multiple input files, verifies headers, processes details, and writes to multiple output files based on edit results.",
-      "Group summarization occurs for transactions with the same key (e.g., check number, tax type, TIN).",
-      "Master update merge is implied by passing successfully edited transactions downstream for master file update.",
-      "Formatter pattern is present: headers and trailers are written for all output files.",
-      "Lookup enrichment is present: 1099 Entry Code Table is used to determine reportable transactions.",
-      "Foreign transactions (Canadian, Puerto Rico) are identified and written to separate files.",
-      "Excludes file is used for transactions without SSN or with zero 1099 amount.",
-      "Rejects and error handling are robust, with error flags and abend routines."
+      "Processes multiple input sources and routes transactions to different outputs based on edit results.",
+      "Handles 1099 reporting logic and separates foreign and rejected transactions.",
+      "Some input sources and logic have been removed or renamed over time."
     ]
-  }
+  },
+  "detectedPattern": "MULTI_INPUT",
+  "fileRoles": [
+    {
+      "name": "TEN99-T01R-MISC-TRANS-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 320
+    },
+    {
+      "name": "TEN99-T03R-BCCW-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 320
+    },
+    {
+      "name": "TEN99-T04R-DEFT-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 320
+    },
+    {
+      "name": "TEN99-T05R-REJ-CYCLE-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 526
+    },
+    {
+      "name": "WS-T07R-1099ENTRY-CD-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 80
+    },
+    {
+      "name": "TEN99-T01W-TRANS-OUTPUT-FILE",
+      "role": "TRANSACTION_INPUT",
+      "recordLength": 450
+    },
+    {
+      "name": "TEN99-T02W-REJ-CYCLE-OUT-FILE",
+      "role": "REJECT_OUTPUT",
+      "recordLength": 526
+    },
+    {
+      "name": "TEN99-C01W-REJ-RPT-OUTPUT-FILE",
+      "role": "REPORT_OUTPUT",
+      "recordLength": 425
+    },
+    {
+      "name": "TEN99-T03W-FOREIGN-OUTPUT-FILE",
+      "role": "UNKNOWN",
+      "recordLength": 450
+    },
+    {
+      "name": "TEN99-T04W-EXCLUDES-FILE",
+      "role": "UNKNOWN",
+      "recordLength": 450
+    },
+    {
+      "name": "CC-R01R-CONTROL-CARD",
+      "role": "CONTROL_INPUT",
+      "recordLength": 80
+    }
+  ],
+  "hasHeadersTrailers": true,
+  "keyFields": [
+    "SSN",
+    "KEYS",
+    "KEY"
+  ]
 }

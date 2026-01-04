@@ -153,30 +153,51 @@ def ensure_anchors(java: str) -> str:
 # ---------------------------------------------------------------------
 
 def ensure_merge_state(java: str) -> str:
-    m = re.search(r"static\\s+class\\s+MergeState\\s*\\{", java)
+    m = re.search(r"static\s+class\s+MergeState\s*\{", java)
     if not m:
         return java
 
     brace_start = java.find("{", m.start())
     depth = 0
-
     for i in range(brace_start, len(java)):
         if java[i] == "{":
             depth += 1
         elif java[i] == "}":
             depth -= 1
             if depth == 0:
-                block = java[brace_start:i]
-                if "masterReader" in block:
-                    return java  # already patched safely
+                end = i
+                block = java[brace_start:end]
+
+                # Inject ONLY missing fields
+                additions = []
+                if "masterReader" not in block:
+                    additions.append(
+                        "        org.springframework.batch.item.ItemStreamReader<String> masterReader;\n"
+                        "        org.springframework.batch.item.ItemStreamReader<String> corporateReader;\n"
+                        "        org.springframework.batch.item.ItemStreamWriter<String> masterWriter;\n"
+                        "        org.springframework.batch.item.ItemStreamWriter<String> sysoutWriter;\n\n"
+                        "        org.springframework.batch.item.ExecutionContext executionContext =\n"
+                        "                new org.springframework.batch.item.ExecutionContext();\n\n"
+                        "        boolean masterEof = false;\n"
+                        "        boolean corporateEof = false;\n\n"
+                        "        String masterRawLine;\n"
+                        "        String corporateRawLine;\n"
+                        "        String masterOutLine;\n"
+                        "        String sysoutLine;\n"
+                    )
+
+                if not additions:
+                    return java
 
                 return (
                     java[:brace_start + 1]
                     + "\n"
-                    + MERGE_STATE_STUBS
+                    + "".join(additions)
                     + java[brace_start + 1:]
                 )
+
     return java
+
 
 
 # ---------------------------------------------------------------------
