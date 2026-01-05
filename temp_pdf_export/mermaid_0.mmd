@@ -1,0 +1,61 @@
+graph TB
+    subgraph Input["📥 INPUT: Mainframe Artifacts"]
+        COBOL[COBOL Source Files]
+        COPYBOOKS[COBOL Copybooks]
+        JCL[JCL Job Definitions]
+    end
+
+    subgraph Layer0["🔧 LAYER 0: Cleaning & Normalization"]
+        CLEAN[Clean & Normalize]
+        DOSSIER[Generate Program Dossiers]
+    end
+
+    subgraph LLMLayers["🤖 LLM-Powered Layers"]
+        L1[Layer 1: Copybooks → POJOs<br/>Azure OpenAI]
+        L15[Layer 1.5: FieldSpecs<br/>Azure OpenAI]
+        L2[Layer 2: JCL → Spring Batch<br/>Azure OpenAI]
+        L3A[Layer 3A: COBOL → IR<br/>Pattern Detection<br/>Azure OpenAI]
+    end
+
+    subgraph TemplateLayers["📋 Template-Based Layers"]
+        L3B[Layer 3B: Tasklet Skeleton<br/>Pattern Templates]
+        L4[Layer 4: Business Logic<br/>Merge/Summarize Loops]
+    end
+
+    subgraph PostProcess["🔨 POST-PROCESSING"]
+        POST[Automatic Fixes<br/>File I/O, Types, Structure]
+    end
+
+    subgraph Output["📤 OUTPUT: Spring Boot Application"]
+        TASKLETS[Java Tasklets]
+        CONFIGS[Spring Batch Configs]
+        POJOS[Domain POJOs]
+        RUNNERS[Test Runners]
+    end
+
+    COBOL --> CLEAN
+    COPYBOOKS --> CLEAN
+    JCL --> CLEAN
+    CLEAN --> DOSSIER
+    DOSSIER --> L1
+    DOSSIER --> L15
+    JCL --> L2
+    
+    L1 --> L3A
+    L15 --> L3A
+    L2 --> L3B
+    L3A --> L3B
+    L3B --> L4
+    L4 --> POST
+    
+    POST --> TASKLETS
+    POST --> CONFIGS
+    L1 --> POJOS
+    L2 --> CONFIGS
+    TASKLETS --> RUNNERS
+
+    style LLMLayers fill:#e1f5ff
+    style TemplateLayers fill:#fff4e1
+    style PostProcess fill:#e8f5e9
+    style Input fill:#f3e5f5
+    style Output fill:#e8f5e9

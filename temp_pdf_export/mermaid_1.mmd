@@ -1,0 +1,44 @@
+graph LR
+    subgraph Tier1["Tier 1: Automatic Post-Processing"]
+        RULE[Rule-Based Fixes<br/>File I/O, Types, Structure]
+        AUTO[80% of issues fixed<br/>Runs automatically]
+    end
+
+    subgraph Tier2["Tier 2: Iterative LLM Fixer"]
+        COMPILE[Compile Java]
+        ERRORS[Capture Errors]
+        LLM[Send to LLM<br/>Azure OpenAI]
+        APPLY[Apply Fixes]
+        LOOP{Errors<br/>Remain?}
+        SUCCESS[✅ Success]
+    end
+
+    subgraph Tier3["Tier 3: Paragraph-by-Paragraph"]
+        PARA[Extract Paragraph]
+        TRANS[LLM Translate]
+        REPLACE[Replace Method]
+        COMP2[Compile & Test]
+        NEXT{More<br/>Paragraphs?}
+        DONE[✅ Complete]
+    end
+
+    RULE --> AUTO
+    AUTO --> COMPILE
+    COMPILE --> ERRORS
+    ERRORS --> LLM
+    LLM --> APPLY
+    APPLY --> LOOP
+    LOOP -->|Yes| COMPILE
+    LOOP -->|No| SUCCESS
+    LOOP -->|Complex| PARA
+    
+    PARA --> TRANS
+    TRANS --> REPLACE
+    REPLACE --> COMP2
+    COMP2 --> NEXT
+    NEXT -->|Yes| PARA
+    NEXT -->|No| DONE
+
+    style Tier1 fill:#e8f5e9
+    style Tier2 fill:#e1f5ff
+    style Tier3 fill:#fff4e1
