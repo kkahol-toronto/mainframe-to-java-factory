@@ -172,22 +172,158 @@ python cobol_to_springboot.py --program CCAC6340 --test
 python cobol_to_springboot.py --list
 ```
 
-## Running Generated Java Code
+## Running Generated Java Programs
 
-### Compile and Run a Specific Program
+### Prerequisites
+
+1. **Compile the project first:**
+   ```bash
+   cd misc-1099
+   ./mvnw compile
+   ```
+
+2. **Prepare test data** (if not already present):
+   ```bash
+   # Test data should be in:
+   work/mainframe_clean/testcases/<PROGRAM_NAME>/input/
+   ```
+
+### Running a Program
+
+Each converted COBOL program has a corresponding Runner class. Use one of these methods:
+
+#### Method 1: Using Maven Exec Plugin (Recommended)
 
 ```bash
 cd misc-1099
-./mvnw compile exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6340Runner"
+
+# Run CCAC6320
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6320Runner"
+
+# Run CCAC6340
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6340Runner"
+
+# Run CCAC6310
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6310Runner"
+
+# Run CCAC6330
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6330Runner"
+
+# Run CCAC6350
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6350Runner"
+
+# Run CCAC6250
+./mvnw exec:java -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6250Runner"
 ```
 
-### Run Tests (Compare Output vs Expected)
+#### Method 2: Using Java Directly (After Compilation)
 
 ```bash
-# After running a program, compare output
-diff ../work/mainframe_clean/testcases/CCAC6340/output/master_out.txt \
-     ../work/mainframe_clean/testcases/CCAC6340/expected/master_out.txt
+cd misc-1099
+
+# Compile first
+./mvnw compile
+
+# Run using java command
+java -cp target/classes:$(./mvnw dependency:build-classpath -q -DincludeScope=compile) \
+     com.fordcredit.misc1099.batch.runner.CCAC6320Runner
 ```
+
+#### Method 3: With Custom Test Data Path
+
+Some runners accept a custom path as the first argument:
+
+```bash
+cd misc-1099
+
+# Run with custom test data path
+./mvnw exec:java \
+  -Dexec.mainClass="com.fordcredit.misc1099.batch.runner.CCAC6320Runner" \
+  -Dexec.args="../custom/testcases/CCAC6320"
+```
+
+### Available Programs
+
+| Program | Runner Class | Test Data Path |
+|---------|--------------|----------------|
+| CCAC6250 | `CCAC6250Runner` | `work/mainframe_clean/testcases/CCAC6250` |
+| CCAC6310 | `CCAC6310Runner` | `work/mainframe_clean/testcases/CCAC6310` |
+| CCAC6320 | `CCAC6320Runner` | `work/mainframe_clean/testcases/CCAC6320` |
+| CCAC6330 | `CCAC6330Runner` | `work/mainframe_clean/testcases/CCAC6330` |
+| CCAC6340 | `CCAC6340Runner` | `work/mainframe_clean/testcases/CCAC6340` |
+| CCAC6350 | `CCAC6350Runner` | `work/mainframe_clean/testcases/CCAC6350` |
+
+### Understanding the Output
+
+1. **Console Output:**
+   - Success: `✔ CCAC6320Tasklet completed successfully`
+   - Failure: `✘ CCAC6320Tasklet failed: <error message>`
+
+2. **Output Files:**
+   - Generated files are written to: `work/mainframe_clean/testcases/<PROGRAM>/output/`
+   - Compare with expected: `work/mainframe_clean/testcases/<PROGRAM>/expected/`
+
+3. **Example Output Structure:**
+   ```
+   work/mainframe_clean/testcases/CCAC6320/
+   ├── input/
+   │   ├── ten99T01rMiscTransFile.txt
+   │   ├── control.txt
+   │   └── ...
+   ├── output/
+   │   ├── ten99T01wTransOutputFile.txt
+   │   ├── ten99T02wRejCycleOutFile.txt
+   │   └── ...
+   └── expected/
+       ├── ten99T01wTransOutputFile.txt
+       └── ...
+   ```
+
+### Verifying Results
+
+```bash
+# Compare output with expected results
+cd work/mainframe_clean/testcases/CCAC6320
+
+# Compare a specific output file
+diff output/ten99T01wTransOutputFile.txt expected/ten99T01wTransOutputFile.txt
+
+# Compare all output files
+for file in output/*; do
+    filename=$(basename "$file")
+    echo "Comparing $filename..."
+    diff "$file" "expected/$filename" || echo "  ✗ Differences found in $filename"
+done
+```
+
+### Troubleshooting Java Execution
+
+#### "ClassNotFoundException" or "NoClassDefFoundError"
+
+```bash
+# Make sure you compiled first
+cd misc-1099
+./mvnw clean compile
+```
+
+#### "FileNotFoundException" or "Input file not found"
+
+- Check that test data exists in the expected location
+- Verify the path: `work/mainframe_clean/testcases/<PROGRAM>/input/`
+- Some programs require specific input files (check the program's documentation)
+
+#### "RuntimeException: COBOL STOP RUN triggered"
+
+- This indicates the program encountered an error condition
+- Check the console output for error messages
+- Verify input data format matches COBOL record layouts
+- Check that required input files are present
+
+#### Program runs but produces no output
+
+- Check that output directory exists and is writable
+- Verify file permissions: `chmod -R u+w work/mainframe_clean/testcases/<PROGRAM>/output/`
+- Check console for error messages
 
 ## Adding a New COBOL Program
 

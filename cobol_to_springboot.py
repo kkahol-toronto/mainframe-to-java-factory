@@ -889,6 +889,16 @@ class Layer3B_TaskletSkeleton(Layer):
         out_path.write_text(java_code, encoding="utf-8")
         print(f"  → {out_path}")
         
+        # Post-process to fix common compilation issues
+        try:
+            from post_process_java import JavaPostProcessor
+            processor = JavaPostProcessor()
+            processed_code = processor.process(java_code)
+            out_path.write_text(processed_code, encoding="utf-8")
+            print(f"  → Post-processed (fixed I/O, types, etc.)")
+        except Exception as e:
+            print(f"  ⚠ Post-processing failed: {e}")
+        
         print(f"\n✔ {self.name} complete\n")
     
     def _render_skeleton(self, program_id: str, analysis: ProgramAnalysis) -> str:
