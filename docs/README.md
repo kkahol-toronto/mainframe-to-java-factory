@@ -4,22 +4,6 @@ This folder contains documentation for the COBOL to Java migration project.
 
 ## Main Documents
 
-### 📧 [ENGINEER_HANDOFF_EMAIL.pdf](./ENGINEER_HANDOFF_EMAIL.pdf)
-**Purpose:** Comprehensive email for engineering team handoff (PDF format for Gmail)  
-**Contents:**
-- Executive summary of accomplishments
-- Conversion approach (Hybrid LLM + Template)
-- Iterative refinement system (three-tier)
-- Technical details and architecture
-- Testing requirements
-- Next steps
-
-**Use:** Attach PDF to email and send to engineering team for testing and handoff
-
-**Note:** The markdown source is not kept in the repo as it's meant for email use only. The PDF is kept for easy attachment to emails.
-
----
-
 ### 📊 [MIGRATION_STATUS.md](./MIGRATION_STATUS.md)
 **Purpose:** Current status of all converted programs  
 **Contents:**
@@ -56,13 +40,6 @@ This folder contains documentation for the COBOL to Java migration project.
 
 ---
 
-## Obsolete Documents
-
-The following documents are kept for historical reference but may contain outdated information:
-
-- `APPROACH_EMAIL.md` - Older version, superseded by ENGINEER_HANDOFF_EMAIL.md
-- `MIGRATION_STRATEGY.md` - Early strategy document, information now in other docs
-
 ---
 
 ## Quick Links
@@ -78,10 +55,7 @@ The following documents are kept for historical reference but may contain outdat
 
 | Document | Status | Last Updated |
 |----------|--------|--------------|
-| ENGINEER_HANDOFF_EMAIL.pdf | ✅ Current | January 2025 |
 | MIGRATION_STATUS.md | ✅ Current | January 2025 |
 | PIPELINE_FIXES.md | ✅ Current | January 2025 |
 | JCL_TO_JAVA_EXPLANATION.md | ✅ Current | January 2025 |
-| APPROACH_EMAIL.md.old | ⚠️ Superseded | (Historical) |
-| MIGRATION_STRATEGY.md.old | ⚠️ Superseded | (Historical) |
 
