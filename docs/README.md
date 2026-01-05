@@ -16,7 +16,7 @@ This folder contains documentation for the COBOL to Java migration project.
 
 **Use:** Attach PDF to email and send to engineering team for testing and handoff
 
-**Note:** The markdown source is not kept in the repo as it's meant for email use only.
+**Note:** The markdown source is not kept in the repo as it's meant for email use only. The PDF is kept for easy attachment to emails.
 
 ---
 
